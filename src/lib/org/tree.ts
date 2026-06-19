@@ -116,13 +116,14 @@ export function validateOrg(entities: readonly Entity[]): OrgValidationResult {
 
   const cycleReported = new Set<string>();
   const stack: string[] = [];
-  const visit = (id: string): boolean => {
+  const visit = (id: string): void => {
     color.set(id, GRAY);
     stack.push(id);
     for (const child of childrenOf.get(id) ?? []) {
       const c = color.get(child);
       if (c === GRAY) {
-        // Found a back-edge: extract the cycle from the stack.
+        // Found a back-edge: extract the cycle from the stack. Record it but
+        // keep scanning so DFS state is always unwound cleanly below.
         const start = stack.indexOf(child);
         const cycle = stack.slice(start);
         const key = [...cycle].sort().join(",");
@@ -134,13 +135,12 @@ export function validateOrg(entities: readonly Entity[]): OrgValidationResult {
             entityIds: cycle,
           });
         }
-        return true;
+        continue;
       }
       if (c === WHITE) visit(child);
     }
     stack.pop();
     color.set(id, BLACK);
-    return false;
   };
 
   for (const e of entities) {

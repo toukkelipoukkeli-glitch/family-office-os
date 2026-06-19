@@ -15,12 +15,14 @@ export function formatNav(nav: MoneyValue | undefined): string | null {
   if (!nav) return null;
   const money = Money.of(nav.amount, nav.currency);
   if (money.isZero()) return null;
-  const n = money.amount.toNumber();
-  const abs = Math.abs(n);
+  // Keep currency math in Decimal; only stringify at the very end so large or
+  // precise NAVs are never distorted by float division (AGENTS.md money rule).
+  const n = money.amount;
+  const abs = n.abs();
   let compact: string;
-  if (abs >= 1_000_000_000) compact = `${(n / 1_000_000_000).toFixed(1)}B`;
-  else if (abs >= 1_000_000) compact = `${(n / 1_000_000).toFixed(1)}M`;
-  else if (abs >= 1_000) compact = `${(n / 1_000).toFixed(0)}K`;
+  if (abs.gte(1_000_000_000)) compact = `${n.div(1_000_000_000).toFixed(1)}B`;
+  else if (abs.gte(1_000_000)) compact = `${n.div(1_000_000).toFixed(1)}M`;
+  else if (abs.gte(1_000)) compact = `${n.div(1_000).toFixed(0)}K`;
   else compact = n.toFixed(0);
   // Strip trailing ".0" introduced by toFixed(1).
   compact = compact.replace(/\.0([BMK])$/, "$1");

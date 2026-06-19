@@ -9,6 +9,10 @@ const EVIDENCE_DIR = join(here, "evidence", "m5-orgchart");
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
 
+// Trace capture is required evidence for UI PRs; pin it at the file level so it
+// holds independently of the shared playwright.config.ts `use` block.
+test.use({ trace: "on" });
+
 test.describe("org hierarchy", () => {
   test("navigates from the dashboard to the org chart and back", async ({
     page,

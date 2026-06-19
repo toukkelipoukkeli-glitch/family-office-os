@@ -40,7 +40,7 @@ export function OrgTree({
   return (
     <div className={cn("w-full overflow-x-auto", className)} data-testid="org-tree">
       <svg
-        role="img"
+        role="group"
         aria-label="Subsidiary ownership tree"
         viewBox={`0 0 ${layout.width} ${layout.height}`}
         width={layout.width}
@@ -119,18 +119,22 @@ function OrgNodeBox({ ln, selected, onSelect }: OrgNodeBoxProps) {
       data-kind={entity.kind}
       data-selected={selected ? "true" : "false"}
       transform={`translate(${x}, ${ln.y})`}
-      onClick={() => onSelect?.(entity.id)}
+      onClick={onSelect ? () => onSelect(entity.id) : undefined}
       className={onSelect ? "cursor-pointer" : undefined}
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      aria-pressed={onSelect ? selected : undefined}
       aria-label={`${entity.name}, ${entityKindLabel(entity.kind)}`}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect?.(entity.id);
-        }
-      }}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(entity.id);
+              }
+            }
+          : undefined
+      }
     >
       <rect
         width={ln.width}

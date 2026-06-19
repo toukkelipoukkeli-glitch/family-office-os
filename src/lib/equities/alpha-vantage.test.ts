@@ -133,6 +133,81 @@ describe("parseGlobalQuote", () => {
     expect(q.change.equals(Money.of("-1.48", "USD"))).toBe(true);
     expect(q.changePercent).toBe("-0.5611");
   });
+
+  it("tolerates a change percent with surrounding whitespace", () => {
+    const padded = {
+      "Global Quote": {
+        ...(alphaVantageFixtures.globalQuote["Global Quote"] as Record<
+          string,
+          string
+        >),
+        "10. change percent": "  0.5611%  ",
+      },
+    };
+    expect(parseGlobalQuote(padded).changePercent).toBe("0.5611");
+  });
+
+  it("throws `malformed` on a change percent that is not a number", () => {
+    const broken = {
+      "Global Quote": {
+        ...(alphaVantageFixtures.globalQuote["Global Quote"] as Record<
+          string,
+          string
+        >),
+        "10. change percent": "n/a%",
+      },
+    };
+    try {
+      parseGlobalQuote(broken);
+      throw new Error("expected throw");
+    } catch (e) {
+      expect(e).toBeInstanceOf(AlphaVantageError);
+      expect((e as AlphaVantageError).kind).toBe("malformed");
+    }
+  });
+
+  it("throws `malformed` when the latest trading day is not a real date", () => {
+    const broken = {
+      "Global Quote": {
+        ...(alphaVantageFixtures.globalQuote["Global Quote"] as Record<
+          string,
+          string
+        >),
+        "07. latest trading day": "2026-02-30",
+      },
+    };
+    expect(() => parseGlobalQuote(broken)).toThrowError(AlphaVantageError);
+  });
+
+  it("rejects a negative price string (regex requires non-negative)", () => {
+    const broken = {
+      "Global Quote": {
+        ...(alphaVantageFixtures.globalQuote["Global Quote"] as Record<
+          string,
+          string
+        >),
+        "05. price": "-1.00",
+      },
+    };
+    try {
+      parseGlobalQuote(broken);
+      throw new Error("expected throw");
+    } catch (e) {
+      expect((e as AlphaVantageError).kind).toBe("malformed");
+    }
+  });
+
+  it("throws `malformed` when the Global Quote envelope is an array", () => {
+    // An array is `typeof === "object"` and non-empty, so it reaches schema
+    // validation, which must reject it rather than silently coercing.
+    try {
+      parseGlobalQuote({ "Global Quote": ["nope"] });
+      throw new Error("expected throw");
+    } catch (e) {
+      expect(e).toBeInstanceOf(AlphaVantageError);
+      expect((e as AlphaVantageError).kind).toBe("malformed");
+    }
+  });
 });
 
 describe("parseDailySeries", () => {
@@ -220,6 +295,90 @@ describe("parseDailySeries", () => {
     const s = parseDailySeries(withTime);
     expect(s.lastRefreshed).toBe("2026-06-18");
   });
+
+  it("falls back to US/Eastern when the time zone is absent", () => {
+    const fixture = alphaVantageFixtures.timeSeriesDaily as {
+      "Meta Data": Record<string, string>;
+      "Time Series (Daily)": Record<string, unknown>;
+    };
+    const meta = { ...fixture["Meta Data"] };
+    delete meta["5. Time Zone"];
+    const s = parseDailySeries({
+      "Meta Data": meta,
+      "Time Series (Daily)": fixture["Time Series (Daily)"],
+    });
+    expect(s.timeZone).toBe("US/Eastern");
+  });
+
+  it("throws `malformed` (not a raw ZodError) on a bad Last Refreshed", () => {
+    const fixture = alphaVantageFixtures.timeSeriesDaily as {
+      "Meta Data": Record<string, string>;
+      "Time Series (Daily)": Record<string, unknown>;
+    };
+    const bad = {
+      "Meta Data": {
+        ...fixture["Meta Data"],
+        "3. Last Refreshed": "not-a-date",
+      },
+      "Time Series (Daily)": fixture["Time Series (Daily)"],
+    };
+    try {
+      parseDailySeries(bad);
+      throw new Error("expected throw");
+    } catch (e) {
+      expect(e).toBeInstanceOf(AlphaVantageError);
+      expect((e as AlphaVantageError).kind).toBe("malformed");
+    }
+  });
+
+  it("throws `malformed` when a bar key is not a real date", () => {
+    const fixture = alphaVantageFixtures.timeSeriesDaily as {
+      "Meta Data": Record<string, string>;
+      "Time Series (Daily)": Record<string, unknown>;
+    };
+    const bad = {
+      "Meta Data": fixture["Meta Data"],
+      "Time Series (Daily)": {
+        "not-a-date": fixture["Time Series (Daily)"]["2026-06-18"],
+      },
+    };
+    try {
+      parseDailySeries(bad);
+      throw new Error("expected throw");
+    } catch (e) {
+      expect(e).toBeInstanceOf(AlphaVantageError);
+      expect((e as AlphaVantageError).kind).toBe("malformed");
+    }
+  });
+
+  it("throws `malformed` when a bar is missing a required field", () => {
+    const fixture = alphaVantageFixtures.timeSeriesDaily as {
+      "Meta Data": Record<string, string>;
+      "Time Series (Daily)": Record<string, Record<string, string>>;
+    };
+    const firstBar = { ...fixture["Time Series (Daily)"]["2026-06-18"] };
+    delete firstBar["4. close"];
+    const bad = {
+      "Meta Data": fixture["Meta Data"],
+      "Time Series (Daily)": { "2026-06-18": firstBar },
+    };
+    try {
+      parseDailySeries(bad);
+      throw new Error("expected throw");
+    } catch (e) {
+      expect((e as AlphaVantageError).kind).toBe("malformed");
+    }
+  });
+
+  it("honors a caller-supplied currency on every bar", () => {
+    const s = parseDailySeries(alphaVantageFixtures.timeSeriesDaily, {
+      currency: "gbp",
+    });
+    expect(s.currency).toBe("GBP");
+    for (const bar of s.bars) {
+      expect(bar.close.currency).toBe("GBP");
+    }
+  });
 });
 
 describe("buildRequestUrl", () => {
@@ -266,6 +425,30 @@ describe("buildRequestUrl", () => {
     expect(() =>
       buildRequestUrl({ function: "GLOBAL_QUOTE", symbol: "IBM", apiKey: " " }),
     ).toThrow();
+  });
+
+  it("honors a custom base URL", () => {
+    const url = buildRequestUrl({
+      function: "GLOBAL_QUOTE",
+      symbol: "IBM",
+      apiKey: "DEMO",
+      baseUrl: "https://proxy.example.com/av",
+    });
+    const parsed = new URL(url);
+    expect(parsed.origin + parsed.pathname).toBe(
+      "https://proxy.example.com/av",
+    );
+    expect(parsed.searchParams.get("symbol")).toBe("IBM");
+  });
+
+  it("URL-encodes symbols with special characters", () => {
+    const url = buildRequestUrl({
+      function: "GLOBAL_QUOTE",
+      symbol: "brk.b",
+      apiKey: "DEMO",
+    });
+    // The decoded param round-trips to the uppercased symbol.
+    expect(new URL(url).searchParams.get("symbol")).toBe("BRK.B");
   });
 });
 

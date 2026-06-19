@@ -273,7 +273,14 @@ export function parseDailySeries(
     throw new AlphaVantageError("malformed", "`Meta Data` was incomplete");
   }
   // `Last Refreshed` can be a date or a full datetime; keep the date part.
-  const lastRefreshed = IsoDate.parse(lastRefreshedRaw.slice(0, 10));
+  const lastRefreshedParsed = IsoDate.safeParse(lastRefreshedRaw.slice(0, 10));
+  if (!lastRefreshedParsed.success) {
+    throw new AlphaVantageError(
+      "malformed",
+      `\`Last Refreshed\` is not an ISO date: ${JSON.stringify(lastRefreshedRaw)}`,
+    );
+  }
+  const lastRefreshed = lastRefreshedParsed.data;
 
   const entries = Object.entries(series as Record<string, unknown>);
   if (entries.length === 0) {
@@ -285,7 +292,14 @@ export function parseDailySeries(
 
   const money = (amount: string) => Money.of(amount, currency);
   const bars: DailyBar[] = entries.map(([date, raw]) => {
-    const d = IsoDate.parse(date);
+    const parsedDate = IsoDate.safeParse(date);
+    if (!parsedDate.success) {
+      throw new AlphaVantageError(
+        "malformed",
+        `daily bar key ${JSON.stringify(date)} is not an ISO date`,
+      );
+    }
+    const d = parsedDate.data;
     const parsed = RawDailyBar.safeParse(raw);
     if (!parsed.success) {
       throw new AlphaVantageError(

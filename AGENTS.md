@@ -35,6 +35,41 @@ it is not ready to merge — flag it for a human instead of guessing.
   4. No merge conflicts with `main`.
 - When 1–4 hold and the review bots have gone quiet, auto-merge is allowed.
 
+## UI testing standard
+
+Any PR that changes the UI must pass a **human-style visual QA gate** — not just
+DOM assertions.
+
+**Playwright is the REQUIRED gate for UI PRs.** The test must:
+- click through the core workflow, type realistic data, and exercise navigation;
+- capture screenshots at **both** a desktop viewport (1280×800) **and** a mobile
+  viewport (390×844);
+- record a Playwright **trace** as evidence.
+
+**Vision check — judge it like a human.** After capturing, the worker must
+**read the screenshots back with vision** and judge them as a person would: is it
+actually rendered? laid out correctly? are the charts drawn? nothing blank,
+clipped, or overflowing? readable on mobile? — rather than trusting DOM
+assertions alone. Save the screenshots as PR evidence and link their paths in the
+PR body.
+
+**Merge gate for UI PRs:** a UI PR may merge only if the vision check passes and
+the screenshots look correct — **in addition to** the normal green CI +
+CodeRabbit + Greptile review.
+
+**Real Computer Use / signed-in Chrome (@Computer / @Chrome) is NOT a per-PR
+gate — on purpose.** There is a single shared screen and a single signed-in
+desktop session. If every UI PR had to drive it, the parallel build would
+serialize: each worker would queue behind the others for the one screen, and the
+loop would stall to a crawl. So real Computer Use is used only **out-of-band,
+serialized, one at a time**, for the cases that genuinely need a real GUI,
+signed-in state, or browser-extension behavior. Concretely, a single serialized
+Computer-Use/Chrome sweep runs once at the **end of each generation** (after QA,
+before ideation), and only when those MCPs are connected and the screen is
+available; if they are disconnected it is skipped and logged. Headless Playwright
++ the vision check is what *every* UI PR gets; real Computer Use is the heavier,
+scarce-resource pass reserved for the end-of-generation walkthrough.
+
 ## Commands
 
 ```sh

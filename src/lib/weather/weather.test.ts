@@ -180,6 +180,29 @@ describe("normalizeDaily", () => {
       }),
     ).toThrow();
   });
+
+  it("yields an empty series for an empty time array", () => {
+    const series = normalizeDaily({
+      latitude: 1,
+      longitude: 2,
+      daily: { time: [] },
+    })!;
+    expect(series).not.toBeNull();
+    expect(series.days).toEqual([]);
+    expect(series.point).toEqual({ latitude: 1, longitude: 2 });
+  });
+
+  it("rejects an out-of-range coordinate in the response envelope", () => {
+    // GeoPoint enforcement happens on the normalized point, so an upstream
+    // latitude beyond +/-90 must surface as a validation error, not silently pass.
+    expect(() =>
+      normalizeDaily({
+        latitude: 200,
+        longitude: 2,
+        daily: { time: ["2026-01-01"], temperature_2m_max: [5] },
+      }),
+    ).toThrow();
+  });
 });
 
 /* ================================================================== */
@@ -218,6 +241,16 @@ describe("forecastUrl", () => {
     expect(() =>
       forecastUrl({ latitude: 0, longitude: 0, forecastDays: 99 }),
     ).toThrow();
+  });
+
+  it("builds a bare coordinate URL when both current and daily are off", () => {
+    const u = new URL(
+      forecastUrl({ latitude: 0, longitude: 0, current: false, daily: false }),
+    );
+    expect(u.searchParams.has("current")).toBe(false);
+    expect(u.searchParams.has("daily")).toBe(false);
+    expect(u.searchParams.get("latitude")).toBe("0");
+    expect(u.searchParams.get("timezone")).toBe("auto");
   });
 
   it("ForecastQuery applies defaults", () => {
@@ -288,6 +321,33 @@ describe("normalizeSeries", () => {
 
   it("throws on a structurally invalid response", () => {
     expect(() => normalizeSeries({ not: "a tuple" })).toThrow();
+  });
+
+  it("parseYear: leaves non-year periods (e.g. monthly) unparsed and sorts them lexicographically", () => {
+    const series = normalizeSeries([
+      { page: 1, pages: 1, per_page: 50, total: 2 },
+      [
+        {
+          indicator: { id: "X", value: "X" },
+          country: { id: "FI", value: "Finland" },
+          countryiso3code: "FIN",
+          date: "2022M03",
+          value: 3,
+        },
+        {
+          indicator: { id: "X", value: "X" },
+          country: { id: "FI", value: "Finland" },
+          countryiso3code: "FIN",
+          date: "2022M01",
+          value: 1,
+        },
+      ],
+    ]);
+    expect(series.points.map((p) => p.period)).toEqual(["2022M01", "2022M03"]);
+    // A monthly period is not a plain 4-digit year, so `year` stays null.
+    expect(series.points.every((p) => p.year === null)).toBe(true);
+    // latestValue still walks the (sorted) tail and finds the newest value.
+    expect(latestValue(series)!.period).toBe("2022M03");
   });
 });
 

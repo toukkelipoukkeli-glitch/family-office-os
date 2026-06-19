@@ -101,7 +101,16 @@ describe("DonutChart", () => {
     expect(screen.getByTestId("donut-center-label")).toHaveTextContent("100%");
   });
   it("skips zero/negative-only data gracefully", () => {
-    render(<DonutChart data={[{ label: "x", value: 0 }]} />);
+    const { rerender } = render(<DonutChart data={[{ label: "x", value: 0 }]} />);
+    expect(screen.queryByTestId("donut-segment")).not.toBeInTheDocument();
+    rerender(
+      <DonutChart
+        data={[
+          { label: "a", value: -3 },
+          { label: "b", value: -1 },
+        ]}
+      />,
+    );
     expect(screen.queryByTestId("donut-segment")).not.toBeInTheDocument();
   });
 });

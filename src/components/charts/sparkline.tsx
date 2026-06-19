@@ -1,12 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import {
-  DEFAULT_MARGIN,
-  pointsFromValues,
-  toLinePath,
-  type Margin,
-} from "./chart-utils";
+import { pointsFromValues, toLinePath, type Margin } from "./chart-utils";
 
 export interface SparklineProps
   extends Omit<React.SVGProps<SVGSVGElement>, "values"> {
@@ -78,5 +73,3 @@ export const Sparkline = React.forwardRef<SVGSVGElement, SparklineProps>(
 Sparkline.displayName = "Sparkline";
 
 export default Sparkline;
-
-export { DEFAULT_MARGIN };

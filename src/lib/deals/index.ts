@@ -11,3 +11,4 @@ export * from "./contact";
 export * from "./pipeline-stage";
 export * from "./interaction";
 export * from "./deal";
+export * from "./email";

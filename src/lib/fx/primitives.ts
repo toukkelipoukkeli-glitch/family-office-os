@@ -14,10 +14,17 @@ import { CurrencyCode, IsoDate } from "../model/primitives";
 export { CurrencyCode, IsoDate };
 
 /**
- * A positive exchange-rate factor, stored as a string to avoid floating-point
+ * A positive exchange-rate factor expressed as a string to avoid floating-point
  * loss (see AGENTS.md: "Money is `Decimal`. Never floating-point currency.").
  * A rate is the price of one unit of the *base* currency in the *quote*
  * currency, so it must be strictly greater than zero.
+ *
+ * Note: the frankfurter.dev wire format delivers rates as JSON numbers, so
+ * {@link FrankfurterResponse} below decodes them with `z.number()`; those values
+ * are immediately lifted into exact {@link Decimal}s in `RateTable.fromFrankfurter`
+ * before any arithmetic, so no float math is ever performed on money. This schema
+ * is the string-input guard used when rates are supplied as text (e.g. config,
+ * caller-provided overrides) rather than off the wire.
  */
 export const RateString = z
   .string()

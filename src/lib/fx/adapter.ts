@@ -1,4 +1,4 @@
-import { CurrencyCode } from "../model/primitives";
+import { CurrencyCode, IsoDate } from "../model/primitives";
 import { FrankfurterResponse } from "./primitives";
 import { RateTable } from "./rates";
 
@@ -47,7 +47,10 @@ export interface FetchRatesParams {
 
 function buildUrl(baseUrl: string, params: FetchRatesParams): string {
   const base = CurrencyCode.parse(params.base);
-  const path = params.date ? params.date : "latest";
+  // Validate the date at the boundary just like `base`/`symbols`, so a
+  // malformed date (e.g. "2026-13-99") fails loudly here instead of silently
+  // reaching the network and producing a confusing HTTP error.
+  const path = params.date ? IsoDate.parse(params.date) : "latest";
   const search = new URLSearchParams({ base });
   if (params.symbols && params.symbols.length > 0) {
     const symbols = params.symbols.map((s) => CurrencyCode.parse(s));

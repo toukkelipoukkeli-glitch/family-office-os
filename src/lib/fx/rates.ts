@@ -113,7 +113,8 @@ export class RateTable {
   crossRate(from: string, to: string): Decimal {
     const fromRate = this.rateFor(from);
     const toRate = this.rateFor(to);
-    // amount_in_base = amount_from / fromRate; amount_to = base * toRate
+    // One unit of `from` is 1/fromRate units of base, which buys toRate/fromRate
+    // units of `to`. Pure ratio — no amount is involved.
     return toRate.div(fromRate);
   }
 

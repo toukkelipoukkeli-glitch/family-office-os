@@ -328,6 +328,15 @@ describe("FxAdapter (offline, fixture-driven)", () => {
     await expect(adapter.fetchRates({ base: "EUR" })).rejects.toThrow();
   });
 
+  it("validates the date param before building the URL", async () => {
+    const spy = vi.fn();
+    const adapter = new FxAdapter({ fetchImpl: fixtureFetch({}, { capture: spy }) });
+    await expect(
+      adapter.fetchRates({ base: "EUR", date: "2026-13-99" }),
+    ).rejects.toThrow();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("validates the base param before building the URL", async () => {
     const spy = vi.fn();
     const adapter = new FxAdapter({ fetchImpl: fixtureFetch({}, { capture: spy }) });

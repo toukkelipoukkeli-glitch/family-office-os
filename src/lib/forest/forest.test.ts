@@ -600,6 +600,23 @@ describe("forest adversarial edge cases", () => {
     ).toThrow();
   });
 
+  it("rejects an invalid dispersionWindow (0, negative, NaN, non-integer)", () => {
+    expect(() => buildTimberPriceIndex(timberPriceSeriesEur, 0)).toThrow(
+      /dispersionWindow/,
+    );
+    expect(() => buildTimberPriceIndex(timberPriceSeriesEur, -3)).toThrow(
+      /dispersionWindow/,
+    );
+    expect(() => buildTimberPriceIndex(timberPriceSeriesEur, Number.NaN)).toThrow(
+      /dispersionWindow/,
+    );
+    expect(() => buildTimberPriceIndex(timberPriceSeriesEur, 2.5)).toThrow(
+      /dispersionWindow/,
+    );
+    // a valid window still works
+    expect(() => buildTimberPriceIndex(timberPriceSeriesEur, 2)).not.toThrow();
+  });
+
   it("widens the band monotonically as model uncertainty rises", () => {
     const idx = buildTimberPriceIndex(timberPriceSeriesEur);
     const lo = valueStandWithIndex(oakRiverside, idx, { modelUncertainty: 0 });

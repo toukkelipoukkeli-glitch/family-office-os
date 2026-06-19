@@ -78,6 +78,11 @@ export function buildTimberPriceIndex(
       "buildTimberPriceIndex: need at least one price observation",
     );
   }
+  if (!Number.isInteger(dispersionWindow) || dispersionWindow < 1) {
+    throw new Error(
+      "buildTimberPriceIndex: dispersionWindow must be a positive integer",
+    );
+  }
   const currency = observations[0].currency;
   for (const o of observations) {
     if (o.currency !== currency) {

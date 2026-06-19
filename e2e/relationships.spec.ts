@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const EVIDENCE_DIR = join(here, "evidence", "m6-relationship-graph");
+mkdirSync(EVIDENCE_DIR, { recursive: true });
 
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };

@@ -16,7 +16,7 @@ export interface RelationshipGraphProps {
   graph: RelationshipGraphData;
   width?: number;
   height?: number;
-  layoutOptions?: LayoutOptions;
+  layoutOptions?: Omit<LayoutOptions, "width" | "height">;
   /** Currently selected node id (controlled). */
   selectedId?: string | null;
   /** Called when a node is clicked. */
@@ -45,7 +45,7 @@ export function RelationshipGraph({
   className,
 }: RelationshipGraphProps) {
   const layout = React.useMemo(
-    () => layoutRelationshipGraph(graph, { width, height, ...layoutOptions }),
+    () => layoutRelationshipGraph(graph, { ...layoutOptions, width, height }),
     [graph, width, height, layoutOptions],
   );
 
@@ -129,7 +129,20 @@ export function RelationshipGraph({
               transform={`translate(${n.x}, ${n.y})`}
               opacity={dim ? 0.25 : 1}
               style={{ cursor: onSelect ? "pointer" : "default" }}
+              role={onSelect ? "button" : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+              aria-label={onSelect ? `Select ${n.label}` : undefined}
               onClick={onSelect ? () => onSelect(n.id) : undefined}
+              onKeyDown={
+                onSelect
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelect(n.id);
+                      }
+                    }
+                  : undefined
+              }
             >
               <circle
                 r={n.r}

@@ -51,7 +51,9 @@ describe("buildRelationshipGraph", () => {
   it("emits an ownership edge for every owner stake with the percentage label", () => {
     const owns = sampleRelationshipGraph.edges.filter((e) => e.kind === "owns");
     // topco has two owners (Touko 60%, Maria 40%).
-    const toukoEdge = owns.find((e) => e.id === "owns:stake-touko-topco");
+    const toukoEdge = owns.find(
+      (e) => e.id === "owns:co-topco:stake-touko-topco",
+    );
     expect(toukoEdge).toBeDefined();
     expect(toukoEdge?.source).toBe("person:person-touko");
     expect(toukoEdge?.target).toBe("company:co-topco");
@@ -63,10 +65,10 @@ describe("buildRelationshipGraph", () => {
       (e) => e.kind === "subsidiary",
     );
     const ids = subs.map((e) => e.id);
-    expect(ids).toContain("subsidiary:sub-realestate");
-    expect(ids).toContain("subsidiary:sub-ventures");
-    expect(ids).toContain("subsidiary:sub-opco");
-    const re = subs.find((e) => e.id === "subsidiary:sub-realestate");
+    expect(ids).toContain("subsidiary:co-topco:sub-realestate");
+    expect(ids).toContain("subsidiary:co-topco:sub-ventures");
+    expect(ids).toContain("subsidiary:co-ventures:sub-opco");
+    const re = subs.find((e) => e.id === "subsidiary:co-topco:sub-realestate");
     expect(re?.source).toBe("company:co-topco");
     expect(re?.target).toBe("company:co-realestate");
     expect(re?.label).toBe("100%");
@@ -135,6 +137,59 @@ describe("buildRelationshipGraph", () => {
     const g = buildRelationshipGraph({ people: [p], companies: [a, b] });
     expect(g.nodes.filter((n) => n.id === "person:p1")).toHaveLength(1);
     expect(g.edges.filter((e) => e.kind === "owns")).toHaveLength(2);
+  });
+
+  it("keeps both ownership edges when companies reuse the same local stake id", () => {
+    const p = Person.parse({ id: "p1", name: "Owner" });
+    // Both companies use the SAME local stake id ("s1"). Edge ids must be
+    // namespaced by company so neither edge is silently dropped on dedup.
+    const a = Company.parse({
+      id: "a",
+      name: "A",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      owners: [{ id: "s1", ownerType: "person", ownerId: "p1", percentage: "50" }],
+    });
+    const b = Company.parse({
+      id: "b",
+      name: "B",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      owners: [{ id: "s1", ownerType: "person", ownerId: "p1", percentage: "40" }],
+    });
+    const g = buildRelationshipGraph({ people: [p], companies: [a, b] });
+    const ownEdges = g.edges.filter((e) => e.kind === "owns");
+    expect(ownEdges).toHaveLength(2);
+    expect(new Set(ownEdges.map((e) => e.id)).size).toBe(2);
+    expect(ownEdges.map((e) => e.target).sort()).toEqual([
+      "company:a",
+      "company:b",
+    ]);
+  });
+
+  it("keeps both subsidiary edges when companies reuse the same local subsidiary id", () => {
+    const parent1 = Company.parse({
+      id: "parent1",
+      name: "Parent One",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "sub", companyId: "child1", percentage: "100" }],
+    });
+    const parent2 = Company.parse({
+      id: "parent2",
+      name: "Parent Two",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "sub", companyId: "child2", percentage: "100" }],
+    });
+    const g = buildRelationshipGraph({ companies: [parent1, parent2] });
+    const subEdges = g.edges.filter((e) => e.kind === "subsidiary");
+    expect(subEdges).toHaveLength(2);
+    expect(new Set(subEdges.map((e) => e.id)).size).toBe(2);
   });
 
   it("handles empty input", () => {

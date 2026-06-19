@@ -161,7 +161,7 @@ export function buildRelationshipGraph(
         });
       }
       addEdge({
-        id: `owns:${stake.id}`,
+        id: `owns:${c.id}:${stake.id}`,
         source: ownerNode,
         target: companyNode,
         kind: "owns",
@@ -181,7 +181,7 @@ export function buildRelationshipGraph(
         });
       }
       addEdge({
-        id: `subsidiary:${sub.id}`,
+        id: `subsidiary:${c.id}:${sub.id}`,
         source: companyNode,
         target: childNode,
         kind: "subsidiary",

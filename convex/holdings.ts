@@ -126,6 +126,7 @@ export const upsertPortfolio = mutation({
 export const upsertHolding = mutation({
   args: holdingFields,
   handler: async (ctx, args) => {
+    assertUniqueValuationIds(args.valuations);
     const existing = await ctx.db
       .query("holdings")
       .withIndex("by_holdingId", (q) => q.eq("holdingId", args.holdingId))
@@ -137,6 +138,36 @@ export const upsertHolding = mutation({
     return await ctx.db.insert("holdings", args);
   },
 });
+
+/**
+ * Enforce the holding invariant that valuation `id`s are unique within a
+ * holding. `addValuation` guards the append path; this guards the bulk-write
+ * path (`upsertHolding`), which replaces the whole `valuations` array.
+ */
+function assertUniqueValuationIds(
+  valuations: ReadonlyArray<{ id: string }>,
+): void {
+  const seen = new Set<string>();
+  for (const valuation of valuations) {
+    if (seen.has(valuation.id)) {
+      throw new Error(`duplicate valuation id: ${valuation.id}`);
+    }
+    seen.add(valuation.id);
+  }
+}
+
+/**
+ * Parse an RFC-3339 `asOf` timestamp to its absolute instant (ms since epoch)
+ * for correct chronological comparison across time zones. `asOf` may carry an
+ * explicit `±HH:MM` offset (see `IsoDateTime` in the model), so two strings
+ * that denote the same instant must compare equal even when their wall-clock
+ * text differs — lexicographic string comparison would order them wrong.
+ * Unparseable values sort oldest (`-Infinity`) so a real timestamp always wins.
+ */
+function asOfInstant(asOf: string): number {
+  const ms = Date.parse(asOf);
+  return Number.isNaN(ms) ? -Infinity : ms;
+}
 
 /**
  * Append a valuation to a holding's valuation history. Refuses to add a
@@ -167,9 +198,11 @@ export const addValuation = mutation({
 });
 
 /**
- * Read the latest valuation for a holding (by `asOf`, lexicographically — RFC
- * 3339 timestamps sort chronologically). Returns `null` if the holding has no
- * valuations. Read-only.
+ * Read the latest valuation for a holding by its absolute `asOf` instant.
+ * Timestamps are parsed (not compared as raw strings) so values with different
+ * UTC offsets that denote the same instant compare correctly. On a tie the
+ * first-seen valuation is kept, so the result is deterministic. Returns `null`
+ * if the holding has no valuations. Read-only.
  */
 export const latestValuation = query({
   args: { holdingId: v.string() },
@@ -183,7 +216,9 @@ export const latestValuation = query({
       return null;
     }
     return holding.valuations.reduce((latest, candidate) =>
-      candidate.asOf > latest.asOf ? candidate : latest,
+      asOfInstant(candidate.asOf) > asOfInstant(latest.asOf)
+        ? candidate
+        : latest,
     );
   },
 });

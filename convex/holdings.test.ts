@@ -332,6 +332,129 @@ describe("valuation ordering edge cases", () => {
     });
     expect(latest?.id).toBe("first");
   });
+
+  test("latestValuation compares by absolute instant across UTC offsets", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(
+      api.holdings.upsertHolding,
+      holdingFixture({ valuations: [] }),
+    );
+    // Same wall-clock date, but the +05:30 value is an EARLIER instant than the
+    // Z value. Lexicographic string comparison would wrongly pick "offset".
+    await t.mutation(api.holdings.addValuation, {
+      holdingId: "h-aapl",
+      valuation: {
+        id: "offset",
+        value: usd("100.00"),
+        asOf: "2026-06-15T10:00:00+05:30", // == 04:30:00Z
+        source: "market",
+        confidence: "high",
+      },
+    });
+    await t.mutation(api.holdings.addValuation, {
+      holdingId: "h-aapl",
+      valuation: {
+        id: "utc",
+        value: usd("200.00"),
+        asOf: "2026-06-15T05:30:00Z", // one hour later than the offset value
+        source: "market",
+        confidence: "high",
+      },
+    });
+    const latest = await t.query(api.holdings.latestValuation, {
+      holdingId: "h-aapl",
+    });
+    expect(latest?.id).toBe("utc");
+  });
+
+  test("latestValuation treats equal instants in different offsets as a tie", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(
+      api.holdings.upsertHolding,
+      holdingFixture({ valuations: [] }),
+    );
+    // Both denote the same instant (2026-06-15T04:30:00Z); first-seen wins.
+    await t.mutation(api.holdings.addValuation, {
+      holdingId: "h-aapl",
+      valuation: {
+        id: "first",
+        value: usd("100.00"),
+        asOf: "2026-06-15T10:00:00+05:30",
+        source: "market",
+        confidence: "high",
+      },
+    });
+    await t.mutation(api.holdings.addValuation, {
+      holdingId: "h-aapl",
+      valuation: {
+        id: "second",
+        value: usd("200.00"),
+        asOf: "2026-06-15T04:30:00Z",
+        source: "market",
+        confidence: "high",
+      },
+    });
+    const latest = await t.query(api.holdings.latestValuation, {
+      holdingId: "h-aapl",
+    });
+    expect(latest?.id).toBe("first");
+  });
+});
+
+describe("upsertHolding enforces unique valuation ids", () => {
+  test("rejects a valuations array containing duplicate ids", async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.mutation(
+        api.holdings.upsertHolding,
+        holdingFixture({
+          valuations: [
+            {
+              id: "dup",
+              value: usd("1.00"),
+              asOf: "2026-01-01T00:00:00Z",
+              source: "market",
+              confidence: "high",
+            },
+            {
+              id: "dup",
+              value: usd("2.00"),
+              asOf: "2026-02-01T00:00:00Z",
+              source: "market",
+              confidence: "high",
+            },
+          ],
+        }),
+      ),
+    ).rejects.toThrow(/duplicate valuation id/);
+  });
+
+  test("accepts a valuations array with all-unique ids", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(
+      api.holdings.upsertHolding,
+      holdingFixture({
+        valuations: [
+          {
+            id: "v1",
+            value: usd("1.00"),
+            asOf: "2026-01-01T00:00:00Z",
+            source: "market",
+            confidence: "high",
+          },
+          {
+            id: "v2",
+            value: usd("2.00"),
+            asOf: "2026-02-01T00:00:00Z",
+            source: "market",
+            confidence: "high",
+          },
+        ],
+      }),
+    );
+    const h = await t.query(api.holdings.getHolding, { holdingId: "h-aapl" });
+    expect(h?.valuations).toHaveLength(2);
+  });
 });
 
 describe("asset-class filtering is portfolio-scoped", () => {

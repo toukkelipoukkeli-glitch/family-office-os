@@ -1,0 +1,15 @@
+{
+  "concurrencyCap": 3,
+  "mergeGate": {
+    "requireCiGreen": true,
+    "requireCodeRabbitQuiet": true,
+    "requireGreptileQuiet": true,
+    "requireNoConflicts": true,
+    "autoMergeTarget": "main"
+  },
+  "budget": {
+    "perIterationTokenCeiling": 400000,
+    "dailyTokenCap": 8000000
+  },
+  "killSwitchFile": "harness/HALT"
+}

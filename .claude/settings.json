@@ -1,0 +1,50 @@
+{
+  "$comment": "Permission allowlist for the autonomous build loop. Review this before enabling a non-interactive permission mode. 'allow' = run without prompting; 'deny' = always blocked even in bypass mode.",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "WebFetch",
+      "WebSearch",
+      "Bash(bun:*)",
+      "Bash(bunx:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(caffeinate:*)",
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(echo:*)",
+      "Bash(printf:*)",
+      "Bash(touch:*)",
+      "Bash(test:*)",
+      "Bash(true:*)"
+    ],
+    "deny": [
+      "Bash(sudo:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(rm -rf /Users/touko:*)",
+      "Bash(curl:* | sh)",
+      "Bash(curl:* | bash)",
+      "Bash(:(){:|:&};:)",
+      "Bash(shutdown:*)",
+      "Bash(reboot:*)",
+      "Bash(diskutil:*)",
+      "Bash(launchctl:*)",
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}

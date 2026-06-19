@@ -1,0 +1,24 @@
+# deps
+node_modules/
+.bun/
+
+# build
+dist/
+build/
+.vite/
+
+# convex
+.convex/
+
+# env & secrets — never commit
+.env
+.env.*
+!.env.example
+
+# harness runtime
+harness/logs/*.log
+harness/state/*.lock
+
+# os / editor
+.DS_Store
+*.local

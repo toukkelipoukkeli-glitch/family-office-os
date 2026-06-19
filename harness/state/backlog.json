@@ -1,0 +1,59 @@
+{
+  "milestones": [
+    {
+      "id": "m0",
+      "title": "Spine on fixtures (no live data, no backend yet)",
+      "units": [
+        { "id": "m0-money", "title": "Decimal money type + currency utils", "oracle": "unit", "deps": [] },
+        { "id": "m0-model", "title": "Holding / asset-class / lot data model + Zod schemas", "oracle": "unit", "deps": ["m0-money"] },
+        { "id": "m0-fixtures", "title": "Seed a diverse fixture portfolio (equities, bonds, crypto, forest, wine, art, LEGO, cars, vineyard, PE, watches)", "oracle": "unit", "deps": ["m0-model"] },
+        { "id": "m0-returns", "title": "Returns engine: TWR, MWR, XIRR", "oracle": "unit", "deps": ["m0-model"] },
+        { "id": "m0-alloc", "title": "Allocation + rebalancing-drift engine", "oracle": "unit", "deps": ["m0-model"] },
+        { "id": "m0-risk", "title": "Risk metrics: vol, drawdown, Sharpe, Sortino, correlation", "oracle": "unit", "deps": ["m0-returns"] },
+        { "id": "m0-app", "title": "Vite+React+TS+Tailwind+shadcn app shell", "oracle": "e2e", "deps": [] },
+        { "id": "m0-networth", "title": "Net-worth-over-time visualization with drill-down", "oracle": "e2e+screenshot", "deps": ["m0-returns", "m0-app", "m0-fixtures"] }
+      ]
+    },
+    {
+      "id": "m1",
+      "title": "Backend + live data",
+      "units": [
+        { "id": "m1-convex", "title": "Convex schema + queries for holdings/valuations", "oracle": "unit", "deps": ["m0-model"] },
+        { "id": "m1-equities", "title": "Equities/ETF price adapter (fixture-tested)", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m1-fx", "title": "FX adapter (ECB) + multi-currency normalization", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m1-crypto", "title": "Crypto adapter (CoinGecko, fixture-tested)", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m1-macro", "title": "Macro adapter (FRED): rates, CPI", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m1-weather", "title": "Weather/world adapter (Open-Meteo, World Bank)", "oracle": "unit", "deps": ["m1-convex"] }
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Illiquid valuation modules (one independent unit each)",
+      "units": [
+        { "id": "m2-forest", "title": "Forest valuation: biological growth model + timber index + weather coupling", "oracle": "unit", "deps": ["m1-weather"] },
+        { "id": "m2-wine", "title": "Wine valuation: Liv-ex-style index + provenance", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m2-art", "title": "Art valuation: appraisal model + confidence band", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m2-lego", "title": "LEGO valuation: secondary-market price guide", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m2-cars", "title": "Classic car valuation", "oracle": "unit", "deps": ["m1-convex"] }
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "Flagship: cross-asset scenario & risk engine",
+      "units": [
+        { "id": "m3-corr", "title": "Correlation matrix + documented assumptions", "oracle": "unit", "deps": ["m0-risk"] },
+        { "id": "m3-mc", "title": "Monte Carlo net-worth simulator", "oracle": "unit", "deps": ["m3-corr"] },
+        { "id": "m3-scenarios", "title": "Named scenario builder (rate shock, FX, drought, market correction)", "oracle": "unit", "deps": ["m3-mc"] },
+        { "id": "m3-liquidity", "title": "Liquidity / capital-call coverage analysis", "oracle": "unit", "deps": ["m3-mc"] },
+        { "id": "m3-viz", "title": "Scenario cockpit visualization (fan charts, tornado, waterfall)", "oracle": "e2e+screenshot", "deps": ["m3-scenarios"] }
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "Ops cockpit",
+      "units": [
+        { "id": "m4-ops", "title": "/ops page rendering harness state (PRs, backlog, heartbeat)", "oracle": "e2e", "deps": ["m0-app"] }
+      ]
+    }
+  ]
+}

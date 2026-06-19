@@ -57,6 +57,13 @@ export function Dashboard() {
               Org chart
             </a>
             <a
+              href="#/relationships"
+              data-testid="nav-relationships"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Relationships
+            </a>
+            <a
               href="#/ops"
               data-testid="nav-ops"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

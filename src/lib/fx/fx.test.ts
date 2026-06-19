@@ -177,6 +177,92 @@ describe("RateTable", () => {
     const t = RateTable.of("EUR", { USD: 1.08 });
     expect(Object.isFrozen(t)).toBe(true);
   });
+
+  it("converts to its own currency even when that currency is absent from the table", () => {
+    // The same-currency fast path must not require a rate lookup.
+    const t = RateTable.of("EUR", { USD: 1.08 });
+    const aud = Money.of("123.45", "AUD");
+    const out = t.convert(aud, "AUD");
+    expect(out).toBe(aud);
+    expect(t.has("AUD")).toBe(false);
+  });
+
+  it("crossRate of a currency with itself is exactly 1", () => {
+    const t = eurLatestTable;
+    expect(t.crossRate("USD", "USD").toString()).toBe("1");
+    expect(t.crossRate("EUR", "EUR").toString()).toBe("1");
+  });
+
+  it("converts negative amounts (liabilities) preserving sign and precision", () => {
+    const t = eurLatestTable;
+    const debt = Money.of("-100", "EUR");
+    const usd = t.convert(debt, "USD");
+    expect(usd.amount.toString()).toBe("-108");
+    expect(usd.isNegative()).toBe(true);
+  });
+
+  it("round-trips an amount through a non-terminating cross rate exactly", () => {
+    // 850 GBP -> EUR -> back to GBP must be exactly 850 thanks to deferred division.
+    const t = eurLatestTable; // GBP 0.85 per EUR
+    const gbp = Money.of("850", "GBP");
+    const viaEur = t.convert(gbp, "EUR");
+    expect(viaEur.amount.toString()).toBe("1000"); // 850 / 0.85
+    const back = t.convert(viaEur, "GBP");
+    expect(back.amount.toString()).toBe("850");
+  });
+
+  it("normalizes a frankfurter amount that yields a repeating decimal without throwing", () => {
+    // amount 3, rate 1 => 1/3 EUR per unit: must build a finite Decimal (capped precision).
+    const t = RateTable.fromFrankfurter(
+      FrankfurterResponse.parse({
+        amount: 3,
+        base: "USD",
+        date: "2026-06-18",
+        rates: { EUR: 1 },
+      }),
+    );
+    const r = t.rateFor("EUR");
+    expect(r.isFinite()).toBe(true);
+    // 1/3 is non-terminating, so it is captured at Decimal's configured
+    // precision rather than blowing up; round-tripping is within tolerance.
+    expect(r.times(3).toDecimalPlaces(10).toNumber()).toBeCloseTo(1, 9);
+  });
+
+  it("zero is rejected by RateTable.of with a descriptive error", () => {
+    expect(() => RateTable.of("EUR", { USD: "0" })).toThrow(
+      /must be a finite positive number/,
+    );
+  });
+
+  it("rejects an invalid base currency code", () => {
+    expect(() => RateTable.of("EURO", { USD: 1.08 })).toThrow();
+    expect(() => RateTable.of("E", { USD: 1.08 })).toThrow();
+  });
+
+  it("rejects an invalid quote currency code", () => {
+    expect(() => RateTable.of("EUR", { USDD: 1.08 })).toThrow();
+  });
+
+  it("currencies() returns a fresh array that cannot mutate internal state", () => {
+    const t = RateTable.of("EUR", { USD: 1.08 });
+    const first = t.currencies();
+    first.push("ZZZ");
+    expect(t.currencies()).toEqual(["EUR", "USD"]);
+  });
+});
+
+describe("FX primitives — RateString strictness", () => {
+  it("rejects exponential, whitespace-internal, and signed-positive forms", () => {
+    expect(() => RateString.parse("1e3")).toThrow();
+    expect(() => RateString.parse("1 .08")).toThrow();
+    expect(() => RateString.parse("+1.08")).toThrow();
+    expect(() => RateString.parse("")).toThrow();
+    expect(() => RateString.parse(".5")).toThrow();
+  });
+
+  it("trims surrounding whitespace before validating", () => {
+    expect(RateString.parse("  1.08  ")).toBe("1.08");
+  });
 });
 
 /** Build a fixture-backed FetchLike that asserts the requested URL. */
@@ -298,5 +384,26 @@ describe("multi-currency normalization", () => {
     expect(() =>
       totalInBase([Money.of("10", "AUD")], usdOnly, "EUR"),
     ).toThrow(/No FX rate for AUD/);
+  });
+
+  it("nets positive assets against negative liabilities across currencies", () => {
+    // 1000 EUR asset minus a 1080 USD (=1000 EUR) liability nets to zero EUR.
+    const total = totalInBase(
+      [Money.of("1000", "EUR"), Money.of("-1080", "USD")],
+      table,
+      "EUR",
+    );
+    expect(total.isZero()).toBe(true);
+    expect(total.currency).toBe("EUR");
+  });
+
+  it("normalizeAmounts accepts a lowercase base currency code", () => {
+    const rows = normalizeAmounts([Money.of("1080", "USD")], table, "eur");
+    expect(rows[0].converted.currency).toBe("EUR");
+    expect(rows[0].converted.amount.toString()).toBe("1000");
+  });
+
+  it("totalInBase rejects an invalid base currency code", () => {
+    expect(() => totalInBase(holdings, table, "EURO")).toThrow();
   });
 });

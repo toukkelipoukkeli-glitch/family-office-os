@@ -40,6 +40,15 @@ describe("App", () => {
     expect(screen.getByTestId("charts-gallery")).toBeInTheDocument();
   });
 
+  it("renders the ownership graph at #/ownership", () => {
+    setHash("#/ownership");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /ownership graph/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("ownership-network")).toBeInTheDocument();
+  });
+
   it("navigates between dashboard and ops on hash change", () => {
     setHash("");
     render(<App />);

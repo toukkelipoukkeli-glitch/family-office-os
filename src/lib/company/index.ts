@@ -10,3 +10,4 @@ export * from "./person";
 export * from "./ownership-stake";
 export * from "./company";
 export * from "./ownership-graph";
+export * from "./ownership-layout";

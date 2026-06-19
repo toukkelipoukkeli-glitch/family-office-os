@@ -192,6 +192,18 @@ describe("normalizeDaily", () => {
     expect(series.point).toEqual({ latitude: 1, longitude: 2 });
   });
 
+  it("throws when time is empty but a variable array carries data", () => {
+    // A contradictory payload (no timestamps, yet readings present) is a
+    // contract violation we refuse to silently swallow.
+    expect(() =>
+      normalizeDaily({
+        latitude: 1,
+        longitude: 2,
+        daily: { time: [], temperature_2m_max: [5] },
+      }),
+    ).toThrow(/longer than time/);
+  });
+
   it("rejects an out-of-range coordinate in the response envelope", () => {
     // GeoPoint enforcement happens on the normalized point, so an upstream
     // latitude beyond +/-90 must surface as a validation error, not silently pass.

@@ -154,22 +154,33 @@ export function normalizeDaily(raw: unknown): DailyWeatherSeries | null {
   const d = res.daily;
   const n = d.time.length;
 
-  const at = (arr: (number | null)[] | undefined, i: number): number | null => {
-    if (!arr) return null;
-    if (arr.length > n) {
+  // Validate array lengths once up front: each variable array is stable for the
+  // lifetime of this call, so the "longer than time" guard need not run per-day.
+  const guard = (
+    arr: (number | null)[] | undefined,
+  ): (number | null)[] | undefined => {
+    if (arr && arr.length > n) {
       throw new Error(
         `open-meteo daily variable array (len ${arr.length}) is longer than time array (len ${n})`,
       );
     }
-    return arr[i] ?? null;
+    return arr;
   };
+
+  const tmax = guard(d.temperature_2m_max);
+  const tmin = guard(d.temperature_2m_min);
+  const tmean = guard(d.temperature_2m_mean);
+  const prcp = guard(d.precipitation_sum);
+
+  const at = (arr: (number | null)[] | undefined, i: number): number | null =>
+    arr ? (arr[i] ?? null) : null;
 
   const days = d.time.map((date, i) => ({
     date,
-    temperatureMaxC: at(d.temperature_2m_max, i),
-    temperatureMinC: at(d.temperature_2m_min, i),
-    temperatureMeanC: at(d.temperature_2m_mean, i),
-    precipitationMm: at(d.precipitation_sum, i),
+    temperatureMaxC: at(tmax, i),
+    temperatureMinC: at(tmin, i),
+    temperatureMeanC: at(tmean, i),
+    precipitationMm: at(prcp, i),
   }));
 
   return DailyWeatherSeries.parse({

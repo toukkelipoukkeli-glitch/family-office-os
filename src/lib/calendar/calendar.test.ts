@@ -351,6 +351,102 @@ describe("buildDealTimeline", () => {
     ]);
   });
 
+  it("orders by absolute instant across mixed UTC offsets, not by string", () => {
+    // The "+02:00" event is at 09:00Z — an *earlier* instant than the "10:00Z"
+    // event, even though its `at` string sorts lexically later. A correct
+    // chronological timeline must place it first.
+    const deal = Deal.parse({
+      id: "deal-tz",
+      name: "TZ",
+      pipelineId: "p",
+      stageId: "s",
+      openedOn: "2026-01-01",
+      tags: ["t"],
+    });
+    const events = [
+      CalendarEvent.parse({
+        id: "later-utc",
+        calendarId: "c",
+        title: "Later",
+        start: "2026-01-01T10:00:00Z", // 10:00Z
+        end: "2026-01-01T10:30:00Z",
+        dealId: "deal-tz",
+      }),
+      CalendarEvent.parse({
+        id: "earlier-offset",
+        calendarId: "c",
+        title: "Earlier",
+        start: "2026-01-01T11:00:00+02:00", // 09:00Z — earlier instant
+        end: "2026-01-01T11:30:00+02:00",
+        dealId: "deal-tz",
+      }),
+    ];
+    const timeline = buildDealTimeline(deal, events);
+    expect(timeline.map((e) => e.id)).toEqual([
+      "calendar:earlier-offset",
+      "calendar:later-utc",
+    ]);
+  });
+
+  it("interleaves an offset interaction with a UTC event by true instant", () => {
+    // Interaction at 13:30+01:00 (12:30Z) must sort before an event at 13:00Z.
+    const deal = Deal.parse({
+      id: "deal-mix",
+      name: "Mix",
+      pipelineId: "p",
+      stageId: "s",
+      openedOn: "2026-01-01",
+      tags: ["t"],
+      interactions: [
+        {
+          id: "call",
+          kind: "call",
+          occurredAt: "2026-01-01T13:30:00+01:00", // 12:30Z
+          summary: "call",
+        },
+      ],
+    });
+    const events = [
+      CalendarEvent.parse({
+        id: "evt",
+        calendarId: "c",
+        title: "Meeting",
+        start: "2026-01-01T13:00:00Z", // 13:00Z — later than the call
+        end: "2026-01-01T13:30:00Z",
+        dealId: "deal-mix",
+      }),
+    ];
+    const timeline = buildDealTimeline(deal, events);
+    expect(timeline.map((e) => e.id)).toEqual([
+      "interaction:call",
+      "calendar:evt",
+    ]);
+  });
+
+  it("handles an empty events pool", () => {
+    const timeline = buildDealTimeline(calendarDeal, []);
+    expect(timeline.map((e) => e.id)).toEqual(["interaction:int-intro"]);
+  });
+
+  it("does not double-attach an event that matches a deal twice (single entry)", () => {
+    // Event shares both the dealId AND a tag AND an attendee with the deal; it
+    // must appear exactly once, attributed by the most specific reason.
+    const event = CalendarEvent.parse({
+      id: "multi",
+      calendarId: "c",
+      title: "Multi-match",
+      start: "2026-04-01T10:00:00Z",
+      end: "2026-04-01T11:00:00Z",
+      dealId: "deal-acorn",
+      dealTags: ["forestry"],
+      attendees: [{ email: "jane.doe@example.com" }],
+    });
+    const timeline = buildDealTimeline(calendarDeal, [event]);
+    const matches = timeline.filter((e) => e.id === "calendar:multi");
+    expect(matches).toHaveLength(1);
+    expect(matches[0]?.matchReason).toBe("dealId");
+  });
+
   it("returns only interactions when no events match", () => {
     const timeline = buildDealTimeline(calendarDeal, [eventUnrelated]);
     expect(timeline.map((e) => e.id)).toEqual(["interaction:int-intro"]);

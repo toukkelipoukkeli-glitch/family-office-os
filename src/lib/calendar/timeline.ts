@@ -94,8 +94,21 @@ export function matchEventToDeal(
   return undefined;
 }
 
-/** Stable, deterministic ordering: by timestamp, then source, then id. */
+/**
+ * Stable, deterministic ordering: by the absolute instant the entry occurred,
+ * then source, then id.
+ *
+ * Entries are ordered by parsed epoch milliseconds rather than by lexical
+ * comparison of the `at` strings, so two timestamps that denote the same wall
+ * time in different UTC offsets (e.g. `10:00Z` vs `11:00+02:00`, the latter
+ * being the *earlier* instant) sort by when they really happened. When two
+ * entries land on the same instant, the raw `at` string, then source, then id
+ * break the tie so identical inputs always yield byte-identical output.
+ */
 function compareEntries(a: TimelineEntry, b: TimelineEntry): number {
+  const ta = Date.parse(a.at);
+  const tb = Date.parse(b.at);
+  if (ta !== tb) return ta < tb ? -1 : 1;
   if (a.at !== b.at) return a.at < b.at ? -1 : 1;
   if (a.source !== b.source) return a.source < b.source ? -1 : 1;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;

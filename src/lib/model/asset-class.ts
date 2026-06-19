@@ -50,3 +50,25 @@ export function isLiquidAssetClass(assetClass: AssetClass): boolean {
 export function isCollectibleAssetClass(assetClass: AssetClass): boolean {
   return !LIQUID_ASSET_CLASSES.has(assetClass);
 }
+
+/** Human-readable display labels for each {@link AssetClass}. */
+export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
+  equity: "Equities",
+  bond: "Bonds",
+  etf: "ETFs",
+  cash: "Cash",
+  crypto: "Crypto",
+  forest: "Forest land",
+  wine: "Fine wine",
+  art: "Art",
+  lego: "LEGO sets",
+  car: "Classic cars",
+  vineyard: "Vineyards",
+  pe: "Private equity",
+  watch: "Watches",
+};
+
+/** Display label for an asset class (falls back to the raw key if unknown). */
+export function assetClassLabel(assetClass: AssetClass): string {
+  return ASSET_CLASS_LABELS[assetClass] ?? assetClass;
+}

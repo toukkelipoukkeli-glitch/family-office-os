@@ -1,20 +1,15 @@
-import { ArrowUpRight } from "lucide-react";
+import { NetWorthDashboard } from "@/networth/NetWorthDashboard";
+import { seededNetWorth } from "@/lib/networth";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
+/**
+ * The application's main view: the net-worth-over-time dashboard with
+ * allocation drill-down, driven by the deterministic seeded portfolio fixture.
+ */
 export function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <h1 className="text-lg font-semibold tracking-tight">
             Family Office OS
           </h1>
@@ -35,6 +30,7 @@ export function Dashboard() {
             </a>
             <a
               href="#/ops"
+              data-testid="nav-ops"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"
             >
               Ops cockpit
@@ -43,29 +39,8 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-5xl justify-center px-6 py-16">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Net worth</CardTitle>
-            <CardDescription>
-              Consolidated across all accounts and holdings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-semibold tracking-tight tabular-nums">
-              $12,480,000
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Last updated just now
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button>
-              View details
-              <ArrowUpRight />
-            </Button>
-          </CardFooter>
-        </Card>
+      <main className="mx-auto max-w-6xl px-6 py-10">
+        <NetWorthDashboard model={seededNetWorth} />
       </main>
     </div>
   );

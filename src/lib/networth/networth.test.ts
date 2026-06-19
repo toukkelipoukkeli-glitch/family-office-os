@@ -148,6 +148,19 @@ describe("buildNetWorthDashboard", () => {
     ]);
   });
 
+  it("rejects an out-of-range anchor month rather than emitting bad date labels", () => {
+    expect(() =>
+      buildNetWorthDashboard(seededPortfolio, networthRateTable, {
+        anchor: { year: 2026, month: 0 },
+      }),
+    ).toThrow(/anchor/);
+    expect(() =>
+      buildNetWorthDashboard(seededPortfolio, networthRateTable, {
+        anchor: { year: 2026, month: 13 },
+      }),
+    ).toThrow(/anchor/);
+  });
+
   it("handles an empty portfolio without throwing (flat zero net worth)", () => {
     const empty: Portfolio = {
       id: "pf-empty",

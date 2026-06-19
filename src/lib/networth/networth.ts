@@ -174,6 +174,16 @@ export function buildNetWorthDashboard(
 ): NetWorthDashboardModel {
   const windowMonths = Math.max(2, options.windowMonths ?? DEFAULT_WINDOW_MONTHS);
   const anchor = options.anchor ?? DEFAULT_ANCHOR;
+  if (
+    !Number.isInteger(anchor.month) ||
+    anchor.month < 1 ||
+    anchor.month > 12 ||
+    !Number.isInteger(anchor.year)
+  ) {
+    throw new Error(
+      "networth: anchor must have an integer year and an integer month in [1, 12]",
+    );
+  }
   const allocation = allocationByAssetClass(portfolio, fxTable);
   const base = allocation.baseCurrency;
 

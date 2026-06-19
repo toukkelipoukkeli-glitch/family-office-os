@@ -112,7 +112,11 @@ export function NetWorthDashboard({ model }: NetWorthDashboardProps) {
     openingValue.amount.isZero()
       ? "0.0%"
       : signedPercent(change.amount.div(openingValue.amount));
-  const trend = change.amount.isNegative() ? "down" : "up";
+  const trend: "up" | "down" | undefined = change.amount.isZero()
+    ? undefined
+    : change.amount.isNegative()
+      ? "down"
+      : "up";
   const activeColor = selectedDetail
     ? seriesColor(model.byAssetClass.indexOf(selectedDetail))
     : "var(--color-chart-1)";

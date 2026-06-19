@@ -6,7 +6,6 @@ import {
   CurrencyCode,
   Holding,
   Lot,
-  MoneySchema,
   NonNegativeMoneySchema,
   Portfolio,
   Valuation,
@@ -121,7 +120,7 @@ describe("seeded fixtures: internal consistency", () => {
           lot.unitCost,
         );
         if (lot.fees) {
-          expect(MoneySchema.parse(lot.fees)).toEqual(lot.fees);
+          expect(NonNegativeMoneySchema.parse(lot.fees)).toEqual(lot.fees);
         }
       }
     }

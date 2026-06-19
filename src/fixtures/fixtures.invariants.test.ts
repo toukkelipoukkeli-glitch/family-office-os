@@ -69,16 +69,27 @@ describe("seeded fixtures: asset-class coverage is exact and de-duplicated", () 
     ).toBe(true);
   });
 
-  it("liquid holdings carry at least one market valuation", () => {
-    const liquid = seededHoldings.filter((h) =>
-      isLiquidAssetClass(h.assetClass),
+  it("non-cash liquid holdings carry a live market valuation", () => {
+    // Cash is liquid but is valued from a bank statement (manual), so exclude
+    // it: the rule we actually want to pin is that priced instruments
+    // (equity/bond/etf/crypto) carry a real market quote.
+    const pricedLiquid = seededHoldings.filter(
+      (h) => isLiquidAssetClass(h.assetClass) && h.assetClass !== "cash",
     );
-    expect(liquid.length).toBeGreaterThan(0);
-    for (const h of liquid) {
+    expect(pricedLiquid.length).toBeGreaterThan(0);
+    for (const h of pricedLiquid) {
       expect(
-        h.valuations.some((v) => v.source === "market" || v.source === "manual"),
-        `liquid holding ${h.id} should have a market/manual valuation`,
+        h.valuations.some((v) => v.source === "market"),
+        `priced liquid holding ${h.id} should have a market valuation`,
       ).toBe(true);
+    }
+  });
+
+  it("cash holdings are valued from a manual statement", () => {
+    const cash = seededHoldings.filter((h) => h.assetClass === "cash");
+    expect(cash.length).toBeGreaterThan(0);
+    for (const h of cash) {
+      expect(h.valuations.every((v) => v.source === "manual")).toBe(true);
     }
   });
 });
@@ -131,17 +142,8 @@ describe("seeded fixtures: confidence semantics", () => {
     }
   });
 
-  it("confidenceScore, when present, is finite and within [0, 1]", () => {
-    for (const h of seededHoldings) {
-      for (const v of h.valuations) {
-        if (v.confidenceScore !== undefined) {
-          expect(Number.isFinite(v.confidenceScore)).toBe(true);
-          expect(v.confidenceScore).toBeGreaterThanOrEqual(0);
-          expect(v.confidenceScore).toBeLessThanOrEqual(1);
-        }
-      }
-    }
-  });
+  // NB: the numeric [0, 1] range of confidenceScore is asserted in
+  // fixtures.test.ts; we intentionally don't duplicate that here.
 });
 
 describe("seeded fixtures: deep-clone immutability of seededPortfolio", () => {

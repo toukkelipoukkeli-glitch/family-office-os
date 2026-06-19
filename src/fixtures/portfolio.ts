@@ -305,7 +305,8 @@ export const legoHolding: Holding = {
       quantity: "3",
       unitCost: { amount: "799.99", currency: "USD" },
       acquiredOn: "2021-12-26",
-      fees: { amount: "0", currency: "USD" },
+      // No fees were paid; omit the field. An absent `fees` means "not
+      // tracked / none", which is distinct from a tracked zero amount.
     },
   ],
   valuations: [

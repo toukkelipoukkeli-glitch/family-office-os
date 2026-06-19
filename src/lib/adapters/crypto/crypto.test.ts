@@ -87,6 +87,51 @@ describe("parseSimplePrice", () => {
     expect(() => parseSimplePrice(null)).toThrow();
     expect(() => parseSimplePrice("nope")).toThrow();
   });
+
+  it("preserves precision for a sub-cent price that serializes as scientific notation", () => {
+    // 0.0000001 serializes as "1e-7"; the parser must still produce an exact decimal.
+    const prices = parseSimplePrice({ "tiny-token": { usd: 1e-7 } });
+    const q = findQuote(prices, "tiny-token", "usd");
+    expect(q!.price.toFixed()).toBe("0.0000001");
+    expect(q!.price.equals(new Decimal("0.0000001"))).toBe(true);
+  });
+
+  it("preserves a large market cap that serializes as scientific notation", () => {
+    // 1.267e21 is > Number.MAX_SAFE_INTEGER and serializes as "1.267e+21".
+    const prices = parseSimplePrice({
+      bitcoin: { usd: 64231.42, usd_market_cap: 1.267e21 },
+    });
+    const q = findQuote(prices, "bitcoin", "usd");
+    expect(q!.marketCap!.toFixed()).toBe("1267000000000000000000");
+  });
+
+  it("captures a negative 24h change exactly", () => {
+    const prices = parseSimplePrice(simplePriceFixture);
+    const btc = findQuote(prices, "bitcoin", "usd");
+    expect(btc!.change24h!.toFixed()).toBe("-1.2345");
+  });
+
+  it("truncates a fractional last_updated_at to whole seconds", () => {
+    const prices = parseSimplePrice({
+      bitcoin: { usd: 1, last_updated_at: 1718800000.9 },
+    });
+    const q = findQuote(prices, "bitcoin", "usd");
+    expect(q!.lastUpdatedAt).toBe(1718800000);
+  });
+
+  it("does not treat a derived volume key as a separate currency", () => {
+    const prices = parseSimplePrice({
+      bitcoin: { usd: 64231.42, usd_24h_vol: 12345.6 },
+    });
+    const btc = prices.find((p) => p.coinId === "bitcoin")!;
+    expect(Object.keys(btc.quotes)).toEqual(["usd"]);
+  });
+
+  it("ignores an empty entry (coin with no quote currencies)", () => {
+    const prices = parseSimplePrice({ bitcoin: {} });
+    const btc = prices.find((p) => p.coinId === "bitcoin")!;
+    expect(btc.quotes).toEqual({});
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -105,6 +150,17 @@ describe("findQuote", () => {
     const prices = parseSimplePrice(simplePriceFixture);
     expect(findQuote(prices, "dogecoin", "usd")).toBeUndefined();
     expect(findQuote(prices, "bitcoin", "gbp")).toBeUndefined();
+  });
+
+  it("trims surrounding whitespace on lookup inputs", () => {
+    const prices = parseSimplePrice(simplePriceFixture);
+    expect(findQuote(prices, "  bitcoin  ", "  USD ")!.price.toFixed()).toBe(
+      "64231.42",
+    );
+  });
+
+  it("returns undefined against an empty price list", () => {
+    expect(findQuote([], "bitcoin", "usd")).toBeUndefined();
   });
 });
 

@@ -166,7 +166,10 @@ export function barLayout(
   const y = linearScale(domain, margin.top + innerH, margin.top);
   const baseline = y(0);
   const slot = innerW / values.length;
-  const barW = round(slot * (1 - gapRatio));
+  // Clamp the public gap input so out-of-range callers can't yield negative
+  // (or full-slot) SVG widths.
+  const gap = clamp(gapRatio, 0, 1);
+  const barW = round(slot * (1 - gap));
   const offset = (slot - barW) / 2;
   return values.map((v, i) => {
     const vy = y(v);
@@ -444,7 +447,8 @@ export function candlestickLayout(
   };
   const y = linearScale(domain, margin.top + innerH, margin.top);
   const slot = innerW / candles.length;
-  const bodyWidth = round(slot * (1 - gapRatio));
+  const gap = clamp(gapRatio, 0, 1);
+  const bodyWidth = round(slot * (1 - gap));
   return candles.map((c, i) => {
     const cx = round(margin.left + i * slot + slot / 2);
     const openY = y(c.open);

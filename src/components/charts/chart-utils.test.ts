@@ -154,6 +154,11 @@ describe("barLayout", () => {
   it("returns nothing for empty input", () => {
     expect(barLayout([], 100, 100)).toEqual([]);
   });
+  it("clamps an out-of-range gapRatio so widths never go negative", () => {
+    // gapRatio > 1 would make slot * (1 - gapRatio) negative without a clamp.
+    const bars = barLayout([1, 2, 3], 120, 100, undefined, 5);
+    for (const b of bars) expect(b.width).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe("donutLayout", () => {
@@ -328,6 +333,19 @@ describe("candlestickLayout", () => {
   });
   it("returns nothing for empty input", () => {
     expect(candlestickLayout([], 100, 100)).toEqual([]);
+  });
+  it("clamps an out-of-range gapRatio so body widths never go negative", () => {
+    const candles = candlestickLayout(
+      [
+        { open: 1, high: 2, low: 0, close: 1.5 },
+        { open: 1.5, high: 2, low: 1, close: 1.2 },
+      ],
+      100,
+      100,
+      undefined,
+      5,
+    );
+    for (const c of candles) expect(c.bodyWidth).toBeGreaterThanOrEqual(0);
   });
   it("survives a flat (zero-range) domain without NaN geometry", () => {
     const [c] = candlestickLayout(

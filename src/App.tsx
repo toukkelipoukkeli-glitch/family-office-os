@@ -7,6 +7,7 @@ import { useHashRoute } from "@/lib/use-hash-route";
 import OpsPage from "@/ops/OpsPage";
 import OrgChartPage from "@/org/OrgChartPage";
 import PipelinePage from "@/pipeline/PipelinePage";
+import { RelationshipGraphPage } from "@/relationship/RelationshipGraphPage";
 
 function App() {
   const path = useHashRoute();
@@ -37,6 +38,10 @@ function App() {
 
   if (path === "/companies") {
     return <CompanyProfilePage />;
+  }
+
+  if (path === "/relationships") {
+    return <RelationshipGraphPage />;
   }
 
   return <Dashboard />;

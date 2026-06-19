@@ -49,6 +49,15 @@ describe("App", () => {
     expect(screen.getByTestId("ownership-network")).toBeInTheDocument();
   });
 
+  it("renders the relationship graph at #/relationships", () => {
+    setHash("#/relationships");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /relationship graph/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("relationship-graph")).toBeInTheDocument();
+  });
+
   it("navigates between dashboard and ops on hash change", () => {
     setHash("");
     render(<App />);

@@ -205,6 +205,69 @@ function polar(
 }
 
 /**
+ * Build the SVG `d` for a single donut/pie segment between two fractions.
+ *
+ * A segment whose sweep covers (almost) the whole circle is a special case: an
+ * SVG arc whose start and end points coincide draws nothing, so a lone 100%
+ * slice would render invisible. We split any near-full-circle segment into two
+ * half-sweep arcs through the midpoint so it always renders as a full ring/disc.
+ */
+function donutSegmentPath(
+  cx: number,
+  cy: number,
+  outerRadius: number,
+  innerRadius: number,
+  startFraction: number,
+  endFraction: number,
+  sweep: number,
+): string {
+  // Endpoints coincide once the sweep reaches a full turn; split to be safe.
+  const FULL_CIRCLE_EPS = 1e-6;
+  if (sweep >= 1 - FULL_CIRCLE_EPS) {
+    const mid = startFraction + sweep / 2;
+    return (
+      donutSegmentPath(
+        cx,
+        cy,
+        outerRadius,
+        innerRadius,
+        startFraction,
+        mid,
+        sweep / 2,
+      ) +
+      " " +
+      donutSegmentPath(
+        cx,
+        cy,
+        outerRadius,
+        innerRadius,
+        mid,
+        endFraction,
+        sweep / 2,
+      )
+    );
+  }
+  const largeArc = sweep > 0.5 ? 1 : 0;
+  const oStart = polar(cx, cy, outerRadius, startFraction);
+  const oEnd = polar(cx, cy, outerRadius, endFraction);
+  if (innerRadius > 0) {
+    const iStart = polar(cx, cy, innerRadius, startFraction);
+    const iEnd = polar(cx, cy, innerRadius, endFraction);
+    return (
+      `M${round(oStart.x)},${round(oStart.y)} ` +
+      `A${round(outerRadius)},${round(outerRadius)} 0 ${largeArc} 1 ${round(oEnd.x)},${round(oEnd.y)} ` +
+      `L${round(iEnd.x)},${round(iEnd.y)} ` +
+      `A${round(innerRadius)},${round(innerRadius)} 0 ${largeArc} 0 ${round(iStart.x)},${round(iStart.y)} Z`
+    );
+  }
+  return (
+    `M${round(cx)},${round(cy)} ` +
+    `L${round(oStart.x)},${round(oStart.y)} ` +
+    `A${round(outerRadius)},${round(outerRadius)} 0 ${largeArc} 1 ${round(oEnd.x)},${round(oEnd.y)} Z`
+  );
+}
+
+/**
  * Lay out donut/pie segments. `innerRadius` of 0 yields a pie. Negative or zero
  * total yields an empty layout. Each segment is a ring-slice path.
  */
@@ -224,26 +287,16 @@ export function donutLayout(
     const startFraction = acc / total;
     acc += value;
     const endFraction = acc / total;
-    // A full-circle single segment needs to be split or arcs collapse.
     const sweep = endFraction - startFraction;
-    const largeArc = sweep > 0.5 ? 1 : 0;
-    const oStart = polar(cx, cy, outerRadius, startFraction);
-    const oEnd = polar(cx, cy, outerRadius, endFraction);
-    let path: string;
-    if (innerRadius > 0) {
-      const iStart = polar(cx, cy, innerRadius, startFraction);
-      const iEnd = polar(cx, cy, innerRadius, endFraction);
-      path =
-        `M${round(oStart.x)},${round(oStart.y)} ` +
-        `A${round(outerRadius)},${round(outerRadius)} 0 ${largeArc} 1 ${round(oEnd.x)},${round(oEnd.y)} ` +
-        `L${round(iEnd.x)},${round(iEnd.y)} ` +
-        `A${round(innerRadius)},${round(innerRadius)} 0 ${largeArc} 0 ${round(iStart.x)},${round(iStart.y)} Z`;
-    } else {
-      path =
-        `M${round(cx)},${round(cy)} ` +
-        `L${round(oStart.x)},${round(oStart.y)} ` +
-        `A${round(outerRadius)},${round(outerRadius)} 0 ${largeArc} 1 ${round(oEnd.x)},${round(oEnd.y)} Z`;
-    }
+    const path = donutSegmentPath(
+      cx,
+      cy,
+      outerRadius,
+      innerRadius,
+      startFraction,
+      endFraction,
+      sweep,
+    );
     segments.push({ value, startFraction, endFraction, path });
   }
   return segments;

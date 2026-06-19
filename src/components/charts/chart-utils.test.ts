@@ -176,12 +176,40 @@ describe("donutLayout", () => {
     expect(donutLayout([-1, -2], 50, 50, 50, 25)).toEqual([]);
   });
   it("emits a ring path with two arcs when innerRadius > 0", () => {
-    const [seg] = donutLayout([1], 50, 50, 50, 25);
+    const [seg] = donutLayout([1, 1], 50, 50, 50, 25);
     expect((seg.path.match(/A/g) ?? []).length).toBe(2);
   });
   it("emits a wedge path from the centre when innerRadius is 0", () => {
-    const [seg] = donutLayout([1], 50, 50, 50, 0);
+    const [seg] = donutLayout([1, 1], 50, 50, 50, 0);
     expect(seg.path.startsWith("M50,50")).toBe(true);
+  });
+  it("renders a lone 100% segment as a full ring instead of a collapsed arc", () => {
+    // A single full-circle slice has identical start/end points; a naive single
+    // arc would draw nothing. It must be split into two arcs (one ring per half).
+    const [seg] = donutLayout([5], 50, 50, 50, 25);
+    expect(seg.startFraction).toBe(0);
+    expect(seg.endFraction).toBeCloseTo(1, 6);
+    expect((seg.path.match(/A/g) ?? []).length).toBe(4);
+    // The split passes through the antipodal midpoint (6 o'clock at cy + r).
+    expect(seg.path).toContain("50,100");
+  });
+  it("renders a lone 100% pie slice as two wedges", () => {
+    const [seg] = donutLayout([5], 50, 50, 50, 0);
+    expect((seg.path.match(/A/g) ?? []).length).toBe(2);
+    expect((seg.path.match(/Z/g) ?? []).length).toBe(2);
+  });
+  it("keeps normal partial segments as single arcs (no spurious split)", () => {
+    const segs = donutLayout([1, 1, 2], 50, 50, 50, 25);
+    for (const seg of segs) {
+      expect((seg.path.match(/A/g) ?? []).length).toBe(2);
+    }
+  });
+  it("treats one positive value among zeros as a full ring", () => {
+    const segs = donutLayout([0, 4, 0], 50, 50, 50, 25);
+    const ring = segs[1];
+    expect(ring.value).toBe(4);
+    expect(ring.endFraction - ring.startFraction).toBeCloseTo(1, 6);
+    expect((ring.path.match(/A/g) ?? []).length).toBe(4);
   });
 });
 
@@ -219,6 +247,22 @@ describe("treemapLayout", () => {
   it("returns nothing for empty or zero-total input", () => {
     expect(treemapLayout([], 100, 100)).toEqual([]);
     expect(treemapLayout([{ value: 0 }], 100, 100)).toEqual([]);
+  });
+  it("gives zero-area tiles to zero-value nodes without dropping them", () => {
+    const tiles = treemapLayout(
+      [{ value: 10 }, { value: 0 }, { value: 5 }],
+      200,
+      100,
+    );
+    expect(tiles).toHaveLength(3);
+    expect(tiles[1].width * tiles[1].height).toBe(0);
+    const totalArea = tiles.reduce((s, t) => s + t.width * t.height, 0);
+    expect(totalArea).toBeCloseTo(200 * 100, 0);
+  });
+  it("clamps negative values to zero area", () => {
+    const tiles = treemapLayout([{ value: 10 }, { value: -7 }], 200, 100);
+    expect(tiles[1].value).toBe(0);
+    expect(tiles[1].width * tiles[1].height).toBe(0);
   });
 });
 
@@ -264,5 +308,17 @@ describe("candlestickLayout", () => {
   });
   it("returns nothing for empty input", () => {
     expect(candlestickLayout([], 100, 100)).toEqual([]);
+  });
+  it("survives a flat (zero-range) domain without NaN geometry", () => {
+    const [c] = candlestickLayout(
+      [{ open: 5, high: 5, low: 5, close: 5 }],
+      100,
+      100,
+    );
+    for (const n of [c.cx, c.bodyX, c.bodyY, c.bodyWidth, c.bodyHeight, c.highY, c.lowY]) {
+      expect(Number.isFinite(n)).toBe(true);
+    }
+    expect(c.bodyHeight).toBeGreaterThanOrEqual(1);
+    expect(c.bullish).toBe(true);
   });
 });

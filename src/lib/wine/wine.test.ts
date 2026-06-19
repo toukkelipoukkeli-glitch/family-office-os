@@ -461,6 +461,88 @@ describe("valueCellar", () => {
   });
 });
 
+describe("adversarial edge cases", () => {
+  it("buildWineIndex is order-independent for equal-date observations (deterministic tie-break)", () => {
+    const a = buildWineIndex([
+      PriceObservation.parse({ date: "2023-01-01", pricePerBottle: "120" }),
+      PriceObservation.parse({ date: "2023-01-01", pricePerBottle: "100" }),
+    ]);
+    const b = buildWineIndex([
+      PriceObservation.parse({ date: "2023-01-01", pricePerBottle: "100" }),
+      PriceObservation.parse({ date: "2023-01-01", pricePerBottle: "120" }),
+    ]);
+    // Same-date inputs sort by price ascending regardless of input order:
+    // base is the lower price (100), latest the higher (120).
+    expect(a.points.map((p) => p.price.toFixed())).toEqual(["100", "120"]);
+    expect(b.points.map((p) => p.price.toFixed())).toEqual(["100", "120"]);
+    expect(a.latestPrice.toFixed()).toBe(b.latestPrice.toFixed());
+    expectClose(a.totalReturn, b.totalReturn.toNumber());
+  });
+
+  it("keeps full Decimal precision in the point estimate (no float drift)", () => {
+    // price 1/3-style: 100/3 reference via three thirds is exact in Decimal.
+    const obs = [
+      PriceObservation.parse({ date: "2023-01-01", pricePerBottle: "0.1" }),
+      PriceObservation.parse({ date: "2023-02-01", pricePerBottle: "0.2" }),
+      PriceObservation.parse({ date: "2023-03-01", pricePerBottle: "0.3" }),
+    ];
+    const wine = Wine.parse({ ...wineLafite2010, id: "wine-prec" });
+    const lot = WineLot.parse({
+      id: "lot-prec",
+      wineId: "wine-prec",
+      quantity: 3,
+      costPerBottle: "0.1",
+      acquiredOn: "2023-01-01",
+      provenance: provenanceReference,
+    });
+    const v = valueLot(wine, lot, obs);
+    // reference 0.3, factor 1, ratio 1, qty 3 => exactly 0.9, not 0.8999999…
+    expect(v.pointEstimate.amount.toFixed()).toBe("0.9");
+  });
+
+  it("valueLotWithIndex lets one index serve many lots identically", () => {
+    const index = buildWineIndex(lafiteObservations);
+    const v1 = valueLotWithIndex(wineLafite2010, lotLafite, index);
+    const v2 = valueLotWithIndex(wineLafite2010, lotLafite, index);
+    expect(v1.pointEstimate.amount.equals(v2.pointEstimate.amount)).toBe(true);
+    expect(v1.high.amount.equals(v2.high.amount)).toBe(true);
+    expect(v1.low.amount.equals(v2.low.amount)).toBe(true);
+  });
+
+  it("rejects a non-finite z and non-finite model uncertainty", () => {
+    expect(() =>
+      valueLot(wineLafite2010, lotLafite, lafiteObservations, {
+        z: Number.POSITIVE_INFINITY,
+      }),
+    ).toThrow(/z must be/);
+    expect(() =>
+      valueLot(wineLafite2010, lotLafite, lafiteObservations, {
+        modelUncertainty: Number.NaN,
+      }),
+    ).toThrow(/modelUncertainty/);
+  });
+
+  it("a single-lot cellar equals that lot's own valuation", () => {
+    const v = valueLot(wineLafite2010, lotLafite, lafiteObservations);
+    const cellar = valueCellar([v]);
+    expect(cellar.pointEstimate.amount.equals(v.pointEstimate.amount)).toBe(true);
+    expect(cellar.low.amount.equals(v.low.amount)).toBe(true);
+    expect(cellar.high.amount.equals(v.high.amount)).toBe(true);
+    expect(cellar.unrealizedGain.amount.equals(v.unrealizedGain.amount)).toBe(true);
+  });
+
+  it("unrealized gain can be negative when the market falls below cost", () => {
+    const expensiveLot = WineLot.parse({
+      ...lotLafite,
+      id: "lot-overpaid",
+      provenance: provenanceReference,
+      costPerBottle: "5000",
+    });
+    const v = valueLot(wineLafite2010, expensiveLot, lafiteObservations);
+    expect(v.unrealizedGain.amount.lessThan(0)).toBe(true);
+  });
+});
+
 describe("determinism", () => {
   it("produces identical output across repeated runs (offline, no clock)", () => {
     const a = JSON.stringify(

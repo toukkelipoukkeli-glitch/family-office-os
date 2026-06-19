@@ -317,6 +317,52 @@ describe("Company", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("accepts owner percentages that sum to 100 across many decimal stakes", () => {
+    // 0.1 * 1000 binary-sums above 100 in float; the epsilon guard must allow it.
+    const owners = Array.from({ length: 1000 }, (_, i) => ({
+      id: `o-${i}`,
+      ownerType: "person" as const,
+      ownerId: `p-${i}`,
+      percentage: "0.1",
+    }));
+    const res = Company.safeParse({
+      id: "c",
+      name: "X",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      owners,
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it("rejects an empty company name made of whitespace", () => {
+    expect(
+      Company.safeParse({
+        id: "c",
+        name: "   ",
+        entityType: "corporation",
+        jurisdiction: "FI",
+        currency: "EUR",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects unknown keys nested inside a subsidiary edge (strict, deep)", () => {
+    expect(
+      Company.safeParse({
+        id: "c",
+        name: "X",
+        entityType: "corporation",
+        jurisdiction: "FI",
+        currency: "EUR",
+        subsidiaries: [
+          { id: "e", companyId: "child", percentage: "10", bogus: true },
+        ],
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("OwnershipGraph", () => {
@@ -396,6 +442,111 @@ describe("OwnershipGraph", () => {
     const g = OwnershipGraph.from([root, a, b, t]);
     // 50% + 50% = 100%
     expect(g.effectiveOwnership("root", "t")).toBeCloseTo(100, 9);
+  });
+
+  it("sums duplicate direct-stake edges to the same child", () => {
+    // Two separate share-class edges from the same parent to the same child.
+    const parent = Company.parse({
+      id: "dp",
+      name: "Dup Parent",
+      entityType: "holding_company",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [
+        { id: "e1", companyId: "dc", percentage: "30" },
+        { id: "e2", companyId: "dc", percentage: "20" },
+      ],
+    });
+    const child = Company.parse({
+      id: "dc",
+      name: "Dup Child",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+    });
+    const g = OwnershipGraph.from([parent, child]);
+    expect(g.directStake("dp", "dc")).toBe(50);
+    // Effective ownership must also fold the duplicate edges together.
+    expect(g.effectiveOwnership("dp", "dc")).toBeCloseTo(50, 9);
+  });
+
+  it("returns 0 effective ownership for nodes missing from the graph", () => {
+    const g = OwnershipGraph.from([]);
+    expect(g.ids()).toEqual([]);
+    expect(g.effectiveOwnership("ghost", "phantom")).toBe(0);
+    // Asking for a node about itself is 100 even when it is absent.
+    expect(g.effectiveOwnership("ghost", "ghost")).toBe(100);
+    expect(g.directStake("ghost", "phantom")).toBe(0);
+  });
+
+  it("ignores a back-edge to the root when looking through", () => {
+    // root -> a (100%), a -> root (50%, cut) and a -> target (40%).
+    const root = Company.parse({
+      id: "br",
+      name: "Back Root",
+      entityType: "holding_company",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "ra", companyId: "ba", percentage: "100" }],
+    });
+    const a = Company.parse({
+      id: "ba",
+      name: "Back A",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [
+        { id: "ar", companyId: "br", percentage: "50" },
+        { id: "at", companyId: "bt", percentage: "40" },
+      ],
+    });
+    const target = Company.parse({
+      id: "bt",
+      name: "Back Target",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+    });
+    const g = OwnershipGraph.from([root, a, target]);
+    // Only the root->a->target path counts: 100% * 40% = 40%.
+    expect(g.effectiveOwnership("br", "bt")).toBeCloseTo(40, 9);
+  });
+
+  it("multiplies fractional stakes along a deep chain without drift", () => {
+    // root -> m (50%) -> n (50%) -> target (50%) = 12.5%.
+    const root = Company.parse({
+      id: "cr",
+      name: "Chain Root",
+      entityType: "holding_company",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "rm", companyId: "cm", percentage: "50" }],
+    });
+    const m = Company.parse({
+      id: "cm",
+      name: "Chain M",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "mn", companyId: "cn", percentage: "50" }],
+    });
+    const n = Company.parse({
+      id: "cn",
+      name: "Chain N",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "nt", companyId: "ct", percentage: "50" }],
+    });
+    const target = Company.parse({
+      id: "ct",
+      name: "Chain Target",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+    });
+    const g = OwnershipGraph.from([root, m, n, target]);
+    expect(g.effectiveOwnership("cr", "ct")).toBeCloseTo(12.5, 9);
   });
 
   it("terminates on a cyclic graph instead of looping forever", () => {

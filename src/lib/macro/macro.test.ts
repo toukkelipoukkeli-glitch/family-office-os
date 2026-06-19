@@ -308,4 +308,118 @@ describe("yearOverYearChange", () => {
     const series = parseFredObservations("cpi", { observations: [] });
     expect(yearOverYearChange(series)).toBeUndefined();
   });
+
+  it("returns undefined when the prior value is zero (no divide-by-zero)", () => {
+    const series = parseFredObservations("cpi", {
+      observations: [
+        { date: "2025-05-01", value: "0" },
+        { date: "2026-05-01", value: "320.601" },
+      ],
+    });
+    expect(yearOverYearChange(series)).toBeUndefined();
+  });
+
+  it("computes a negative YoY change (deflation) exactly", () => {
+    // (300 - 310) / 310 * 100 = -3.2258... → -3.23
+    const series = parseFredObservations("cpi", {
+      observations: [
+        { date: "2025-05-01", value: "310" },
+        { date: "2026-05-01", value: "300" },
+      ],
+    });
+    expect(yearOverYearChange(series)).toBe("-3.23");
+  });
+
+  it("matches the 12-months-prior observation by year-month regardless of day", () => {
+    // latest day (31) has no exact day match a year prior (May has 31 days,
+    // but the prior observation is on the 15th) — month-prefix match still works.
+    const series = parseFredObservations("cpi", {
+      observations: [
+        { date: "2025-05-15", value: "310.000" },
+        { date: "2026-05-31", value: "319.300" },
+      ],
+    });
+    // (319.3 - 310) / 310 * 100 = 3.0 → "3"
+    expect(yearOverYearChange(series)).toBe("3");
+  });
+});
+
+describe("adversarial parsing / validation", () => {
+  it("trims surrounding whitespace on values and the missing sentinel", () => {
+    const series = parseFredObservations("dgs10", {
+      observations: [
+        { date: "2026-06-01", value: " 4.31 " },
+        // A padded sentinel must still be treated as missing and dropped.
+        { date: "2026-06-02", value: " . " },
+        { date: "2026-06-03", value: "4.34" },
+      ],
+    });
+    expect(series.observations).toEqual([
+      { date: "2026-06-01", value: "4.31" },
+      { date: "2026-06-03", value: "4.34" },
+    ]);
+  });
+
+  it("accepts negative decimal values (e.g. a negative rate)", () => {
+    const series = parseFredObservations("dgs10", {
+      observations: [{ date: "2026-06-01", value: "-0.12" }],
+    });
+    expect(latestObservation(series)?.value).toBe("-0.12");
+  });
+
+  it("rejects a value that is only a sign or a bare dot fragment", () => {
+    expect(() =>
+      parseFredObservations("dgs10", {
+        observations: [{ date: "2026-06-01", value: "4." }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects extra unknown top-level series keys via strict domain schema", () => {
+    expect(() =>
+      MacroSeries.parse({
+        key: "dgs10",
+        fredId: "DGS10",
+        name: "x",
+        unit: "percent",
+        frequency: "daily",
+        observations: [],
+        rogue: true,
+      }),
+    ).toThrow();
+  });
+});
+
+describe("MacroAdapter api key + base url hardening", () => {
+  it("treats a whitespace-only env key as missing", () => {
+    const prev = process.env.FRED_API_KEY;
+    process.env.FRED_API_KEY = "   ";
+    try {
+      expect(() => new MacroAdapter({ fetch: fakeFetch({}).fetch })).toThrow(
+        MissingApiKeyError,
+      );
+    } finally {
+      if (prev === undefined) delete process.env.FRED_API_KEY;
+      else process.env.FRED_API_KEY = prev;
+    }
+  });
+
+  it("trims a padded explicit api key before sending it", async () => {
+    const { fetch, calls } = fakeFetch(fredDgs10Raw);
+    const adapter = new MacroAdapter({ apiKey: "  padded-key  ", fetch });
+    await adapter.fetchTenYearRate();
+    expect(calls[0]).toContain("api_key=padded-key");
+  });
+
+  it("honors a custom base url and keeps requests within it", async () => {
+    const customBase = "https://fred.test/api";
+    const { fetch, calls } = fakeFetch(fredDgs10Raw);
+    const adapter = new MacroAdapter({
+      apiKey: "k",
+      fetch,
+      baseUrl: customBase,
+    });
+    await adapter.fetchTenYearRate();
+    expect(calls[0].startsWith(`${customBase}/series/observations?`)).toBe(true);
+  });
 });

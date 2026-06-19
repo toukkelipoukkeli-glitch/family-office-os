@@ -343,4 +343,92 @@ describe("valueAtRisk / conditionalValueAtRisk", () => {
     expect(() => valueAtRisk(r, 1)).toThrow(MonteCarloError);
     expect(() => conditionalValueAtRisk(r, 1.5)).toThrow(MonteCarloError);
   });
+
+  it("rejects non-finite VaR / CVaR levels", () => {
+    const r = simulateNetWorth(baseInput({ paths: 100 }));
+    expect(() => valueAtRisk(r, NaN)).toThrow(MonteCarloError);
+    expect(() => conditionalValueAtRisk(r, 0)).toThrow(MonteCarloError);
+    expect(() => conditionalValueAtRisk(r, Infinity)).toThrow(MonteCarloError);
+  });
+
+  it("CVaR equals the single worst sample at an extreme level on a tiny run", () => {
+    // With paths*(1-level) < 1 the tail collapses to exactly one (worst) sample.
+    const r = simulateNetWorth(baseInput({ paths: 50 }));
+    const cvar = conditionalValueAtRisk(r, 0.99);
+    const worst = r.terminalNetWorth[0]; // ascending-sorted
+    expect(cvar).toBeCloseTo(r.initialNetWorth - worst, 6);
+  });
+});
+
+describe("simulateNetWorth: adversarial edge cases", () => {
+  it("perfectly correlated assets move together (rank-deficient PSD Cholesky)", () => {
+    // correlation = 1 makes the matrix rank-deficient PSD. Two identical assets
+    // driven by perfectly correlated shocks must end every path at equal values.
+    const r = simulateNetWorth({
+      assets: [
+        { key: "a", value: 100, expectedReturn: 0.05, volatility: 0.2 },
+        { key: "b", value: 100, expectedReturn: 0.05, volatility: 0.2 },
+      ],
+      correlation: [
+        [1, 1],
+        [1, 1],
+      ],
+      paths: 1000,
+      horizonYears: 1,
+      steps: 6,
+      seed: 4242,
+    });
+    expect(r.terminalNetWorth).toHaveLength(1000);
+    // Two identical assets with identical shocks => each path's net worth is an
+    // even split, so every terminal value must be finite and strictly positive.
+    expect(r.stats.min).toBeGreaterThan(0);
+    expect(Number.isFinite(r.stats.mean)).toBe(true);
+  });
+
+  it("is reproducible regardless of how the seed is supplied (truncation/fold)", () => {
+    // Mulberry32 truncates toward zero and folds into u32; 7.9 and 7 must agree.
+    const a = simulateNetWorth(baseInput({ seed: 7, paths: 200 }));
+    const b = simulateNetWorth(baseInput({ seed: 7.9, paths: 200 }));
+    expect(b.terminalNetWorth).toEqual(a.terminalNetWorth);
+  });
+
+  it("a single asset with zero volatility and zero correlation matrix is deterministic", () => {
+    const r = simulateNetWorth({
+      assets: [{ key: "tbill", value: 1000, expectedReturn: 0.04, volatility: 0 }],
+      paths: 64,
+      horizonYears: 2,
+      steps: 8,
+      seed: 1,
+    });
+    // exp(0.04 * 2) growth, identical on every path => zero spread.
+    expect(r.stats.stddev).toBeCloseTo(0, 9);
+    expect(r.stats.mean).toBeCloseTo(1000 * Math.exp(0.04 * 2), 6);
+    expect(r.probabilityOfLoss).toBe(0);
+  });
+
+  it("an all-zero-value portfolio yields zero net worth and 0% loss probability", () => {
+    const r = simulateNetWorth({
+      assets: [
+        { key: "a", value: 0, expectedReturn: 0.1, volatility: 0.3 },
+        { key: "b", value: 0, expectedReturn: 0.2, volatility: 0.4 },
+      ],
+      paths: 100,
+      seed: 9,
+    });
+    expect(r.initialNetWorth).toBe(0);
+    expect(r.stats.max).toBe(0);
+    expect(r.stats.min).toBe(0);
+    // Terminal (0) is never strictly below initial (0): no path counts as a loss.
+    expect(r.probabilityOfLoss).toBe(0);
+  });
+});
+
+describe("distributionStats: percentile extremes", () => {
+  it("reports the requested 0th and 100th percentiles as min and max", () => {
+    const stats = distributionStats([5, 1, 4, 2, 3], [0, 100]);
+    expect(stats.percentiles[0]).toBe(stats.min);
+    expect(stats.percentiles[100]).toBe(stats.max);
+    expect(stats.min).toBe(1);
+    expect(stats.max).toBe(5);
+  });
 });

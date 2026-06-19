@@ -270,6 +270,113 @@ describe("valueClassicCar — guards", () => {
   });
 });
 
+describe("valueClassicCar — adversarial edge cases", () => {
+  const base = {
+    id: "c",
+    make: "X",
+    model: "Y",
+    year: 1970,
+    currency: "USD",
+    conditionGrade: "good" as const,
+  };
+
+  it("handles a zero baseline with no comps without crashing", () => {
+    const v = valueClassicCar(
+      ClassicCar.parse({ ...base, baselineValue: "0" }),
+    );
+    expect(v.value.amount.isZero()).toBe(true);
+    expect(v.low.amount.isZero()).toBe(true);
+    expect(v.high.amount.isZero()).toBe(true);
+    // band still computed (condition-widened), point is just zero
+    expect(v.bandFraction.greaterThan(0)).toBe(true);
+    expect(v.confidence).toBe("low");
+  });
+
+  it("guards against a zero comp mean (no NaN/Infinity band)", () => {
+    const v = valueClassicCar(
+      ClassicCar.parse({
+        ...base,
+        baselineValue: "100000",
+        comps: [
+          { id: "a", price: "0", currency: "USD", soldOn: "2025-01-01", conditionGrade: "good" },
+          { id: "b", price: "0", currency: "USD", soldOn: "2025-01-01", conditionGrade: "good" },
+        ],
+      }),
+    );
+    expect(v.compEstimate!.amount.isZero()).toBe(true);
+    expect(v.bandFraction.isFinite()).toBe(true);
+    // CV is undefined-by-zero, so the floor (2 comps => 0.1) takes over
+    expect(v.bandFraction.toString()).toBe("0.1");
+    // blend: compMean 0 weighted 2/3, baseline 100000 weighted 1/3 => 33333
+    expect(v.value.amount.toFixed()).toBe("33333");
+  });
+
+  it("clamps a wildly dispersed band at 0.95 and keeps the low bound positive", () => {
+    const v = valueClassicCar(
+      ClassicCar.parse({
+        ...base,
+        baselineValue: "100000",
+        comps: [
+          { id: "a", price: "1", currency: "USD", soldOn: "2025-01-01", conditionGrade: "good" },
+          { id: "b", price: "10000000", currency: "USD", soldOn: "2025-01-01", conditionGrade: "good" },
+        ],
+      }),
+    );
+    expect(v.bandFraction.toString()).toBe("0.95");
+    expect(v.low.amount.greaterThan(0)).toBe(true);
+    expect(v.high.amount.greaterThan(v.value.amount)).toBe(true);
+    // wide band => never high confidence regardless of comp count
+    expect(v.confidence).not.toBe("high");
+  });
+
+  it("normalizes a lower-grade comp UP when valuing a higher-grade subject", () => {
+    const v = valueClassicCar(
+      ClassicCar.parse({
+        ...base,
+        conditionGrade: "concours",
+        baselineValue: "1000000",
+        comps: [
+          // one fair comp at 600k => normalized to concours = 600k / 0.6 * 1.6 = 1.6M
+          { id: "k", price: "600000", currency: "USD", soldOn: "2025-01-01", conditionGrade: "fair" },
+        ],
+      }),
+    );
+    expect(v.compEstimate!.amount.toFixed()).toBe("1600000");
+  });
+
+  it("mileage penalty clamp does not drive the adjusted baseline negative", () => {
+    const v = valueClassicCar(
+      ClassicCar.parse({
+        ...base,
+        baselineValue: "100000",
+        mileage: 100_000_000,
+      }),
+    );
+    // 40% max mileage penalty => baseline * 0.6 = 60000, still positive
+    expect(v.adjustedBaseline.amount.toFixed()).toBe("60000");
+    expect(v.value.amount.greaterThan(0)).toBe(true);
+  });
+
+  it("rejects a duplicate/extra unknown key on a comp (strict comps)", () => {
+    expect(
+      ClassicCar.safeParse({
+        ...base,
+        baselineValue: "100000",
+        comps: [
+          {
+            id: "k",
+            price: "1",
+            currency: "USD",
+            soldOn: "2025-01-01",
+            conditionGrade: "good",
+            bogus: true,
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+});
+
 describe("fixtures", () => {
   it("every sample car valuations cleanly", () => {
     for (const car of sampleCars) {

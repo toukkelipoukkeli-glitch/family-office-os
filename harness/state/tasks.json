@@ -1,8 +1,10 @@
 {
-  "updatedAt": null,
+  "generation": 1,
+  "updatedAt": "2026-06-19",
+  "phase": "feature-build",
+  "merged": ["scaffold (PR #2)"],
   "active": [],
-  "queued": [],
   "openPRs": [],
-  "merged": [],
-  "blocked": []
+  "blocked": [],
+  "note": "Scaffold merged to main. The unified build workflow builds m0-m6 (dependency waves, full-cycle build+review+merge per unit), then QA + ideation, then relaunches for the next generation."
 }

@@ -8,6 +8,10 @@ build/
 .vite/
 *.tsbuildinfo
 
+# test artifacts
+test-results/
+playwright-report/
+
 # convex
 .convex/
 

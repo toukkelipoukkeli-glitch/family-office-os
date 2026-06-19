@@ -333,4 +333,80 @@ describe("minorUnitsFor", () => {
     expect(minorUnitsFor("JPY")).toBe(0);
     expect(minorUnitsFor("BHD")).toBe(3);
   });
+
+  it("normalizes casing/whitespace before lookup", () => {
+    expect(minorUnitsFor(" jpy ")).toBe(0);
+    expect(minorUnitsFor("bhd")).toBe(3);
+  });
+
+  it("rejects malformed currency codes", () => {
+    expect(() => minorUnitsFor("US")).toThrow(/Invalid currency/);
+    expect(() => minorUnitsFor("")).toThrow(/Invalid currency/);
+  });
+});
+
+describe("adversarial edge cases", () => {
+  it("rejects an empty / whitespace-only currency", () => {
+    expect(() => Money.of(1, "")).toThrow(/Invalid currency/);
+    expect(() => Money.of(1, "   ")).toThrow(/Invalid currency/);
+  });
+
+  it("rejects fromMinorUnits with a non-integer string", () => {
+    expect(() => Money.fromMinorUnits("10.5", "USD")).toThrow(/integer/);
+  });
+
+  it("rejects non-finite divisor and factor", () => {
+    expect(() => Money.of("10", "USD").times(Infinity)).toThrow(/finite/);
+    expect(() => Money.of("10", "USD").dividedBy(NaN)).toThrow(/finite/);
+  });
+
+  it("allocate rounds a sub-cent source amount to the currency scale", () => {
+    // 0.034 rounds (half-even) to 0.03 = 3 cents before allocation.
+    const parts = Money.of("0.034", "USD").allocate([1, 1]);
+    expect(parts.map((p) => p.toMinorUnits())).toEqual([2, 1]);
+    expect(sumMoney(parts).toMinorUnits()).toBe(3);
+  });
+
+  it("allocate gives leftover units to the larger weights first", () => {
+    // 0.05 split 2:1:1 -> ideals 2.5,1.25,1.25; floors 2,1,1; one leftover
+    // goes to the largest remainder (the weight-2 share).
+    const parts = Money.of("0.05", "USD").allocate([2, 1, 1]);
+    expect(parts.map((p) => p.toMinorUnits())).toEqual([3, 1, 1]);
+    expect(sumMoney(parts).toMinorUnits()).toBe(5);
+  });
+
+  it("allocate is exact for a large prime-ish split", () => {
+    const total = Money.of("1.00", "USD");
+    const parts = total.allocate(Array(7).fill(1));
+    expect(sumMoney(parts).equals(total)).toBe(true);
+    expect(parts.reduce((s, p) => s + p.toMinorUnits(), 0)).toBe(100);
+  });
+
+  it("toMinorUnits honors the requested rounding mode", () => {
+    expect(Money.of("1.005", "USD").toMinorUnits("half-up")).toBe(101);
+    expect(Money.of("1.005", "USD").toMinorUnits("down")).toBe(100);
+    expect(Money.of("1.005", "USD").toMinorUnits("half-even")).toBe(100);
+  });
+
+  it("sumMoney ignores a currency hint when items are present", () => {
+    const total = sumMoney([Money.of("1", "EUR"), Money.of("2", "EUR")], "USD");
+    expect(total.currency).toBe("EUR");
+    expect(total.amount.toFixed()).toBe("3");
+  });
+
+  it("negative round-trips through fromMinorUnits/toMinorUnits", () => {
+    const m = Money.fromMinorUnits(-1099, "USD");
+    expect(m.amount.toFixed()).toBe("-10.99");
+    expect(m.toMinorUnits()).toBe(-1099);
+  });
+
+  it("equals treats negative and positive zero as equal", () => {
+    expect(Money.of("0", "USD").equals(Money.of("-0", "USD"))).toBe(true);
+  });
+
+  it("preserves high precision through chained arithmetic", () => {
+    const r = Money.of("100", "USD").dividedBy(3).times(3);
+    // exact decimal: no float drift, stays 100 within Decimal precision
+    expect(r.round(2).amount.toFixed()).toBe("100");
+  });
 });

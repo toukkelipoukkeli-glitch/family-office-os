@@ -267,6 +267,104 @@ describe("Portfolio", () => {
   });
 });
 
+describe("adversarial edge cases", () => {
+  it("DecimalString rejects internal whitespace and stray signs", () => {
+    expect(DecimalString.safeParse("1 0").success).toBe(false);
+    expect(DecimalString.safeParse("+5").success).toBe(false);
+    expect(DecimalString.safeParse("--5").success).toBe(false);
+    expect(DecimalString.safeParse("5.").success).toBe(false);
+    expect(DecimalString.safeParse(".5").success).toBe(false);
+    expect(DecimalString.safeParse("1e3").success).toBe(false);
+  });
+  it("DecimalString trims surrounding whitespace before validating", () => {
+    expect(DecimalString.parse("  -3.50  ")).toBe("-3.50");
+  });
+  it("NonNegativeDecimalString rejects negative zero but accepts zero", () => {
+    expect(NonNegativeDecimalString.parse("0")).toBe("0");
+    expect(NonNegativeDecimalString.parse("0.00")).toBe("0.00");
+    expect(NonNegativeDecimalString.safeParse("-0").success).toBe(false);
+  });
+  it("IsoDate handles leap years correctly", () => {
+    expect(IsoDate.parse("2024-02-29")).toBe("2024-02-29");
+    expect(IsoDate.safeParse("2025-02-29").success).toBe(false);
+    expect(IsoDate.safeParse("2100-02-29").success).toBe(false); // not a leap year
+    expect(IsoDate.parse("2000-02-29")).toBe("2000-02-29"); // is a leap year
+  });
+  it("IsoDate rejects out-of-range month and day zero", () => {
+    expect(IsoDate.safeParse("2026-00-10").success).toBe(false);
+    expect(IsoDate.safeParse("2026-06-00").success).toBe(false);
+  });
+  it("IsoDateTime rejects an empty string", () => {
+    expect(IsoDateTime.safeParse("").success).toBe(false);
+    expect(IsoDateTime.safeParse("   ").success).toBe(false);
+  });
+  it("CurrencyCode rejects numeric and mixed-length inputs after trim", () => {
+    expect(CurrencyCode.safeParse(" usdt ").success).toBe(false); // 4 letters
+    expect(CurrencyCode.safeParse("us d").success).toBe(false);
+  });
+  it("MoneySchema rejects a missing currency and a NaN-shaped amount", () => {
+    expect(MoneySchema.safeParse({ amount: "1" }).success).toBe(false);
+    expect(MoneySchema.safeParse({ amount: "NaN", currency: "USD" }).success).toBe(
+      false,
+    );
+  });
+  it("Valuation rejects NaN confidenceScore and accepts the [0,1] bounds", () => {
+    expect(
+      Valuation.safeParse({ ...valAaplMarket, confidenceScore: Number.NaN })
+        .success,
+    ).toBe(false);
+    expect(
+      Valuation.safeParse({ ...valAaplMarket, confidenceScore: 0 }).success,
+    ).toBe(true);
+    expect(
+      Valuation.safeParse({ ...valAaplMarket, confidenceScore: 1 }).success,
+    ).toBe(true);
+  });
+  it("Lot accepts matching fees currency and a zero quantity", () => {
+    expect(
+      Lot.safeParse({
+        ...lotAaplA,
+        quantity: "0",
+        fees: { amount: "0", currency: "USD" },
+      }).success,
+    ).toBe(true);
+  });
+  it("Holding rejects an empty-string tag", () => {
+    expect(
+      Holding.safeParse({ ...cashHolding, tags: ["ok", "  "] }).success,
+    ).toBe(false);
+  });
+  it("Holding allows a holding whose lots are denominated in another currency (multi-currency by design)", () => {
+    // Holdings may hold lots in a different currency than the holding's
+    // reporting currency; the model intentionally does not force a match.
+    const res = Holding.safeParse({
+      ...cashHolding,
+      lots: [
+        {
+          id: "lot-x",
+          quantity: "1",
+          unitCost: { amount: "1.00", currency: "EUR" },
+          acquiredOn: "2024-01-01",
+        },
+      ],
+    });
+    expect(res.success).toBe(true);
+  });
+  it("Portfolio reports the index of the first duplicate holding id", () => {
+    const res = Portfolio.safeParse({
+      ...samplePortfolio,
+      holdings: [equityHolding, wineHolding, equityHolding],
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      const dup = res.error.issues.find((i) =>
+        i.message.includes("duplicate holding id"),
+      );
+      expect(dup?.path).toEqual(["holdings", 2, "id"]);
+    }
+  });
+});
+
 describe("end-to-end: fixtures are internally consistent", () => {
   it("every holding currency is a valid code and every valuation has a confidence", () => {
     for (const h of samplePortfolio.holdings) {

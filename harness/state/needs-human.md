@@ -1,23 +1,42 @@
-# Needs a human
+# Readiness tracker
 
-Things the loop cannot do itself. Resolve and delete the line.
+Pre-flight before any production code.
 
-## Blocking startup (must be done before unattended run)
+## ✅ Ready & tested
 
-- [ ] **GitHub auth** — `gh auth login` as `toukkelipoukkeli-glitch` (or provide
-      a PAT with `repo` + `workflow` scope). Blocks repo creation + PR loop.
-- [ ] **Create remote repo** — `family-office-os` (I'll run `gh repo create`
-      once auth is done; just confirm the name).
-- [ ] **Install CodeRabbit** GitHub app on the repo.
-- [ ] **Install Greptile** GitHub app on the repo.
-- [ ] **Convex login** — `bunx convex dev` browser OAuth (one-time), then a
-      deploy key is generated for unattended runs.
-- [ ] **Permission mode** — set Claude Code to a non-interactive mode for the
-      unattended hours (allowlist in `.claude/settings.json` is pre-written).
+- **Bun** 1.3.14 installed.
+- **Keep-awake** (`caffeinate`) running.
+- **GitHub auth** — `gh` logged in as `toukkelipoukkeli-glitch` (scopes: repo, workflow).
+- **Repo** created + pushed: `toukkelipoukkeli-glitch/family-office-os`.
+- **Claude in Chrome** — connected ("Browser 1", macOS) and verified.
+- **Data feeds — ALL live-tested:**
+  - Equities — Alpha Vantage (key in `.env`) ✓
+  - Macro — FRED (key in `.env`) ✓
+  - FX — frankfurter.dev ✓
+  - Weather — Open-Meteo ✓
+  - World data — World Bank ✓
+  - Crypto — CoinGecko ✓
+- **Secrets** — `.env` created and confirmed gitignored; `.env.example` committed.
 
-## Deferred (not blocking; loop builds on fixtures first)
+## 🔵 Decision needed (blocks Chrome review + review bots)
 
-- [ ] FRED API key (macro data).
-- [ ] One stock-data provider key (Alpha Vantage / Finnhub / Twelve Data).
-- [ ] Commit-email attribution: confirm the email to use for the alt GitHub
-      account (currently a noreply placeholder).
+- [ ] **Repo visibility** — public (recommended: synthetic data; unlocks Chrome
+      access + CodeRabbit/Greptile free tiers) vs private (then log Chrome into
+      GitHub as the alt account + confirm bot trials cover private).
+
+## ⏳ Needs a human
+
+- [ ] **Install CodeRabbit** on the repo → then I run the smoke-test PR.
+- [ ] **Install Greptile** on the repo → same.
+- [ ] **Connect Gmail** — Claude app connector settings (read-only).
+- [ ] **Connect Google Calendar** — same (VC/startup deal-flow + meetings).
+- [ ] **Convex login** — done at app-scaffold time; I run `bunx convex dev`,
+      you approve the browser OAuth, I generate a deploy key for unattended.
+
+## 🔧 Mine — remaining
+
+- [ ] After bots installed: throwaway smoke-test PR to confirm both comment.
+
+## Deferred (not blocking; modeled/scraped later)
+
+- [ ] Alt-asset indices: LEGO (BrickEconomy), wine (Liv-ex), timber.

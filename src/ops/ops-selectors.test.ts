@@ -7,6 +7,7 @@ import {
   countByStatus,
   milestoneProgress,
   progressPercent,
+  STATUS_ORDER,
   statusLabel,
   unitsByStatus,
 } from "./ops-selectors";
@@ -172,5 +173,45 @@ describe("bundled opsSnapshot", () => {
         expect(idSet.has(dep)).toBe(true);
       }
     }
+  });
+
+  it("only uses statuses the UI knows how to render", () => {
+    const known = new Set(STATUS_ORDER);
+    for (const u of allUnits(opsSnapshot)) {
+      expect(known.has(u.status)).toBe(true);
+    }
+  });
+
+  it("never lists a unit as its own dependency", () => {
+    for (const u of allUnits(opsSnapshot)) {
+      expect(u.deps).not.toContain(u.id);
+    }
+  });
+});
+
+describe("count invariants", () => {
+  it("per-milestone counts sum to the global counts", () => {
+    const global = countByStatus(fixture);
+    const summed = milestoneProgress(fixture).reduce(
+      (acc, { counts }) => ({
+        backlog: acc.backlog + counts.backlog,
+        active: acc.active + counts.active,
+        merged: acc.merged + counts.merged,
+        blocked: acc.blocked + counts.blocked,
+        total: acc.total + counts.total,
+      }),
+      { backlog: 0, active: 0, merged: 0, blocked: 0, total: 0 },
+    );
+    expect(summed).toEqual(global);
+  });
+
+  it("status buckets partition every unit exactly once", () => {
+    const counts = countByStatus(fixture);
+    const bucketed = STATUS_ORDER.reduce(
+      (sum, status) => sum + unitsByStatus(fixture, status).length,
+      0,
+    );
+    expect(bucketed).toBe(counts.total);
+    expect(bucketed).toBe(allUnits(fixture).length);
   });
 });

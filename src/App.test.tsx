@@ -43,4 +43,22 @@ describe("App", () => {
       screen.getByRole("heading", { name: /ops cockpit/i }),
     ).toBeInTheDocument();
   });
+
+  it("falls back to the dashboard for an unknown route", () => {
+    setHash("#/does-not-exist");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /family office os/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not match #/ops with a trailing query suffix", () => {
+    // currentHashPath keeps the suffix, so the exact "/ops" check fails and we
+    // fall back to the dashboard rather than mis-rendering the cockpit.
+    setHash("#/ops?tab=blocked");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /family office os/i }),
+    ).toBeInTheDocument();
+  });
 });

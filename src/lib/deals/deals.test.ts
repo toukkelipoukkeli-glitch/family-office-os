@@ -105,6 +105,20 @@ describe("Contact", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("enforces the documented 7–15 digit phone range", () => {
+    const phone = (p: string) =>
+      Contact.safeParse({ id: "c1", name: "X", role: "principal", phone: p })
+        .success;
+    // 6 digits -> too short
+    expect(phone("123456")).toBe(false);
+    // 7 digits -> ok (with separators)
+    expect(phone("123-4567")).toBe(true);
+    // 15 digits -> ok
+    expect(phone("+123456789012345")).toBe(true);
+    // 16 digits -> too long
+    expect(phone("+1234567890123456")).toBe(false);
+  });
 });
 
 describe("PipelineStage", () => {
@@ -567,6 +581,23 @@ describe("Deal — adversarial edge cases", () => {
         tags: ["ok", "  "],
       }).success,
     ).toBe(false);
+  });
+
+  it("rejects duplicate tags on a deal", () => {
+    const res = Deal.safeParse({
+      id: "d",
+      name: "D",
+      pipelineId: "p",
+      stageId: "s",
+      openedOn: "2026-01-01",
+      tags: ["forestry", "forestry"],
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(
+        res.error.issues.some((i) => i.message.includes("duplicate tag")),
+      ).toBe(true);
+    }
   });
 
   it("rejects an empty id", () => {

@@ -119,6 +119,19 @@ export const Deal = z
       });
     });
 
+    // Tags must be unique within a deal (avoid duplicate filter chips/counts).
+    const seenTags = new Set<string>();
+    deal.tags.forEach((tag, i) => {
+      if (seenTags.has(tag)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `duplicate tag: ${tag}`,
+          path: ["tags", i],
+        });
+      }
+      seenTags.add(tag);
+    });
+
     // A terminal close date can't precede the open date.
     if (deal.expectedCloseOn && deal.expectedCloseOn < deal.openedOn) {
       ctx.addIssue({

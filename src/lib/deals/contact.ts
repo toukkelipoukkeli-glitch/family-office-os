@@ -36,11 +36,19 @@ const EmailString = z
   .toLowerCase()
   .pipe(z.email("must be a valid email address"));
 
-/** An E.164-ish phone string: optional leading `+`, then 7–15 digits. */
+/**
+ * An E.164-ish phone string: optional leading `+`, then 7–15 digits, with
+ * spaces or hyphens allowed as separators. Shape-check only — the product
+ * never dials the number.
+ */
 const PhoneString = z
   .string()
   .trim()
-  .regex(/^\+?\d[\d\s-]{5,}$/, "must look like a phone number");
+  .regex(/^\+?[\d\s-]+$/, "must look like a phone number")
+  .refine((s) => {
+    const digits = s.replace(/\D/g, "").length;
+    return digits >= 7 && digits <= 15;
+  }, "phone number must have 7–15 digits");
 
 /**
  * A person involved in a deal. Email and phone are optional and are stored for

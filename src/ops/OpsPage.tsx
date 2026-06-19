@@ -1,4 +1,4 @@
-import { Activity, GitMerge, GitPullRequest, Layers } from "lucide-react";
+import { Activity, AlertTriangle, GitMerge, Layers } from "lucide-react";
 
 import {
   Card,
@@ -23,7 +23,7 @@ const STATUS_STYLES: Record<UnitStatus, string> = {
   backlog: "bg-muted text-muted-foreground",
   active: "bg-primary text-primary-foreground",
   merged: "bg-secondary text-secondary-foreground",
-  blocked: "bg-destructive text-white",
+  blocked: "bg-destructive text-destructive-foreground",
 };
 
 function StatusBadge({ status }: { status: UnitStatus }) {
@@ -81,7 +81,7 @@ const SUMMARY_META: { status: UnitStatus; icon: typeof Layers }[] = [
   { status: "backlog", icon: Layers },
   { status: "active", icon: Activity },
   { status: "merged", icon: GitMerge },
-  { status: "blocked", icon: GitPullRequest },
+  { status: "blocked", icon: AlertTriangle },
 ];
 
 export function OpsPage() {

@@ -85,7 +85,7 @@ export const opsSnapshot: OpsSnapshot = {
       id: "m4",
       title: "Ops cockpit",
       units: [
-        { id: "m4-ops", title: "/ops page rendering harness state", oracle: "e2e", deps: ["m0-app"], status: "active", pr: "#m4-ops" },
+        { id: "m4-ops", title: "/ops page rendering harness state", oracle: "e2e", deps: ["m0-app"], status: "active", pr: "#4" },
       ],
     },
   ],

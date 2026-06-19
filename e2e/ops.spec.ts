@@ -13,7 +13,9 @@ test.describe("/ops cockpit", () => {
       name: /overall build progress/i,
     });
     await expect(progress).toBeVisible();
-    const now = Number(await progress.getAttribute("aria-valuenow"));
+    const nowAttr = await progress.getAttribute("aria-valuenow");
+    expect(nowAttr).not.toBeNull();
+    const now = Number(nowAttr);
     expect(now).toBeGreaterThanOrEqual(0);
     expect(now).toBeLessThanOrEqual(100);
   });

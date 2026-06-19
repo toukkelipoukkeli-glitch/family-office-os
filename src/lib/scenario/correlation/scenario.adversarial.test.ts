@@ -201,6 +201,43 @@ describe("adversarial: nearestPositiveSemiDefinite", () => {
       ]),
     ).toThrow(CorrelationMatrixError);
   });
+
+  it("throws when iterations is not a positive integer", () => {
+    const m = [
+      [1, 0.5],
+      [0.5, 1],
+    ];
+    expect(() => nearestPositiveSemiDefinite(m, { iterations: 0 })).toThrow(
+      CorrelationMatrixError,
+    );
+    expect(() => nearestPositiveSemiDefinite(m, { iterations: -3 })).toThrow(
+      CorrelationMatrixError,
+    );
+    expect(() => nearestPositiveSemiDefinite(m, { iterations: NaN })).toThrow(
+      CorrelationMatrixError,
+    );
+    expect(() => nearestPositiveSemiDefinite(m, { iterations: 2.5 })).toThrow(
+      CorrelationMatrixError,
+    );
+  });
+});
+
+describe("adversarial: checkCorrelationMatrix tolerances", () => {
+  it("rangeTol gates the off-diagonal range issue independently of diagTol", () => {
+    // An entry just outside [-1, 1]. A wide diagTol must NOT suppress the
+    // out-of-range issue; only a wide rangeTol may. (This matrix is also
+    // non-PSD, so we assert on the presence of the *range* issue specifically,
+    // not on overall `ok`.)
+    const m = [
+      [1, 1.0001],
+      [1.0001, 1],
+    ];
+    const wideDiag = checkCorrelationMatrix(m, { diagTol: 1 });
+    expect(wideDiag.issues.some((s) => s.includes("outside"))).toBe(true);
+
+    const wideRange = checkCorrelationMatrix(m, { rangeTol: 1e-2 });
+    expect(wideRange.issues.some((s) => s.includes("outside"))).toBe(false);
+  });
 });
 
 describe("adversarial: assumptions house view", () => {

@@ -30,9 +30,9 @@ export class CorrelationMatrixError extends Error {
 /** A correlation matrix tagged with the variable keys of its rows/columns. */
 export interface LabeledCorrelationMatrix {
   /** Variable keys, in row/column order. `matrix[i][j]` relates `keys[i]`/`keys[j]`. */
-  keys: string[];
+  readonly keys: readonly string[];
   /** Square, symmetric, unit-diagonal matrix of correlation coefficients. */
-  matrix: number[][];
+  readonly matrix: readonly (readonly number[])[];
 }
 
 /** Result of {@link checkCorrelationMatrix}: a verdict plus human-readable reasons. */
@@ -137,17 +137,26 @@ export function isPositiveSemiDefinite(
  * failures. Never throws for a non-square/non-finite matrix — it reports those
  * as issues too, so a caller can surface them rather than crash.
  *
- * @param diagTol  tolerance for the unit-diagonal check (default `1e-9`).
- * @param symTol   tolerance for the symmetry check (default `1e-9`).
- * @param psdTol   tolerance for the PSD eigen-pivot check (default `1e-9`).
+ * @param diagTol   tolerance for the unit-diagonal check (default `1e-9`).
+ * @param rangeTol  tolerance for the off-diagonal `[-1, 1]` range check
+ *                  (default `1e-9`). Kept separate from `diagTol` so relaxing
+ *                  the diagonal tolerance cannot silently widen the range gate.
+ * @param symTol    tolerance for the symmetry check (default `1e-9`).
+ * @param psdTol    tolerance for the PSD eigen-pivot check (default `1e-9`).
  */
 export function checkCorrelationMatrix(
   matrix: readonly (readonly number[])[],
   {
     diagTol = 1e-9,
+    rangeTol = 1e-9,
     symTol = 1e-9,
     psdTol = 1e-9,
-  }: { diagTol?: number; symTol?: number; psdTol?: number } = {},
+  }: {
+    diagTol?: number;
+    rangeTol?: number;
+    symTol?: number;
+    psdTol?: number;
+  } = {},
 ): MatrixCheck {
   const issues: string[] = [];
   let n: number;
@@ -165,7 +174,7 @@ export function checkCorrelationMatrix(
       issues.push(`diagonal entry [${i}][${i}] is ${matrix[i][i]}, expected 1`);
     }
     for (let j = 0; j < n; j++) {
-      if (i !== j && (matrix[i][j] < -1 - diagTol || matrix[i][j] > 1 + diagTol)) {
+      if (i !== j && (matrix[i][j] < -1 - rangeTol || matrix[i][j] > 1 + rangeTol)) {
         issues.push(
           `off-diagonal entry [${i}][${j}] is ${matrix[i][j]}, outside [-1, 1]`,
         );
@@ -197,6 +206,11 @@ export function nearestPositiveSemiDefinite(
   matrix: readonly (readonly number[])[],
   { iterations = 64 }: { iterations?: number } = {},
 ): number[][] {
+  if (!Number.isInteger(iterations) || iterations < 1) {
+    throw new CorrelationMatrixError(
+      `nearestPositiveSemiDefinite requires iterations to be a positive integer, got ${iterations}`,
+    );
+  }
   const n = squareDimension(matrix);
   if (!isSymmetric(matrix)) {
     throw new CorrelationMatrixError(

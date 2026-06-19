@@ -17,6 +17,12 @@ import { type MacroSeries } from "./series";
  * Returns the change as a percent (e.g. `3.2` for +3.2%) rounded to the given
  * number of decimal places, or `undefined` when there is no observation 12
  * months before the latest one.
+ *
+ * The prior observation is matched by exact date for **daily** series (so a
+ * daily series like DGS10 compares the same calendar day a year back rather
+ * than silently picking the first trading day of that month) and by year-month
+ * for **monthly** series like CPI, whose observations are stamped to the first
+ * of the month.
  */
 export function yearOverYearChange(
   series: MacroSeries,
@@ -26,8 +32,11 @@ export function yearOverYearChange(
   if (obs.length === 0) return undefined;
   const latest = obs[obs.length - 1];
 
-  const targetMonth = shiftMonths(latest.date, -12);
-  const prior = obs.find((o) => o.date.slice(0, 7) === targetMonth.slice(0, 7));
+  const target = shiftMonths(latest.date, -12);
+  const prior =
+    series.frequency === "monthly"
+      ? obs.find((o) => o.date.slice(0, 7) === target.slice(0, 7))
+      : obs.find((o) => o.date === target);
   if (!prior) return undefined;
 
   const prev = new Decimal(prior.value);

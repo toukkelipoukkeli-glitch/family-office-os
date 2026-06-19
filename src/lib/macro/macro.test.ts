@@ -4,6 +4,7 @@ import { yearOverYearChange } from "./analysis";
 import {
   FRED_BASE_URL,
   FredHttpError,
+  InvalidBaseUrlError,
   MacroAdapter,
   MissingApiKeyError,
   buildObservationsUrl,
@@ -288,7 +289,7 @@ describe("yearOverYearChange", () => {
   it("computes YoY CPI change exactly via decimal arithmetic", () => {
     const series = parseFredObservations("cpi", fredCpiRaw);
     // latest 2026-05 = 320.601, prior 2025-05 = 310.326.
-    // (320.601 - 310.326) / 310.326 * 100 = 3.31096... → 3.31
+    // (320.601 - 310.326) / 310.326 * 100 = 3.31103... → 3.31
     expect(yearOverYearChange(series)).toBe("3.31");
   });
 
@@ -328,6 +329,31 @@ describe("yearOverYearChange", () => {
       ],
     });
     expect(yearOverYearChange(series)).toBe("-3.23");
+  });
+
+  it("matches a daily series by exact calendar day, not the first day of the month", () => {
+    // Daily DGS10: the target prior day (2025-06-12) is present, alongside an
+    // earlier same-month observation that month-prefix matching would wrongly
+    // pick. Exact-date matching must select 2025-06-12.
+    const series = parseFredObservations("dgs10", {
+      observations: [
+        { date: "2025-06-02", value: "9.99" }, // decoy: same month, wrong day
+        { date: "2025-06-12", value: "4.00" }, // correct 12-months-prior day
+        { date: "2026-06-12", value: "4.20" },
+      ],
+    });
+    // (4.20 - 4.00) / 4.00 * 100 = 5
+    expect(yearOverYearChange(series)).toBe("5");
+  });
+
+  it("returns undefined for a daily series with no exact-day match a year prior", () => {
+    const series = parseFredObservations("dgs10", {
+      observations: [
+        { date: "2025-06-02", value: "4.00" }, // only same-month, wrong day
+        { date: "2026-06-12", value: "4.20" },
+      ],
+    });
+    expect(yearOverYearChange(series)).toBeUndefined();
   });
 
   it("matches the 12-months-prior observation by year-month regardless of day", () => {
@@ -421,5 +447,28 @@ describe("MacroAdapter api key + base url hardening", () => {
     });
     await adapter.fetchTenYearRate();
     expect(calls[0].startsWith(`${customBase}/series/observations?`)).toBe(true);
+  });
+
+  it("strips a trailing slash from the base url (no double slash)", () => {
+    const url = buildObservationsUrl("cpi", "k", {}, "https://fred.test/api/");
+    expect(url.startsWith("https://fred.test/api/series/observations?")).toBe(
+      true,
+    );
+    expect(url.includes("//series/observations")).toBe(false);
+  });
+
+  it("rejects a non-http(s) base url (no key exfiltration via file:/data:)", () => {
+    expect(
+      () => new MacroAdapter({ apiKey: "k", baseUrl: "file:///etc/passwd" }),
+    ).toThrow(InvalidBaseUrlError);
+    expect(() =>
+      buildObservationsUrl("cpi", "secret", {}, "data:text/plain,hi"),
+    ).toThrow(InvalidBaseUrlError);
+  });
+
+  it("rejects a malformed (relative) base url", () => {
+    expect(
+      () => new MacroAdapter({ apiKey: "k", baseUrl: "not-a-url" }),
+    ).toThrow(InvalidBaseUrlError);
   });
 });

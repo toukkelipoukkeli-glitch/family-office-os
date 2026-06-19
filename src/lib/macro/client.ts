@@ -81,6 +81,37 @@ function resolveApiKey(explicit?: string): string {
   return key.trim();
 }
 
+/** Error thrown when a non-`http(s)` or malformed base URL is configured. */
+export class InvalidBaseUrlError extends Error {
+  constructor(value: string) {
+    super(
+      `invalid FRED base URL: ${JSON.stringify(value)}; expected an absolute http(s) URL`,
+    );
+    this.name = "InvalidBaseUrlError";
+  }
+}
+
+/**
+ * Validate and normalise a base URL. Only absolute `http`/`https` URLs are
+ * accepted, so the api_key is never appended to a `file:`/`data:`/relative
+ * target. The default {@link FRED_BASE_URL} is used when none is supplied.
+ *
+ * A trailing slash is stripped so `${baseUrl}/series/observations` never
+ * produces a double slash.
+ */
+function resolveBaseUrl(input: string = FRED_BASE_URL): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    throw new InvalidBaseUrlError(input);
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new InvalidBaseUrlError(input);
+  }
+  return input.replace(/\/+$/, "");
+}
+
 /**
  * Build the FRED `series/observations` request URL for a series key. Exported
  * so the URL construction (param shape, key redaction concerns) is unit
@@ -101,7 +132,9 @@ export function buildObservationsUrl(
     params.set("observation_start", query.observationStart);
   if (query.observationEnd)
     params.set("observation_end", query.observationEnd);
-  return `${baseUrl}/series/observations?${params.toString()}`;
+  // Re-validate here too: this helper is exported and could be called with an
+  // untrusted baseUrl independently of the adapter constructor.
+  return `${resolveBaseUrl(baseUrl)}/series/observations?${params.toString()}`;
 }
 
 /**
@@ -124,7 +157,7 @@ export class MacroAdapter {
     } else {
       throw new Error("no fetch available; pass options.fetch");
     }
-    this.baseUrl = options.baseUrl ?? FRED_BASE_URL;
+    this.baseUrl = resolveBaseUrl(options.baseUrl);
   }
 
   /** Fetch and parse a single macro series by its internal key. */

@@ -18,12 +18,21 @@ export function Dashboard() {
           <h1 className="text-lg font-semibold tracking-tight">
             Family Office OS
           </h1>
-          <a
-            href="#/ops"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Ops cockpit
-          </a>
+          <nav className="flex items-center gap-4">
+            <a
+              href="#/charts"
+              data-testid="nav-charts"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Charts
+            </a>
+            <a
+              href="#/ops"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Ops cockpit
+            </a>
+          </nav>
         </div>
       </header>
 

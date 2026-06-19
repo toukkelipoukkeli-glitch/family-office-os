@@ -31,6 +31,15 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders the charts gallery at #/charts", () => {
+    setHash("#/charts");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /charting kit/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("charts-gallery")).toBeInTheDocument();
+  });
+
   it("navigates between dashboard and ops on hash change", () => {
     setHash("");
     render(<App />);

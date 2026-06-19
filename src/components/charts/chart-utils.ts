@@ -351,6 +351,21 @@ export function treemapLayout(
       return;
     }
     const sum = items.reduce((s, it) => s + it.value, 0);
+    // All remaining items are zero-value: dividing by `sum` would yield NaN.
+    // Give each a zero-area tile at this corner so geometry stays finite.
+    if (sum === 0) {
+      for (const it of items) {
+        tiles[it.index] = {
+          ...it.node,
+          value: it.value,
+          x: round(x),
+          y: round(y),
+          width: 0,
+          height: 0,
+        };
+      }
+      return;
+    }
     // Split into two halves by value, recurse along the longer axis.
     let half = 0;
     let splitAt = 0;

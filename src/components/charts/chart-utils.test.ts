@@ -264,6 +264,26 @@ describe("treemapLayout", () => {
     expect(tiles[1].value).toBe(0);
     expect(tiles[1].width * tiles[1].height).toBe(0);
   });
+  it("stays finite when several zero-value nodes share a sub-call", () => {
+    // Two zero nodes land together in one recursive half: sum === 0 there, so a
+    // naive firstSum/sum would be NaN and poison every tile's geometry.
+    const tiles = treemapLayout(
+      [{ value: 5 }, { value: 0 }, { value: 0 }],
+      200,
+      100,
+    );
+    expect(tiles).toHaveLength(3);
+    for (const t of tiles) {
+      expect(Number.isFinite(t.x)).toBe(true);
+      expect(Number.isFinite(t.y)).toBe(true);
+      expect(Number.isFinite(t.width)).toBe(true);
+      expect(Number.isFinite(t.height)).toBe(true);
+    }
+    expect(tiles[1].width * tiles[1].height).toBe(0);
+    expect(tiles[2].width * tiles[2].height).toBe(0);
+    // The lone positive node still fills the whole area.
+    expect(tiles[0].width * tiles[0].height).toBeCloseTo(200 * 100, 0);
+  });
 });
 
 describe("candlestickLayout", () => {

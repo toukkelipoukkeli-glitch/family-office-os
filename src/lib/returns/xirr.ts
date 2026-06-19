@@ -36,12 +36,26 @@ export interface XirrOptions {
 const MS_PER_DAY = 86_400_000;
 const DAYS_PER_YEAR = 365;
 
+/**
+ * Parse an ISO `YYYY-MM-DD` string or a `Date` into a UTC-midnight `Date`,
+ * using the same calendar-day convention as {@link xirr}. Exposed so callers
+ * (e.g. MWR) validate and normalize dates identically. Throws on malformed
+ * strings, impossible calendar dates, or invalid `Date` objects.
+ */
+export function normalizeCashflowDate(date: string | Date): Date {
+  return toUtcDate(date);
+}
+
 function toUtcDate(date: string | Date): Date {
   if (date instanceof Date) {
     if (Number.isNaN(date.getTime())) {
       throw new Error("xirr: invalid Date in cashflow");
     }
-    return date;
+    // Normalize to UTC midnight so an equivalent calendar day produces the same
+    // year fraction regardless of how the Date carries a time / timezone offset.
+    return new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
   }
   const trimmed = date.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
@@ -230,6 +244,9 @@ export function xnpv(rate: Decimal.Value, cashflows: DatedCashflow[]): Decimal {
   const onePlusR = r.plus(1);
   for (let i = 0; i < cashflows.length; i++) {
     const amount = new Decimal(cashflows[i].amount);
+    if (!amount.isFinite()) {
+      throw new Error(`xnpv: non-finite amount at index ${i}`);
+    }
     // (1+r)^t with fractional t — Decimal.pow supports non-integer exponents.
     const discount = onePlusR.pow(years[i]);
     acc = acc.plus(amount.div(discount));

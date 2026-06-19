@@ -61,7 +61,15 @@ function holdingPeriodReturn(prevValue: Decimal, point: ValuationPoint): Decimal
 }
 
 export interface TwrResult {
-  /** Total time-weighted return over the whole period (e.g. 0.21 = 21%). */
+  /**
+   * Total (cumulative) time-weighted return over the whole period
+   * (e.g. 0.21 = 21% across the entire span, **not** per year).
+   *
+   * NOTE: this is a *total* return, whereas {@link moneyWeightedReturn} returns
+   * an *annualized* rate. Do not compare the two directly for any period other
+   * than exactly one year — pass this value through {@link annualizeReturn}
+   * first to put it on the same annualized basis.
+   */
   twr: Decimal;
   /** Geometric growth factor: 1 + twr. */
   growthFactor: Decimal;
@@ -109,8 +117,8 @@ export function annualizeReturn(
   totalReturn: Decimal.Value,
   years: number,
 ): Decimal {
-  if (!(years > 0)) {
-    throw new Error("annualizeReturn: years must be positive");
+  if (!Number.isFinite(years) || years <= 0) {
+    throw new Error("annualizeReturn: years must be a positive finite number");
   }
   const growth = new Decimal(totalReturn).plus(1);
   if (growth.lessThanOrEqualTo(0)) {

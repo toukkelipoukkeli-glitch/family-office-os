@@ -357,3 +357,94 @@ describe("cross-checks (TWR vs MWR identity cases)", () => {
     expectClose(mwr, 0.234, 1e-6);
   });
 });
+
+describe("input hardening / edge cases", () => {
+  it("xirr: a Date with a nonzero time component matches the ISO string", () => {
+    // Same calendar days; one expressed as Dates carrying a UTC time-of-day.
+    const fromStrings = xirr([
+      { date: "2021-01-01", amount: -1000 },
+      { date: "2022-01-01", amount: 1100 },
+    ]);
+    const fromDates = xirr([
+      { date: new Date(Date.UTC(2021, 0, 1, 18, 30, 0)), amount: -1000 },
+      { date: new Date(Date.UTC(2022, 0, 1, 6, 15, 0)), amount: 1100 },
+    ]);
+    // Both normalize to UTC midnight => identical year fraction => identical rate.
+    expectClose(fromDates, fromStrings.toNumber(), 1e-12);
+    expectClose(fromDates, 0.1);
+  });
+
+  it("xnpv: rejects a non-finite amount instead of returning NaN", () => {
+    expect(() =>
+      xnpv(0.1, [
+        { date: "2021-01-01", amount: new Decimal(Infinity) },
+        { date: "2022-01-01", amount: 1100 },
+      ]),
+    ).toThrow(/non-finite/);
+  });
+
+  it("annualizeReturn: rejects non-finite horizons", () => {
+    expect(() => annualizeReturn(0.1, Infinity)).toThrow(/finite/);
+    expect(() => annualizeReturn(0.1, Number.NaN)).toThrow(/finite/);
+  });
+
+  it("mwr: rejects a zero opening value", () => {
+    expect(() =>
+      moneyWeightedReturn({
+        openingValue: 0,
+        openingDate: "2021-01-01",
+        endingValue: 1100,
+        endingDate: "2022-01-01",
+      }),
+    ).toThrow(/openingValue/);
+  });
+
+  it("mwr: rejects a flow dated before the opening date", () => {
+    expect(() =>
+      moneyWeightedReturn({
+        openingValue: 1000,
+        openingDate: "2021-01-01",
+        flows: [{ date: "2020-12-31", contribution: 100 }],
+        endingValue: 1200,
+        endingDate: "2022-01-01",
+      }),
+    ).toThrow(/within/);
+  });
+
+  it("mwr: rejects a flow dated after the ending date", () => {
+    expect(() =>
+      moneyWeightedReturn({
+        openingValue: 1000,
+        openingDate: "2021-01-01",
+        flows: [{ date: "2022-01-02", contribution: 100 }],
+        endingValue: 1200,
+        endingDate: "2022-01-01",
+      }),
+    ).toThrow(/within/);
+  });
+
+  it("mwr: rejects an ending date before the opening date", () => {
+    expect(() =>
+      moneyWeightedReturn({
+        openingValue: 1000,
+        openingDate: "2022-01-01",
+        endingValue: 1100,
+        endingDate: "2021-01-01",
+      }),
+    ).toThrow(/on or after/);
+  });
+
+  it("mwr: accepts flows exactly on the opening and ending boundaries", () => {
+    const mwr = moneyWeightedReturn({
+      openingValue: 1000,
+      openingDate: "2021-01-01",
+      flows: [
+        { date: "2021-01-01", contribution: 100 },
+        { date: "2022-01-01", contribution: -50 },
+      ],
+      endingValue: 1200,
+      endingDate: "2022-01-01",
+    });
+    expect(mwr.isFinite()).toBe(true);
+  });
+});

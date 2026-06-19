@@ -1,6 +1,6 @@
 import { Decimal } from "decimal.js";
 
-import { xirr, type DatedCashflow } from "./xirr";
+import { normalizeCashflowDate, xirr, type DatedCashflow } from "./xirr";
 
 /**
  * Money-weighted return (MWR).
@@ -79,12 +79,30 @@ export function moneyWeightedReturn(
   if (ending.isNegative()) {
     throw new Error("mwr: endingValue must be non-negative");
   }
+  if (opening.isZero()) {
+    // A zero opening value leaves no initial outflow, so the cashflow series
+    // would (absent contributions) have no negative leg for XIRR to solve.
+    // It also negates to Decimal(-0), which would mask that. Require capital.
+    throw new Error("mwr: openingValue must be positive");
+  }
+
+  const openingTs = normalizeCashflowDate(input.openingDate).getTime();
+  const endingTs = normalizeCashflowDate(input.endingDate).getTime();
+  if (endingTs < openingTs) {
+    throw new Error("mwr: endingDate must be on or after openingDate");
+  }
 
   const cashflows: DatedCashflow[] = [];
   // Opening value: money put to work => outflow from the investor => negative.
   cashflows.push({ date: input.openingDate, amount: opening.negated() });
 
   for (const flow of input.flows ?? []) {
+    const flowTs = normalizeCashflowDate(flow.date).getTime();
+    if (flowTs < openingTs || flowTs > endingTs) {
+      throw new Error(
+        "mwr: flow date must be within [openingDate, endingDate]",
+      );
+    }
     // contribution > 0 (deposit) => outflow => negative amount.
     const amount = new Decimal(flow.contribution).negated();
     cashflows.push({ date: flow.date, amount });

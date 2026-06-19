@@ -72,6 +72,32 @@ describe("buildFanChart", () => {
     const bad: ScenarioBaseInput = { ...COCKPIT_BASE_INPUT, horizonYears: 0 };
     expect(() => buildFanChart(bad)).toThrow(CockpitError);
   });
+
+  it("rejects a non-finite horizon (NaN / Infinity)", () => {
+    const nan: ScenarioBaseInput = {
+      ...COCKPIT_BASE_INPUT,
+      horizonYears: Number.NaN,
+    };
+    const inf: ScenarioBaseInput = {
+      ...COCKPIT_BASE_INPUT,
+      horizonYears: Number.POSITIVE_INFINITY,
+    };
+    expect(() => buildFanChart(nan)).toThrow(CockpitError);
+    expect(() => buildFanChart(inf)).toThrow(CockpitError);
+  });
+
+  it("handles a fractional sub-year horizon as a single closed cone step", () => {
+    const half: ScenarioBaseInput = {
+      ...COCKPIT_BASE_INPUT,
+      horizonYears: 0.5,
+    };
+    const fan = buildFanChart(half);
+    // t=0 plus one rounded whole-year step.
+    expect(fan.points).toHaveLength(2);
+    expect(fan.points[0].year).toBe(0);
+    expect(fan.points[0].p5).toBe(fan.points[0].p95); // closed at t=0
+    expect(fan.points[1].p5).toBeLessThanOrEqual(fan.points[1].p95);
+  });
 });
 
 describe("buildWaterfall", () => {
@@ -118,6 +144,25 @@ describe("buildWaterfall", () => {
     expect(classes).not.toContain("cash");
     // drift-only shocks (cash/bond carry) do not create reprice steps.
     expect(classes).toContain("bond"); // bond has a reprice shock too
+  });
+
+  it("compounds multiple reprice shocks on the same class multiplicatively", () => {
+    // Two reprice shocks on equity: -50% then -50% should compound to -75%,
+    // not be summed to -100%. equity book is 4.2M → -3.15M delta.
+    const doubleHit: Scenario = {
+      id: "double-equity",
+      name: "Double equity hit",
+      description: "two compounding equity reprices",
+      shocks: [
+        { kind: "reprice", targets: ["equity"], amount: -0.5 },
+        { kind: "reprice", targets: ["equity"], amount: -0.5 },
+      ],
+    };
+    const wf = buildWaterfall(COCKPIT_BASE_INPUT, doubleHit);
+    const equityStep = wf.steps.find((s) => s.assetClass === "equity");
+    expect(equityStep).toBeDefined();
+    // 4.2M × (0.5 × 0.5) - 4.2M = 4.2M × -0.75 = -3.15M
+    expect(equityStep?.delta).toBeCloseTo(-3_150_000, 6);
   });
 
   it("an empty scenario produces no steps and no change", () => {

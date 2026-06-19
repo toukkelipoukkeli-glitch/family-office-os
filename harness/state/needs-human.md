@@ -1,42 +1,27 @@
-# Readiness tracker
+# Readiness tracker — ✅ COMPLETE
 
-Pre-flight before any production code.
+Every external dependency validated. Cleared to build.
 
-## ✅ Ready & tested
+## Validated & tested
 
-- **Bun** 1.3.14 installed.
-- **Keep-awake** (`caffeinate`) running.
-- **GitHub auth** — `gh` logged in as `toukkelipoukkeli-glitch` (scopes: repo, workflow).
-- **Repo** created + pushed: `toukkelipoukkeli-glitch/family-office-os`.
-- **Claude in Chrome** — connected ("Browser 1", macOS) and verified.
-- **Data feeds — ALL live-tested:**
-  - Equities — Alpha Vantage (key in `.env`) ✓
-  - Macro — FRED (key in `.env`) ✓
-  - FX — frankfurter.dev ✓
-  - Weather — Open-Meteo ✓
-  - World data — World Bank ✓
-  - Crypto — CoinGecko ✓
-- **Secrets** — `.env` created and confirmed gitignored; `.env.example` committed.
+- **Bun** 1.3.14 · **keep-awake** running.
+- **GitHub** — authed as `toukkelipoukkeli-glitch`; repo **PUBLIC**, pushed.
+- **Claude in Chrome** — connected + verified.
+- **Data feeds — all live-tested:** equities (Alpha Vantage), macro (FRED),
+  FX (frankfurter.dev), weather (Open-Meteo), world (World Bank), crypto (CoinGecko).
+- **Secrets** — gitignored `.env`; template committed.
+- **Gmail + Calendar** — connected + read-tested.
+- **CodeRabbit + Greptile** — both confirmed posting real review comments
+  (smoke PR #1, now closed). Full review loop proven.
+- **Convex** — logged in, team `touko-ursin`. Project/deployment auto-created at
+  scaffold (non-interactive on this machine).
 
-## 🔵 Decision needed (blocks Chrome review + review bots)
+## Ongoing human touchpoints (only these)
 
-- [ ] **Repo visibility** — public (recommended: synthetic data; unlocks Chrome
-      access + CodeRabbit/Greptile free tiers) vs private (then log Chrome into
-      GitHub as the alt account + confirm bot trials cover private).
+- I ask before **sending** any email to a real person. Reading + drafting are autonomous.
+- Kill switch: `touch harness/HALT` (loop stops at next safe point).
 
-## ⏳ Needs a human
+## Next
 
-- [ ] **Install CodeRabbit** on the repo → then I run the smoke-test PR.
-- [ ] **Install Greptile** on the repo → same.
-- [ ] **Connect Gmail** — Claude app connector settings (read-only).
-- [ ] **Connect Google Calendar** — same (VC/startup deal-flow + meetings).
-- [ ] **Convex login** — done at app-scaffold time; I run `bunx convex dev`,
-      you approve the browser OAuth, I generate a deploy key for unattended.
-
-## 🔧 Mine — remaining
-
-- [ ] After bots installed: throwaway smoke-test PR to confirm both comment.
-
-## Deferred (not blocking; modeled/scraped later)
-
-- [ ] Alt-asset indices: LEGO (BrickEconomy), wine (Liv-ex), timber.
+Scaffold (Bun + Vite + React + TS + Tailwind + shadcn + Convex) → first slice →
+prove the full PR→review→fix→merge loop on it → fan out parallel workers.

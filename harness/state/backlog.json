@@ -11,7 +11,8 @@
         { "id": "m0-alloc", "title": "Allocation + rebalancing-drift engine", "oracle": "unit", "deps": ["m0-model"] },
         { "id": "m0-risk", "title": "Risk metrics: vol, drawdown, Sharpe, Sortino, correlation", "oracle": "unit", "deps": ["m0-returns"] },
         { "id": "m0-app", "title": "Vite+React+TS+Tailwind+shadcn app shell", "oracle": "e2e", "deps": [] },
-        { "id": "m0-networth", "title": "Net-worth-over-time visualization with drill-down", "oracle": "e2e+screenshot", "deps": ["m0-returns", "m0-app", "m0-fixtures"] }
+        { "id": "m0-charts", "title": "Reusable charting kit (line, area, bar, donut, treemap, candlestick, sparkline)", "oracle": "e2e+screenshot", "deps": ["m0-app"] },
+        { "id": "m0-networth", "title": "Net-worth-over-time visualization with drill-down", "oracle": "e2e+screenshot", "deps": ["m0-returns", "m0-charts", "m0-fixtures"] }
       ]
     },
     {
@@ -19,8 +20,8 @@
       "title": "Backend + live data",
       "units": [
         { "id": "m1-convex", "title": "Convex schema + queries for holdings/valuations", "oracle": "unit", "deps": ["m0-model"] },
-        { "id": "m1-equities", "title": "Equities/ETF price adapter (fixture-tested)", "oracle": "unit", "deps": ["m1-convex"] },
-        { "id": "m1-fx", "title": "FX adapter (ECB) + multi-currency normalization", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m1-equities", "title": "Equities/ETF price adapter (Alpha Vantage, fixture-tested)", "oracle": "unit", "deps": ["m1-convex"] },
+        { "id": "m1-fx", "title": "FX adapter (frankfurter.dev) + multi-currency normalization", "oracle": "unit", "deps": ["m1-convex"] },
         { "id": "m1-crypto", "title": "Crypto adapter (CoinGecko, fixture-tested)", "oracle": "unit", "deps": ["m1-convex"] },
         { "id": "m1-macro", "title": "Macro adapter (FRED): rates, CPI", "oracle": "unit", "deps": ["m1-convex"] },
         { "id": "m1-weather", "title": "Weather/world adapter (Open-Meteo, World Bank)", "oracle": "unit", "deps": ["m1-convex"] }
@@ -45,7 +46,7 @@
         { "id": "m3-mc", "title": "Monte Carlo net-worth simulator", "oracle": "unit", "deps": ["m3-corr"] },
         { "id": "m3-scenarios", "title": "Named scenario builder (rate shock, FX, drought, market correction)", "oracle": "unit", "deps": ["m3-mc"] },
         { "id": "m3-liquidity", "title": "Liquidity / capital-call coverage analysis", "oracle": "unit", "deps": ["m3-mc"] },
-        { "id": "m3-viz", "title": "Scenario cockpit visualization (fan charts, tornado, waterfall)", "oracle": "e2e+screenshot", "deps": ["m3-scenarios"] }
+        { "id": "m3-viz", "title": "Scenario cockpit (fan charts, tornado, waterfall)", "oracle": "e2e+screenshot", "deps": ["m3-scenarios", "m0-charts"] }
       ]
     },
     {
@@ -53,6 +54,28 @@
       "title": "Ops cockpit",
       "units": [
         { "id": "m4-ops", "title": "/ops page rendering harness state (PRs, backlog, heartbeat)", "oracle": "e2e", "deps": ["m0-app"] }
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "Company & portfolio-company intelligence (graphs + hierarchy)",
+      "units": [
+        { "id": "m5-company-model", "title": "Company / subsidiary / ownership data model + Zod", "oracle": "unit", "deps": ["m0-model"] },
+        { "id": "m5-orgchart", "title": "Org-hierarchy + subsidiary tree visualization", "oracle": "e2e+screenshot", "deps": ["m5-company-model", "m0-charts"] },
+        { "id": "m5-captable", "title": "Cap table + ownership-stake breakdown", "oracle": "unit", "deps": ["m5-company-model"] },
+        { "id": "m5-ownership-graph", "title": "Cross-holding ownership network graph", "oracle": "e2e+screenshot", "deps": ["m5-company-model", "m0-charts"] },
+        { "id": "m5-company-profile", "title": "Company profile cards (financials, holdings, people)", "oracle": "e2e", "deps": ["m5-company-model"] }
+      ]
+    },
+    {
+      "id": "m6",
+      "title": "VC / startup deal-flow (Gmail + Calendar, read-only)",
+      "units": [
+        { "id": "m6-deal-model", "title": "Deal / pipeline-stage / contact data model", "oracle": "unit", "deps": ["m0-model"] },
+        { "id": "m6-pipeline", "title": "Deal pipeline board (stages, status, drill-down)", "oracle": "e2e", "deps": ["m6-deal-model"] },
+        { "id": "m6-email-ingest", "title": "Gmail deal-email ingestion (read-only parser, fixture-tested)", "oracle": "unit", "deps": ["m6-deal-model"] },
+        { "id": "m6-calendar-sync", "title": "Calendar meeting sync into deal timeline (fixture-tested)", "oracle": "unit", "deps": ["m6-deal-model"] },
+        { "id": "m6-relationship-graph", "title": "Founder / investor relationship graph", "oracle": "e2e+screenshot", "deps": ["m6-deal-model", "m0-charts"] }
       ]
     }
   ]

@@ -19,8 +19,15 @@ import { Money } from "../money";
  * money.
  */
 
-/** Value accepted for an FX rate: an exact decimal string, number, or Decimal. */
-export type FxRateInput = string | number | Decimal;
+/**
+ * Value accepted for an FX rate: an exact decimal string or {@link Decimal}.
+ *
+ * A JS `number` is deliberately excluded: binary floating-point cannot
+ * represent most decimal rates exactly (`0.1`, `1.1`, ...), and the repo's
+ * precision rule (AGENTS.md) forbids floating-point currency math. Numeric
+ * inputs are also rejected at runtime in {@link FxConverter.fromTable}.
+ */
+export type FxRateInput = string | Decimal;
 
 /**
  * A resolved set of FX rates against a single base currency.
@@ -69,6 +76,14 @@ export class FxConverter {
     rates.set(base, new Decimal(1));
     for (const [code, rate] of Object.entries(table.rates)) {
       const norm = normalizeCode(code);
+      // Reject floating-point numeric inputs at the boundary (a JS caller could
+      // bypass the `FxRateInput` type): rates must be exact decimal strings or
+      // Decimals so we never carry binary float imprecision into conversions.
+      if (typeof rate === "number") {
+        throw new Error(
+          `FX rate for ${norm} must be a decimal string or Decimal, not a number`,
+        );
+      }
       let dec: Decimal;
       try {
         dec = new Decimal(rate);

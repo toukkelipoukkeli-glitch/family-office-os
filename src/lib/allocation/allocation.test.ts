@@ -93,6 +93,25 @@ describe("FxConverter", () => {
     );
   });
 
+  it("rejects a floating-point numeric rate at the boundary", () => {
+    // FxRateInput is string | Decimal; a JS caller could still pass a number.
+    // Numeric rates carry binary-float imprecision, so they are rejected.
+    expect(() =>
+      FxConverter.fromTable({
+        base: "USD",
+        rates: { EUR: 1.1 as unknown as string },
+      }),
+    ).toThrow(/not a number/);
+  });
+
+  it("accepts a Decimal rate (exact, no float)", () => {
+    const fx = FxConverter.fromTable({
+      base: "USD",
+      rates: { EUR: new Decimal("1.1") },
+    });
+    expect(fx.toBase(Money.of("10", "EUR")).amount.toFixed()).toBe("11");
+  });
+
   it("rejects a zero rate for a non-base currency", () => {
     // A zero rate would silently value the holding at zero base currency.
     expect(() =>

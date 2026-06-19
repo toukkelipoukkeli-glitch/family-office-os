@@ -73,6 +73,16 @@ describe("buildFanChart", () => {
     expect(() => buildFanChart(bad)).toThrow(CockpitError);
   });
 
+  it("rejects a non-positive or non-finite steps count", () => {
+    const zeroSteps: ScenarioBaseInput = { ...COCKPIT_BASE_INPUT, steps: 0 };
+    const nanSteps: ScenarioBaseInput = {
+      ...COCKPIT_BASE_INPUT,
+      steps: Number.NaN,
+    };
+    expect(() => buildFanChart(zeroSteps)).toThrow(CockpitError);
+    expect(() => buildFanChart(nanSteps)).toThrow(CockpitError);
+  });
+
   it("rejects a non-finite horizon (NaN / Infinity)", () => {
     const nan: ScenarioBaseInput = {
       ...COCKPIT_BASE_INPUT,

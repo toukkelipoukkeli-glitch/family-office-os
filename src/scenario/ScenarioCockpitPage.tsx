@@ -95,6 +95,14 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
     () => cockpit.tornado.bars[0]?.scenarioId ?? "",
   );
 
+  // If the model changes and the current selection no longer exists, fall back
+  // to the worst scenario so the waterfall never points at a missing id.
+  React.useEffect(() => {
+    if (!(selectedId in cockpit.waterfalls)) {
+      setSelectedId(cockpit.tornado.bars[0]?.scenarioId ?? "");
+    }
+  }, [cockpit, selectedId]);
+
   const waterfall = cockpit.waterfalls[selectedId];
   const selectedBar = cockpit.tornado.bars.find(
     (b) => b.scenarioId === selectedId,

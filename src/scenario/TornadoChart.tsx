@@ -5,11 +5,10 @@ import { cn } from "@/lib/utils";
 import type { TornadoBar } from "@/lib/scenario/cockpit";
 
 export interface TornadoChartProps
-  extends Omit<React.SVGProps<SVGSVGElement>, "children"> {
+  extends Omit<React.SVGProps<SVGSVGElement>, "children" | "height"> {
   /** Tornado bars, already ordered worst-first by the cockpit model. */
   bars: readonly TornadoBar[];
   width?: number;
-  height?: number;
   /** Maps a signed value to a short label for the magnitude annotation. */
   formatValue: (value: number) => string;
 }

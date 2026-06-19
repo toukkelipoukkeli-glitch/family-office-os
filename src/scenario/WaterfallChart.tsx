@@ -68,11 +68,13 @@ export const WaterfallChart = React.forwardRef<SVGSVGElement, WaterfallChartProp
     const innerW = Math.max(0, width - m.left - m.right);
     const innerH = Math.max(0, height - m.top - m.bottom);
 
-    const tops = columns.map((c) => c.top);
-    const dom = extent([0, ...tops]);
+    // Include both edges of every column (and 0) so a cross-zero waterfall —
+    // where a shocked running value dips below zero — is not clipped.
+    const edges = columns.flatMap((c) => [c.top, c.bottom]);
+    const dom = extent([0, ...edges]);
     const pad = (dom.max - dom.min) * 0.08 || 1;
     const y = linearScale(
-      { min: 0, max: dom.max + pad },
+      { min: dom.min - (dom.min < 0 ? pad : 0), max: dom.max + pad },
       m.top + innerH,
       m.top,
     );

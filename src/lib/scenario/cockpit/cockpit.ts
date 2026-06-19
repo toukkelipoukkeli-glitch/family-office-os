@@ -162,6 +162,9 @@ export function buildFanChart(base: ScenarioBaseInput): FanChartModel {
     throw new CockpitError(`horizonYears must be positive, got ${horizon}`);
   }
   const totalSteps = base.steps ?? 1;
+  if (!(totalSteps > 0) || !Number.isFinite(totalSteps)) {
+    throw new CockpitError(`steps must be positive, got ${totalSteps}`);
+  }
   const initialNetWorth = sumValues(base.assets);
 
   const points: FanPoint[] = [

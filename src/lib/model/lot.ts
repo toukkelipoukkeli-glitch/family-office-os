@@ -3,8 +3,8 @@ import * as z from "zod";
 import {
   Id,
   IsoDate,
-  MoneySchema,
   NonNegativeDecimalString,
+  NonNegativeMoneySchema,
 } from "./primitives";
 
 /**
@@ -22,12 +22,12 @@ export const Lot = z
     id: Id,
     /** Units acquired in this lot (non-negative). */
     quantity: NonNegativeDecimalString,
-    /** Cost per unit at acquisition. */
-    unitCost: MoneySchema,
+    /** Cost per unit at acquisition (non-negative). */
+    unitCost: NonNegativeMoneySchema,
     /** Acquisition date (YYYY-MM-DD). */
     acquiredOn: IsoDate,
-    /** Optional total fees/commissions paid for this lot. */
-    fees: MoneySchema.optional(),
+    /** Optional total fees/commissions paid for this lot (non-negative). */
+    fees: NonNegativeMoneySchema.optional(),
     /** Optional free-text note (e.g. broker, provenance, certificate id). */
     note: z.string().trim().max(2000).optional(),
   })

@@ -350,6 +350,38 @@ describe("adversarial edge cases", () => {
     });
     expect(res.success).toBe(true);
   });
+  it("Lot rejects a negative unitCost and negative fees", () => {
+    expect(
+      Lot.safeParse({
+        ...lotAaplA,
+        unitCost: { amount: "-1.00", currency: "USD" },
+      }).success,
+    ).toBe(false);
+    expect(
+      Lot.safeParse({
+        ...lotAaplA,
+        fees: { amount: "-0.01", currency: "USD" },
+      }).success,
+    ).toBe(false);
+  });
+  it("Valuation rejects a negative value amount", () => {
+    expect(
+      Valuation.safeParse({
+        ...valAaplMarket,
+        value: { amount: "-100.00", currency: "USD" },
+      }).success,
+    ).toBe(false);
+  });
+  it("IsoDateTime rejects loose non-ISO formats but accepts Z and offset", () => {
+    expect(IsoDateTime.safeParse("6/15/2019").success).toBe(false);
+    expect(IsoDateTime.safeParse("2019-06-15 12:00:00").success).toBe(false);
+    expect(IsoDateTime.parse("2026-06-18T16:00:00Z")).toBe(
+      "2026-06-18T16:00:00Z",
+    );
+    expect(IsoDateTime.parse("2026-06-18T16:00:00+02:00")).toBe(
+      "2026-06-18T16:00:00+02:00",
+    );
+  });
   it("Portfolio reports the index of the first duplicate holding id", () => {
     const res = Portfolio.safeParse({
       ...samplePortfolio,

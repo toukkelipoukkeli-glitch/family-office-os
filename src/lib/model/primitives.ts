@@ -80,11 +80,12 @@ export const IsoDate = z
   }, "must be a real calendar date");
 export type IsoDate = z.infer<typeof IsoDate>;
 
-/** An ISO-8601 timestamp (a value parseable by `Date`, e.g. RFC-3339). */
-export const IsoDateTime = z
-  .string()
-  .trim()
-  .refine((s) => !Number.isNaN(Date.parse(s)), "must be an ISO timestamp");
+/**
+ * An ISO-8601 timestamp (RFC-3339), validated by structure rather than by the
+ * lenient `Date.parse`. Accepts a `Z` (UTC) suffix or an explicit `±HH:MM`
+ * offset; rejects loose inputs like `6/15/2019` or `2019-06-15 12:00:00`.
+ */
+export const IsoDateTime = z.iso.datetime({ offset: true });
 export type IsoDateTime = z.infer<typeof IsoDateTime>;
 
 /** A non-empty, trimmed identifier string. */

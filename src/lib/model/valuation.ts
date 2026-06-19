@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-import { Id, IsoDateTime, MoneySchema } from "./primitives";
+import { Id, IsoDateTime, NonNegativeMoneySchema } from "./primitives";
 
 /**
  * How a valuation was obtained. Drives the default confidence of a
@@ -32,7 +32,7 @@ export type ConfidenceLevel = z.infer<typeof ConfidenceLevel>;
  * confidence so the family can tell a fresh market quote from a year-old
  * appraisal.
  *
- * - `value` is the {@link MoneySchema} amount of the valuation.
+ * - `value` is the {@link NonNegativeMoneySchema} amount of the valuation.
  * - `asOf` is when the valuation was effective.
  * - `confidence` is a coarse band; `confidenceScore` is an optional precise
  *   0..1 figure when a source can express one.
@@ -41,8 +41,8 @@ export const Valuation = z
   .object({
     /** Stable id for this valuation record. */
     id: Id,
-    /** The valued amount. */
-    value: MoneySchema,
+    /** The valued amount (non-negative). */
+    value: NonNegativeMoneySchema,
     /** When the valuation was effective. */
     asOf: IsoDateTime,
     /** How the value was obtained. */

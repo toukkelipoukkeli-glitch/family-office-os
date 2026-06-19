@@ -1,6 +1,7 @@
 import Dashboard from "@/Dashboard";
 import CapTablePage from "@/captable/CapTablePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
+import { OwnershipGraphPage } from "@/components/ownership/ownership-graph-page";
 import { useHashRoute } from "@/lib/use-hash-route";
 import OpsPage from "@/ops/OpsPage";
 
@@ -17,6 +18,10 @@ function App() {
 
   if (path === "/charts") {
     return <ChartsGalleryPage />;
+  }
+
+  if (path === "/ownership") {
+    return <OwnershipGraphPage />;
   }
 
   return <Dashboard />;

@@ -29,6 +29,13 @@ export function Dashboard() {
               Cap table
             </a>
             <a
+              href="#/ownership"
+              data-testid="nav-ownership"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Ownership
+            </a>
+            <a
               href="#/ops"
               data-testid="nav-ops"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

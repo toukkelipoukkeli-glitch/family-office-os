@@ -94,3 +94,32 @@ export const sampleCompanies: Company[] = [
   venturesCo,
   opCo,
 ];
+
+/**
+ * A cross-holding variant of the sample group used by the ownership-network
+ * graph UI. Here the operating company {@link opCo} is jointly held: 50% via
+ * Ursin Ventures (as in {@link sampleCompanies}) and 30% directly by the real
+ * estate company, producing a diamond in the graph so the visualization shows a
+ * genuine cross-holding rather than a pure tree.
+ *
+ * Effective ownership of `co-opco` from the top holding company is therefore
+ * 75% * 50% (via ventures) + 100% * 30% (via real estate) = 67.5%.
+ */
+export const crossRealEstateCo: Company = Company.parse({
+  id: "co-realestate",
+  name: "Ursin Real Estate Oy",
+  entityType: "corporation",
+  jurisdiction: "FI",
+  currency: "EUR",
+  subsidiaries: [
+    { id: "sub-re-opco", companyId: "co-opco", percentage: "30" },
+  ],
+});
+
+/** Flat node array for the cross-holding network fixture. */
+export const crossHoldingCompanies: Company[] = [
+  topco,
+  crossRealEstateCo,
+  venturesCo,
+  opCo,
+];

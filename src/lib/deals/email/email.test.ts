@@ -334,6 +334,82 @@ describe("extraction maps onto the real deal-model schemas", () => {
   });
 });
 
+describe("adversarial edge cases", () => {
+  it("requires a currency: bare magnitude numbers are not money", () => {
+    expect(findMoneyAmounts("we have 5 buildings and 12 plots")).toEqual([]);
+    expect(findMoneyAmounts("met 3 times, 2026 vintage")).toEqual([]);
+  });
+
+  it("handles bn/mm/b/k suffixes exactly without floating point", () => {
+    expect(findMoneyAmounts("$2b fund")[0]).toMatchObject({
+      amount: "2000000000",
+    });
+    expect(findMoneyAmounts("$4mm round")[0]).toMatchObject({
+      amount: "4000000",
+    });
+    expect(findMoneyAmounts("EUR 1.5bn")[0]).toMatchObject({
+      amount: "1500000000",
+    });
+    expect(findMoneyAmounts("EUR 4.5k")[0]).toMatchObject({ amount: "4500" });
+  });
+
+  it("compareDecimal handles leading zeros and unequal fraction lengths", () => {
+    expect(compareDecimal("007", "7")).toBe(0);
+    expect(compareDecimal("1.5", "1.50")).toBe(0);
+    expect(compareDecimal("1.500001", "1.5")).toBeGreaterThan(0);
+  });
+
+  it("scaleDecimal drops trailing zeros and handles zero", () => {
+    expect(scaleDecimal("1.0", 1000)).toBe("1000");
+    expect(scaleDecimal("0", 1000)).toBe("0");
+    expect(scaleDecimal("0.0", 1000)).toBe("0");
+  });
+
+  it("parseEmailDate rejects single-digit hour (strict, never guesses)", () => {
+    expect(parseEmailDate("9 Apr 2026 9:00 Z")).toBeUndefined();
+  });
+
+  it("slugId normalizes non-ASCII deterministically and caps length", () => {
+    expect(slugId("c", "Ünïcode Ünïcode")).toBe("c-unicode-unicode");
+    const long = slugId("contact", "x".repeat(100));
+    expect(long.length).toBeLessThanOrEqual("contact-".length + 48);
+  });
+
+  it("parseRawEmail folds RFC-822 continuation header lines", () => {
+    const raw = parseRawEmail(
+      'Subject: a very long\n subject that folds\nFrom: "A" <a@b.com>\n\nbody',
+    );
+    expect(raw.subject).toBe("a very long subject that folds");
+  });
+
+  it("picks the largest nominal amount across multiple matches", () => {
+    const { extraction } = parseDealEmail({
+      subject: "Deal",
+      from: "x@firm.com",
+      body: "first $1m, then a bigger $9m, also $500k",
+    });
+    expect(extraction.amount).toEqual({ amount: "9000000", currency: "USD" });
+    expect(extraction.moneyMatches).toHaveLength(3);
+  });
+
+  it("confidence stays within [0,1] even when every slot is filled", () => {
+    const { extraction } = parseDealEmail({
+      subject: "Forestry roll-up",
+      from: '"Jane" <jane@evergreen-advisory.com>',
+      date: "Mon, 12 Jan 2026 09:30:00 +0000",
+      body: "as your broker, a €4.5m forest deal",
+    });
+    expect(extraction.confidence).toBeGreaterThanOrEqual(0);
+    expect(extraction.confidence).toBeLessThanOrEqual(1);
+  });
+
+  it("never throws on empty/whitespace body with a valid sender", () => {
+    expect(() =>
+      parseDealEmail({ subject: "", from: "a@b.com", body: "   " }),
+    ).not.toThrow();
+  });
+});
+
 describe("read-only / offline guarantees", () => {
   it("exposes no send/draft/fetch/network surface", () => {
     // The module's public API is purely parsing. This is a guard against future

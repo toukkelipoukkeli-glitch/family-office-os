@@ -245,6 +245,147 @@ describe("valuations", () => {
   });
 });
 
+describe("lookups for missing ids", () => {
+  test("getPortfolio returns null for an unknown id", async () => {
+    const t = convexTest(schema, modules);
+    expect(
+      await t.query(api.holdings.getPortfolio, { portfolioId: "ghost" }),
+    ).toBeNull();
+  });
+
+  test("getHolding returns null for an unknown id", async () => {
+    const t = convexTest(schema, modules);
+    expect(
+      await t.query(api.holdings.getHolding, { holdingId: "ghost" }),
+    ).toBeNull();
+  });
+
+  test("latestValuation returns null for an unknown holding (no throw)", async () => {
+    const t = convexTest(schema, modules);
+    expect(
+      await t.query(api.holdings.latestValuation, { holdingId: "ghost" }),
+    ).toBeNull();
+  });
+
+  test("listHoldingsByPortfolio returns [] when the portfolio has none", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(api.holdings.upsertHolding, holdingFixture());
+    expect(
+      await t.query(api.holdings.listHoldingsByPortfolio, {
+        portfolioId: "empty",
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("valuation ordering edge cases", () => {
+  test("latestValuation keeps the asOf max even when ids/insert order differ", async () => {
+    const t = convexTest(schema, modules);
+    // Latest by asOf is val-1 (in the fixture); append two strictly earlier.
+    await t.mutation(api.holdings.upsertHolding, holdingFixture());
+    await t.mutation(api.holdings.addValuation, {
+      holdingId: "h-aapl",
+      valuation: {
+        id: "earlier",
+        value: usd("1.00"),
+        asOf: "2020-01-01T00:00:00Z",
+        source: "manual",
+        confidence: "low",
+      },
+    });
+    const latest = await t.query(api.holdings.latestValuation, {
+      holdingId: "h-aapl",
+    });
+    expect(latest?.id).toBe("val-1");
+  });
+
+  test("latestValuation is deterministic on tied asOf (keeps the earlier-seen one)", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(
+      api.holdings.upsertHolding,
+      holdingFixture({ valuations: [] }),
+    );
+    const tie = "2026-06-01T00:00:00Z";
+    await t.mutation(api.holdings.addValuation, {
+      holdingId: "h-aapl",
+      valuation: {
+        id: "first",
+        value: usd("100.00"),
+        asOf: tie,
+        source: "market",
+        confidence: "high",
+      },
+    });
+    await t.mutation(api.holdings.addValuation, {
+      holdingId: "h-aapl",
+      valuation: {
+        id: "second",
+        value: usd("200.00"),
+        asOf: tie,
+        source: "market",
+        confidence: "high",
+      },
+    });
+    // reduce uses strict `>`, so the first-seen valuation wins on a tie.
+    const latest = await t.query(api.holdings.latestValuation, {
+      holdingId: "h-aapl",
+    });
+    expect(latest?.id).toBe("first");
+  });
+});
+
+describe("asset-class filtering is portfolio-scoped", () => {
+  test("listHoldingsByAssetClass does not bleed across portfolios", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(api.holdings.upsertHolding, holdingFixture());
+    await t.mutation(
+      api.holdings.upsertHolding,
+      holdingFixture({
+        holdingId: "h-msft",
+        portfolioId: "p-other",
+        name: "Microsoft",
+        symbol: "MSFT",
+      }),
+    );
+
+    const mine = await t.query(api.holdings.listHoldingsByAssetClass, {
+      portfolioId: "p-main",
+      assetClass: "equity",
+    });
+    expect(mine.map((h) => h.holdingId)).toEqual(["h-aapl"]);
+  });
+});
+
+describe("upsert returns a stable id", () => {
+  test("upsertPortfolio returns the same _id across insert and update", async () => {
+    const t = convexTest(schema, modules);
+    const firstId = await t.mutation(api.holdings.upsertPortfolio, {
+      portfolioId: "p-stable",
+      name: "Stable",
+      baseCurrency: "USD",
+    });
+    const secondId = await t.mutation(api.holdings.upsertPortfolio, {
+      portfolioId: "p-stable",
+      name: "Stable (renamed)",
+      baseCurrency: "USD",
+    });
+    expect(secondId).toBe(firstId);
+  });
+
+  test("upsertHolding returns the same _id across insert and update", async () => {
+    const t = convexTest(schema, modules);
+    const firstId = await t.mutation(
+      api.holdings.upsertHolding,
+      holdingFixture(),
+    );
+    const secondId = await t.mutation(
+      api.holdings.upsertHolding,
+      holdingFixture({ name: "Apple (renamed)" }),
+    );
+    expect(secondId).toBe(firstId);
+  });
+});
+
 describe("schema validation", () => {
   test("rejects an invalid asset class", async () => {
     const t = convexTest(schema, modules);

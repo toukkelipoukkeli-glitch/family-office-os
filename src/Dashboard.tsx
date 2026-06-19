@@ -36,6 +36,13 @@ export function Dashboard() {
               Ownership
             </a>
             <a
+              href="#/pipeline"
+              data-testid="nav-pipeline"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Pipeline
+            </a>
+            <a
               href="#/ops"
               data-testid="nav-ops"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

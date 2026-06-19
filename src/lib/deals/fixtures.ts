@@ -115,4 +115,104 @@ export const sampleDeal: Deal = Deal.parse({
   note: "Roll-up of three family-owned forestry plots in central Finland.",
 });
 
-export const sampleDeals: Deal[] = [sampleDeal];
+/** A second contact set + deal sitting in the Sourced stage. */
+export const contactIntroducer: Contact = Contact.parse({
+  id: "contact-introducer",
+  name: "Mara Lindqvist",
+  role: "introducer",
+  organization: "Lindqvist Family Office",
+});
+
+export const dealHarbor: Deal = Deal.parse({
+  id: "deal-harbor",
+  name: "Project Harbor — marina operator",
+  pipelineId: "pipeline-direct-pe",
+  stageId: "stage-sourced",
+  status: "active",
+  assetClass: "pe",
+  amount: { amount: "2200000.00", currency: "EUR" },
+  openedOn: "2026-02-02",
+  expectedCloseOn: "2026-12-15",
+  contacts: [contactIntroducer],
+  interactions: [
+    Interaction.parse({
+      id: "harbor-intro",
+      kind: "note",
+      occurredAt: "2026-02-02T08:00:00Z",
+      summary: "Sourced via family-office introduction",
+      contactIds: ["contact-introducer"],
+    }),
+  ],
+  tags: ["leisure", "nordics"],
+});
+
+/** A deal deep in negotiation, with a per-deal probability override. */
+export const dealSummit: Deal = Deal.parse({
+  id: "deal-summit",
+  name: "Project Summit — alpine hospitality",
+  pipelineId: "pipeline-direct-pe",
+  stageId: "stage-negotiation",
+  status: "active",
+  assetClass: "pe",
+  amount: { amount: "8750000.00", currency: "EUR" },
+  probability: 0.7,
+  openedOn: "2025-11-18",
+  expectedCloseOn: "2026-08-01",
+  contacts: [
+    Contact.parse({
+      id: "summit-broker",
+      name: "Luca Conti",
+      role: "broker",
+      organization: "Alpina Partners",
+      email: "luca.conti@example.com",
+    }),
+  ],
+  interactions: [
+    Interaction.parse({
+      id: "summit-loi",
+      kind: "document",
+      occurredAt: "2026-03-10T16:00:00Z",
+      summary: "Received counter-signed LOI",
+      direction: "inbound",
+      contactIds: ["summit-broker"],
+    }),
+  ],
+  tags: ["hospitality", "alps"],
+});
+
+/** A closed-won deal, for win-rate math. */
+export const dealMeadow: Deal = Deal.parse({
+  id: "deal-meadow",
+  name: "Project Meadow — dairy holding",
+  pipelineId: "pipeline-direct-pe",
+  stageId: "stage-won",
+  status: "won",
+  assetClass: "pe",
+  amount: { amount: "3100000.00", currency: "EUR" },
+  openedOn: "2025-06-01",
+  expectedCloseOn: "2026-01-20",
+  tags: ["agri"],
+});
+
+/** A closed-lost deal, for win-rate math. */
+export const dealQuarry: Deal = Deal.parse({
+  id: "deal-quarry",
+  name: "Project Quarry — aggregates",
+  pipelineId: "pipeline-direct-pe",
+  stageId: "stage-lost",
+  status: "lost",
+  assetClass: "pe",
+  amount: { amount: "5400000.00", currency: "EUR" },
+  openedOn: "2025-09-12",
+  expectedCloseOn: "2026-02-28",
+  note: "Passed after diligence surfaced restoration liabilities.",
+  tags: ["materials"],
+});
+
+export const sampleDeals: Deal[] = [
+  sampleDeal,
+  dealHarbor,
+  dealSummit,
+  dealMeadow,
+  dealQuarry,
+];

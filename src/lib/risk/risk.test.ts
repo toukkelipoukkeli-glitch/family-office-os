@@ -340,3 +340,137 @@ describe("correlation: covarianceMatrix", () => {
     expect(matrix[0][1]).toBe(matrix[1][0]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Adversarial edge cases added by the independent tester. These probe boundary
+// behaviour the original suite did not pin down: drawdowns measured from the
+// implicit starting equity, round-tripping levels↔returns, affine-invariance
+// of the correlation matrix, sign behaviour, and tiny-input boundaries.
+// ---------------------------------------------------------------------------
+describe("adversarial: maxDrawdown boundaries", () => {
+  it("measures a drawdown from the implicit starting equity (first return negative)", () => {
+    // Equity starts at 1; an immediate drop is a real drawdown even though no
+    // explicit peak return preceded it.
+    const dd = maxDrawdown([-0.2, -0.1]);
+    // 1 -> 0.8 -> 0.72; trough at index 1, peak is the start.
+    near(dd.maxDrawdown, 1 - 0.72);
+    expect(dd.troughIndex).toBe(1);
+    // peakIndex must not point at or after the trough.
+    expect(dd.peakIndex).toBeLessThanOrEqual(dd.troughIndex);
+  });
+
+  it("reports zero drawdown and coincident indices for a single up return", () => {
+    const dd = maxDrawdown([0.05]);
+    expect(dd.maxDrawdown).toBe(0);
+    expect(dd.peakIndex).toBe(0);
+    expect(dd.troughIndex).toBe(0);
+  });
+
+  it("never returns a negative drawdown for an arbitrary mixed series", () => {
+    const dd = maxDrawdown([0.3, -0.9, 5.0, -0.99, 0.5]);
+    expect(dd.maxDrawdown).toBeGreaterThanOrEqual(0);
+    expect(dd.maxDrawdown).toBeLessThanOrEqual(1);
+    expect(dd.troughIndex).toBeGreaterThanOrEqual(dd.peakIndex);
+  });
+
+  it("a total wipeout (-1 return) is a 100% drawdown", () => {
+    const dd = maxDrawdown([0.1, -1, 0.2]);
+    near(dd.maxDrawdown, 1);
+  });
+});
+
+describe("adversarial: returnsFromLevels round-trip", () => {
+  it("round-trips levels -> returns and back via compounding", () => {
+    const levels = [100, 110, 99, 123.75];
+    const returns = returnsFromLevels(levels);
+    let equity = levels[0];
+    for (const r of returns) equity *= 1 + r;
+    near(equity, levels[levels.length - 1]);
+  });
+
+  it("rejects a zero level that would divide by zero", () => {
+    expect(() => returnsFromLevels([0, 1])).toThrow(RiskInputError);
+    expect(() => returnsFromLevels([1, 0, 2])).toThrow(RiskInputError);
+  });
+
+  it("rejects non-finite levels", () => {
+    expect(() => returnsFromLevels([1, Infinity])).toThrow(RiskInputError);
+    expect(() => returnsFromLevels([1, NaN, 3])).toThrow(RiskInputError);
+  });
+
+  it("requires at least two levels", () => {
+    expect(() => returnsFromLevels([100])).toThrow(RiskInputError);
+    expect(() => returnsFromLevels([])).toThrow(RiskInputError);
+  });
+});
+
+describe("adversarial: correlation invariances and signs", () => {
+  it("is affine-invariant: r(a, k*a + c) = sign(k)", () => {
+    const a = [0.01, -0.03, 0.02, 0.04, -0.01];
+    const scaledUp = a.map((x) => 3 * x + 0.5);
+    const scaledDown = a.map((x) => -2 * x + 0.1);
+    near(correlation(a, scaledUp), 1);
+    near(correlation(a, scaledDown), -1);
+  });
+
+  it("correlationMatrix diagonal is exactly 1 (not merely ~1) for varying series", () => {
+    const { matrix } = correlationMatrix({
+      A: [0.1, -0.2, 0.3, 0.05],
+      B: [-0.1, 0.2, -0.3, 0.4],
+    });
+    expect(matrix[0][0]).toBe(1);
+    expect(matrix[1][1]).toBe(1);
+  });
+
+  it("matches the standalone correlation() for off-diagonal cells", () => {
+    const series = {
+      A: [0.1, -0.2, 0.3, 0.05],
+      B: [-0.05, 0.15, -0.1, 0.2],
+    };
+    const { matrix } = correlationMatrix(series);
+    near(matrix[0][1] as number, correlation(series.A, series.B));
+  });
+
+  it("keeps a flat series' self-correlation null but lets other pairs resolve", () => {
+    const { keys, matrix } = correlationMatrix({
+      FLAT: [0.02, 0.02, 0.02],
+      A: [0.1, -0.2, 0.3],
+      B: [-0.1, 0.2, -0.3],
+    });
+    const fi = keys.indexOf("FLAT");
+    const ai = keys.indexOf("A");
+    const bi = keys.indexOf("B");
+    expect(matrix[fi][fi]).toBeNull();
+    expect(matrix[fi][ai]).toBeNull();
+    expect(matrix[ai][bi]).not.toBeNull();
+    near(matrix[ai][bi] as number, -1);
+  });
+});
+
+describe("adversarial: ratio sign and annualization", () => {
+  it("annualizes Sharpe by exactly sqrt(periodsPerYear)", () => {
+    const r = [0.01, 0.02, -0.005, 0.015, 0.0];
+    const perPeriod = sharpeRatio(r);
+    const annual = sharpeRatio(r, { periodsPerYear: 252 });
+    near(annual, perPeriod * Math.sqrt(252));
+  });
+
+  it("produces a negative Sharpe when mean return is below the risk-free rate", () => {
+    const s = sharpeRatio([-0.02, -0.01, -0.03, -0.015], { riskFreeRate: 0.01 });
+    expect(s).toBeLessThan(0);
+  });
+
+  it("Sortino throws only when there is no below-target shortfall", () => {
+    expect(() => sortinoRatio([0.1, 0.2, 0.3])).toThrow(RiskInputError);
+    expect(sortinoRatio([0.1, -0.2, 0.3])).toBeLessThan(
+      sortinoRatio([0.1, -0.05, 0.3]),
+    );
+  });
+
+  it("volatility scales linearly and rejects non-positive periodsPerYear", () => {
+    const r = [0.01, -0.02, 0.03];
+    near(volatility(r, { periodsPerYear: 4 }), volatility(r) * 2);
+    expect(() => volatility(r, { periodsPerYear: 0 })).toThrow(RiskInputError);
+    expect(() => volatility(r, { periodsPerYear: -1 })).toThrow(RiskInputError);
+  });
+});

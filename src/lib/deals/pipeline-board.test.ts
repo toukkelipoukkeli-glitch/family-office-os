@@ -150,6 +150,118 @@ describe("summarizePipeline", () => {
   });
 });
 
+describe("summarizePipeline edge cases (adversarial)", () => {
+  it("counts abandoned deals as closed but excludes them from win rate", () => {
+    // An abandoned deal is terminal (closed) but is neither a win nor a loss,
+    // so it must not enter the win-rate denominator.
+    const abandoned = {
+      ...dealSummit,
+      id: "deal-abandoned",
+      status: "abandoned" as const,
+    };
+    const s = summarizePipeline(samplePipeline, [...sampleDeals, abandoned]);
+    expect(s.closedCount).toBe(3); // meadow(won) + quarry(lost) + abandoned
+    expect(s.wonCount).toBe(1);
+    expect(s.lostCount).toBe(1);
+    // Denominator stays won+lost = 2, so win rate is unchanged at 0.5.
+    expect(s.winRate).toBe(0.5);
+  });
+
+  it("does not float-drift the weighted total across many odd-cent deals", () => {
+    // 3 open deals at 1,000,000.01 each with p=0.333 should give an exact
+    // Money sum with no binary-float residue.
+    const odd = [0, 1, 2].map((i) => ({
+      ...dealSummit,
+      id: `odd-${i}`,
+      status: "active" as const,
+      stageId: "stage-negotiation",
+      amount: { amount: "1000000.01", currency: "EUR" },
+      probability: 0.333,
+    }));
+    const s = summarizePipeline(samplePipeline, odd);
+    // 1,000,000.01 * 0.333 = 333,000.00333 -> rounds to 333,000.00 each,
+    // summed and rounded => 999,000.00 (selector rounds the final sum).
+    expect(s.weightedTotal.equals(Money.of("999000.01", "EUR"))).toBe(true);
+    expect(s.openTotal.equals(Money.of("3000000.03", "EUR"))).toBe(true);
+  });
+
+  it("treats an open deal whose stage is missing as zero-weighted unless it overrides", () => {
+    // Deal claims this pipeline but sits in an unknown stage and has no
+    // probability override: it counts as open, adds to openTotal, but
+    // contributes 0 to the weighted estimate (no stage default to borrow).
+    const orphan = {
+      ...dealSummit,
+      id: "orphan",
+      status: "active" as const,
+      stageId: "no-such-stage",
+      probability: undefined,
+      amount: { amount: "5000000", currency: "EUR" },
+    };
+    const s = summarizePipeline(samplePipeline, [orphan]);
+    expect(s.openCount).toBe(1);
+    expect(s.openTotal.equals(Money.of("5000000", "EUR"))).toBe(true);
+    expect(s.weightedTotal.isZero()).toBe(true);
+  });
+
+  it("handles an open deal with no amount without throwing", () => {
+    const noAmount = {
+      ...dealSummit,
+      id: "no-amount",
+      status: "active" as const,
+      amount: undefined,
+    };
+    const s = summarizePipeline(samplePipeline, [noAmount]);
+    expect(s.openCount).toBe(1);
+    expect(s.openTotal.isZero()).toBe(true);
+    expect(s.weightedTotal.isZero()).toBe(true);
+  });
+});
+
+describe("buildBoard edge cases (adversarial)", () => {
+  it("mixes deal-override and stage-default probabilities within one column", () => {
+    // Two deals in the sourced column (stage default 0.1): one overrides to
+    // 0.5, the other inherits. Weighted total must combine both correctly.
+    const a = {
+      ...dealHarbor,
+      id: "a",
+      stageId: "stage-sourced",
+      amount: { amount: "1000000", currency: "EUR" },
+      probability: 0.5,
+    };
+    const b = {
+      ...dealHarbor,
+      id: "b",
+      stageId: "stage-sourced",
+      amount: { amount: "1000000", currency: "EUR" },
+      probability: undefined,
+    };
+    const board = buildBoard(samplePipeline, [a, b]);
+    const sourced = board.find((c) => c.stage.id === "stage-sourced")!;
+    expect(sourced.total.equals(Money.of("2000000", "EUR"))).toBe(true);
+    // 1,000,000 * 0.5 + 1,000,000 * 0.1 = 600,000
+    expect(sourced.weighted.equals(Money.of("600000", "EUR"))).toBe(true);
+  });
+
+  it("excludes amount-less deals from totals but keeps them in the count", () => {
+    const withAmount = {
+      ...dealHarbor,
+      id: "with",
+      stageId: "stage-sourced",
+      amount: { amount: "1000000", currency: "EUR" },
+    };
+    const without = {
+      ...dealHarbor,
+      id: "without",
+      stageId: "stage-sourced",
+      amount: undefined,
+    };
+    const board = buildBoard(samplePipeline, [withAmount, without]);
+    const sourced = board.find((c) => c.stage.id === "stage-sourced")!;
+    expect(sourced.count).toBe(2);
+    expect(sourced.total.equals(Money.of("1000000", "EUR"))).toBe(true);
+  });
+});
+
 describe("lookups", () => {
   it("findDeal returns the matching deal", () => {
     expect(findDeal(sampleDeals, "deal-summit")?.name).toContain("Summit");

@@ -26,12 +26,21 @@ export type FetchLike = (
   json: () => Promise<unknown>;
 }>;
 
+/** Default per-request timeout (ms) for the upstream fetch. */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+
 /** Options for {@link CryptoAdapter}. */
 export interface CryptoAdapterOptions {
   /** Base URL (defaults to {@link COINGECKO_BASE_URL}). */
   baseUrl?: string;
   /** Injected fetch implementation (defaults to the global `fetch`). */
   fetchImpl?: FetchLike;
+  /**
+   * Per-request timeout in milliseconds (defaults to
+   * {@link DEFAULT_REQUEST_TIMEOUT_MS}). Pass `0` to disable the timeout and
+   * rely solely on caller cancellation.
+   */
+  requestTimeoutMs?: number;
 }
 
 /** Arguments for a `/simple/price` lookup. */
@@ -88,6 +97,40 @@ export function buildSimplePriceUrl(
   return `${trimmedBase}/simple/price?${search.toString()}`;
 }
 
+/**
+ * Combine an optional caller signal with an optional timeout signal into one.
+ * Returns the single signal when only one is present (no wrapper allocated),
+ * and falls back to a manual relay when `AbortSignal.any` is unavailable.
+ */
+function combineSignals(
+  a: AbortSignal | undefined,
+  b: AbortSignal | undefined,
+): AbortSignal | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  const anyFn = (
+    AbortSignal as unknown as {
+      any?: (signals: AbortSignal[]) => AbortSignal;
+    }
+  ).any;
+  if (typeof anyFn === "function") {
+    return anyFn([a, b]);
+  }
+  // Manual fallback: abort the controller when either input aborts.
+  const controller = new AbortController();
+  const onAbort = (source: AbortSignal) => () =>
+    controller.abort(source.reason);
+  if (a.aborted) {
+    controller.abort(a.reason);
+  } else if (b.aborted) {
+    controller.abort(b.reason);
+  } else {
+    a.addEventListener("abort", onAbort(a), { once: true });
+    b.addEventListener("abort", onAbort(b), { once: true });
+  }
+  return controller.signal;
+}
+
 /** Error thrown when the CoinGecko API returns a non-2xx response. */
 export class CryptoAdapterHttpError extends Error {
   /** HTTP status code of the failing response. */
@@ -106,6 +149,7 @@ export class CryptoAdapterHttpError extends Error {
 export class CryptoAdapter {
   private readonly baseUrl: string;
   private readonly fetchImpl: FetchLike;
+  private readonly requestTimeoutMs: number;
 
   constructor(options: CryptoAdapterOptions = {}) {
     this.baseUrl = (options.baseUrl ?? COINGECKO_BASE_URL).replace(/\/+$/, "");
@@ -119,6 +163,8 @@ export class CryptoAdapter {
       );
     }
     this.fetchImpl = impl;
+    this.requestTimeoutMs =
+      options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
   }
 
   /**
@@ -131,14 +177,37 @@ export class CryptoAdapter {
     init?: { signal?: AbortSignal },
   ): Promise<CoinPrices[]> {
     const url = buildSimplePriceUrl(params, this.baseUrl);
-    const res = await this.fetchImpl(url, {
-      signal: init?.signal,
-      headers: { accept: "application/json" },
-    });
-    if (!res.ok) {
-      throw new CryptoAdapterHttpError(res.status, res.statusText, url);
+
+    // Bound the request with a default timeout so a stalled upstream response
+    // cannot block indefinitely. A caller-supplied signal still aborts the
+    // request too; whichever fires first wins.
+    let timeoutSignal: AbortSignal | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (this.requestTimeoutMs > 0) {
+      const controller = new AbortController();
+      timeoutSignal = controller.signal;
+      timer = setTimeout(() => {
+        controller.abort(
+          new Error(
+            `CoinGecko request timed out after ${this.requestTimeoutMs}ms (${url})`,
+          ),
+        );
+      }, this.requestTimeoutMs);
     }
-    const body = await res.json();
-    return parseSimplePrice(body);
+    const signal = combineSignals(init?.signal, timeoutSignal);
+
+    try {
+      const res = await this.fetchImpl(url, {
+        signal,
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) {
+        throw new CryptoAdapterHttpError(res.status, res.statusText, url);
+      }
+      const body = await res.json();
+      return parseSimplePrice(body);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
   }
 }

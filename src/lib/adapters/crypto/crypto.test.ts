@@ -7,6 +7,7 @@ import {
   COINGECKO_BASE_URL,
   CryptoAdapter,
   CryptoAdapterHttpError,
+  DEFAULT_REQUEST_TIMEOUT_MS,
   type FetchLike,
 } from "./client";
 import {
@@ -184,6 +185,15 @@ describe("quoteToMoney", () => {
     const value = quoteToMoney(q).times("2.5");
     expect(value.toJSON()).toEqual({ amount: "8552.675", currency: "USD" });
   });
+
+  it("rejects a 4-letter (non-fiat) quote currency with a clear error", () => {
+    // CoinGecko accepts 4-letter stablecoins (usdt/usdc) which cannot be
+    // represented as 3-letter ISO-4217 Money.
+    const prices = parseSimplePrice({ bitcoin: { usdt: 64200.5 } });
+    const q = findQuote(prices, "bitcoin", "usdt")!;
+    expect(q.vsCurrency).toBe("usdt");
+    expect(() => quoteToMoney(q)).toThrow(/not a 3-letter fiat code/);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -337,5 +347,69 @@ describe("CryptoAdapter", () => {
     } finally {
       (globalThis as { fetch?: unknown }).fetch = original;
     }
+  });
+
+  it("passes a non-aborted signal to fetch under the default timeout", async () => {
+    let observed: AbortSignal | undefined;
+    const fetchImpl: FetchLike = vi.fn(async (_url, init) => {
+      observed = init?.signal;
+      return {
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        json: async () => priceOnlyFixture,
+      };
+    });
+    const adapter = new CryptoAdapter({ fetchImpl });
+    await adapter.simplePrice({ ids: ["bitcoin"], vsCurrencies: ["usd"] });
+    expect(observed).toBeInstanceOf(AbortSignal);
+    expect(observed!.aborted).toBe(false);
+  });
+
+  it("aborts the request when the timeout elapses", async () => {
+    vi.useFakeTimers();
+    try {
+      // A fetch that never resolves until its signal aborts.
+      const fetchImpl: FetchLike = vi.fn(
+        (_url, init) =>
+          new Promise<Awaited<ReturnType<FetchLike>>>((_resolve, reject) => {
+            const signal = init?.signal;
+            signal?.addEventListener("abort", () =>
+              reject(signal.reason ?? new Error("aborted")),
+            );
+          }),
+      );
+      const adapter = new CryptoAdapter({ fetchImpl, requestTimeoutMs: 50 });
+      const promise = adapter.simplePrice({
+        ids: ["bitcoin"],
+        vsCurrencies: ["usd"],
+      });
+      const assertion = expect(promise).rejects.toThrow(/timed out after 50ms/);
+      await vi.advanceTimersByTimeAsync(50);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not arm a timeout when requestTimeoutMs is 0", async () => {
+    let observed: AbortSignal | undefined;
+    const fetchImpl: FetchLike = vi.fn(async (_url, init) => {
+      observed = init?.signal;
+      return {
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        json: async () => priceOnlyFixture,
+      };
+    });
+    const adapter = new CryptoAdapter({ fetchImpl, requestTimeoutMs: 0 });
+    // With no caller signal and no timeout, the request signal is undefined.
+    await adapter.simplePrice({ ids: ["bitcoin"], vsCurrencies: ["usd"] });
+    expect(observed).toBeUndefined();
+  });
+
+  it("exposes a sensible default timeout constant", () => {
+    expect(DEFAULT_REQUEST_TIMEOUT_MS).toBeGreaterThan(0);
   });
 });

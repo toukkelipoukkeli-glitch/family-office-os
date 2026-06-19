@@ -1,12 +1,7 @@
 import { Decimal } from "decimal.js";
 
 import { Money } from "../../money";
-import {
-  CoinId,
-  SimplePriceResponse,
-  VsCurrency,
-  type SimplePriceResponse as SimplePriceResponseType,
-} from "./schema";
+import { CoinId, SimplePriceResponse, VsCurrency } from "./schema";
 
 /**
  * Parse CoinGecko `/simple/price` responses into exact, typed quotes.
@@ -60,6 +55,18 @@ function numberToDecimal(n: number): Decimal {
  * quote currency is a 3-letter fiat code.
  */
 export function quoteToMoney(quote: CryptoQuote): Money {
+  // CoinGecko quote currencies are not necessarily ISO-4217: they include
+  // crypto codes (`btc`, `eth`) and 4-letter stablecoins (`usdt`, `usdc`).
+  // `Money` only models 3-letter fiat, so reject anything else up front with a
+  // message that names the offending currency rather than letting `Money.of`
+  // surface a generic "expected 3 letters" error.
+  if (!/^[a-z]{3}$/i.test(quote.vsCurrency)) {
+    throw new Error(
+      `quoteToMoney: vs_currency ${JSON.stringify(
+        quote.vsCurrency,
+      )} is not a 3-letter fiat code and cannot be represented as Money`,
+    );
+  }
   return Money.of(quote.price, quote.vsCurrency.toUpperCase());
 }
 
@@ -68,7 +75,7 @@ export function quoteToMoney(quote: CryptoQuote): Money {
  * Throws (via zod) when the wire shape is malformed.
  */
 export function parseSimplePrice(raw: unknown): CoinPrices[] {
-  const data: SimplePriceResponseType = SimplePriceResponse.parse(raw);
+  const data = SimplePriceResponse.parse(raw);
   const result: CoinPrices[] = [];
 
   for (const [rawCoinId, entry] of Object.entries(data)) {

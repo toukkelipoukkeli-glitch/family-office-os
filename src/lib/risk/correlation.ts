@@ -54,15 +54,12 @@ export function covariance(a: readonly number[], b: readonly number[]): number {
   if (a.length < 2) {
     throw new RiskInputError("covariance requires at least two observations");
   }
+  // `mean()` already rejects non-finite inputs for both series, so a NaN/Inf
+  // would have thrown above before we reach the accumulation loop.
   const ma = mean(a);
   const mb = mean(b);
   let acc = 0;
   for (let i = 0; i < a.length; i++) {
-    if (!Number.isFinite(a[i]) || !Number.isFinite(b[i])) {
-      throw new RiskInputError(
-        `covariance inputs must be finite; bad value at index ${i}`,
-      );
-    }
     acc += (a[i] - ma) * (b[i] - mb);
   }
   return acc / (a.length - 1);
@@ -92,8 +89,9 @@ export function correlation(
 
 /**
  * Build the symmetric Pearson correlation matrix across a map of aligned
- * return series. The diagonal is exactly `1`. A zero-variance series makes its
- * off-diagonal correlations undefined: those cells are reported as `null`
+ * return series. The diagonal is exactly `1` for any series with non-zero
+ * variance. A zero-variance (flat) series makes its correlations undefined:
+ * both its diagonal cell and its off-diagonal cells are reported as `null`
  * rather than throwing, so a single flat series doesn't sink the whole matrix.
  */
 export function correlationMatrix(

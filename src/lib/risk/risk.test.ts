@@ -350,19 +350,27 @@ describe("correlation: covarianceMatrix", () => {
 describe("adversarial: maxDrawdown boundaries", () => {
   it("measures a drawdown from the implicit starting equity (first return negative)", () => {
     // Equity starts at 1; an immediate drop is a real drawdown even though no
-    // explicit peak return preceded it.
+    // explicit peak return preceded it. peakIndex is the -1 sentinel = origin.
     const dd = maxDrawdown([-0.2, -0.1]);
-    // 1 -> 0.8 -> 0.72; trough at index 1, peak is the start.
+    // 1 -> 0.8 -> 0.72; trough at index 1, peak is the starting equity.
     near(dd.maxDrawdown, 1 - 0.72);
     expect(dd.troughIndex).toBe(1);
-    // peakIndex must not point at or after the trough.
-    expect(dd.peakIndex).toBeLessThanOrEqual(dd.troughIndex);
+    expect(dd.peakIndex).toBe(-1);
+    // peakIndex must strictly precede the trough on the curve.
+    expect(dd.peakIndex).toBeLessThan(dd.troughIndex);
   });
 
-  it("reports zero drawdown and coincident indices for a single up return", () => {
+  it("uses the -1 sentinel for an all-negative series (peak is the origin)", () => {
+    const dd = maxDrawdown([-0.05, -0.1, -0.2]);
+    expect(dd.peakIndex).toBe(-1);
+    expect(dd.troughIndex).toBe(2);
+    near(dd.maxDrawdown, 1 - 0.95 * 0.9 * 0.8);
+  });
+
+  it("reports zero drawdown for a single up return (peak is the origin)", () => {
     const dd = maxDrawdown([0.05]);
     expect(dd.maxDrawdown).toBe(0);
-    expect(dd.peakIndex).toBe(0);
+    expect(dd.peakIndex).toBe(-1);
     expect(dd.troughIndex).toBe(0);
   });
 

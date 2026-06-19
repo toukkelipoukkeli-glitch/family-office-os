@@ -40,7 +40,12 @@ export function volatility(
 export interface MaxDrawdown {
   /** Worst peak-to-trough decline as a fraction in [0, 1]. */
   maxDrawdown: number;
-  /** Index of the return after which the preceding peak was set. */
+  /**
+   * Index of the return after which the preceding peak was set. The sentinel
+   * `-1` means the peak is the *starting* equity (1.0), before any return — this
+   * happens when the worst drawdown begins from the start of the series (e.g. an
+   * all-negative series). Charting code should treat `-1` as the curve's origin.
+   */
   peakIndex: number;
   /** Index of the return at which the worst trough was reached. */
   troughIndex: number;
@@ -59,9 +64,11 @@ export function maxDrawdown(returns: readonly number[]): MaxDrawdown {
   }
   let equity = 1;
   let peak = 1;
-  let peakIdx = 0; // index of return at which the current peak was set
+  // -1 means the peak is the starting equity (before any return). It is updated
+  // to a real return index only when a later compounded equity exceeds it.
+  let peakIdx = -1;
   let maxDd = 0;
-  let bestPeakIdx = 0;
+  let bestPeakIdx = -1;
   let bestTroughIdx = 0;
   for (let i = 0; i < returns.length; i++) {
     equity *= 1 + returns[i];

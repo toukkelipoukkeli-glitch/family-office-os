@@ -409,4 +409,26 @@ describe("adversarial edge cases", () => {
     // exact decimal: no float drift, stays 100 within Decimal precision
     expect(r.round(2).amount.toFixed()).toBe("100");
   });
+
+  it("toMinorUnits throws rather than returning a lossy float for huge balances", () => {
+    // JPY (0 dp) at a value beyond Number.MAX_SAFE_INTEGER.
+    const huge = Money.of("9007199254740993", "JPY");
+    expect(() => huge.toMinorUnits()).toThrow(RangeError);
+    expect(() => huge.toMinorUnits()).toThrow(/MAX_SAFE_INTEGER/);
+  });
+
+  it("toMinorUnitsBigInt is exact for huge balances", () => {
+    const huge = Money.of("9007199254740993", "JPY");
+    expect(huge.toMinorUnitsBigInt()).toBe(9007199254740993n);
+  });
+
+  it("toMinorUnitsBigInt round-trips USD cents and negatives", () => {
+    expect(Money.of("10.99", "USD").toMinorUnitsBigInt()).toBe(1099n);
+    expect(Money.of("-10.99", "USD").toMinorUnitsBigInt()).toBe(-1099n);
+  });
+
+  it("toMinorUnits still works at the safe-integer boundary", () => {
+    const atMax = Money.of(String(Number.MAX_SAFE_INTEGER), "JPY");
+    expect(atMax.toMinorUnits()).toBe(Number.MAX_SAFE_INTEGER);
+  });
 });

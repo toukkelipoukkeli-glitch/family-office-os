@@ -242,8 +242,10 @@ export class Money {
       if (wcmp !== 0) return wcmp;
       return a.index - b.index;
     });
+    // `remainders` always has one entry per weight (>= 1), so we only need to
+    // loop until the leftover minor units are exhausted.
     let r = 0;
-    while (leftover.greaterThan(0) && remainders.length > 0) {
+    while (leftover.greaterThan(0)) {
       baseShares[remainders[r % remainders.length].index] = baseShares[
         remainders[r % remainders.length].index
       ].plus(1);
@@ -308,13 +310,33 @@ export class Money {
     );
   }
 
-  /** Integer number of minor units (e.g. cents), rounded to the currency scale. */
+  /**
+   * Integer number of minor units (e.g. cents), rounded to the currency scale.
+   *
+   * Returns a native `number`. Throws a `RangeError` when the result exceeds
+   * `Number.MAX_SAFE_INTEGER`, rather than silently returning a lossy float —
+   * use {@link toMinorUnitsBigInt} for arbitrarily large balances.
+   */
   toMinorUnits(mode: RoundingMode = "half-even"): number {
+    const minor = this.minorUnitsDecimal(mode);
+    if (minor.abs().greaterThan(Number.MAX_SAFE_INTEGER)) {
+      throw new RangeError(
+        `Minor units ${minor.toFixed()} exceed Number.MAX_SAFE_INTEGER; use toMinorUnitsBigInt()`,
+      );
+    }
+    return minor.toNumber();
+  }
+
+  /** Integer number of minor units as a `bigint`, exact for arbitrarily large balances. */
+  toMinorUnitsBigInt(mode: RoundingMode = "half-even"): bigint {
+    return BigInt(this.minorUnitsDecimal(mode).toFixed());
+  }
+
+  private minorUnitsDecimal(mode: RoundingMode): Decimal {
     const units = minorUnitsFor(this.currency);
     return this.amount
       .times(new Decimal(10).pow(units))
-      .toDecimalPlaces(0, ROUNDING_MAP[mode])
-      .toNumber();
+      .toDecimalPlaces(0, ROUNDING_MAP[mode]);
   }
 
   /** Exact decimal string of the underlying amount (no rounding). */

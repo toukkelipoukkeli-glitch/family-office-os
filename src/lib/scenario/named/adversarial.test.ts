@@ -10,6 +10,7 @@ import {
   ScenarioError,
   type Shock,
   shockAssets,
+  validateScenario,
 } from "./scenarios";
 
 const ASSETS: ClassifiedAsset[] = [
@@ -92,6 +93,78 @@ describe("adversarial: applyScenario correlation precedence", () => {
   it("omits correlation entirely when neither base nor scenario supplies one", () => {
     const out = applyScenario(baseNoCorr, scenario([]));
     expect("correlation" in out).toBe(false);
+  });
+});
+
+describe("adversarial: scenario correlation validation", () => {
+  it("accepts a well-formed symmetric unit-diagonal matrix", () => {
+    expect(() =>
+      validateScenario(scenario([], {
+        correlation: [
+          [1, 0.3],
+          [0.3, 1],
+        ],
+      })),
+    ).not.toThrow();
+  });
+
+  it("rejects a non-square correlation matrix", () => {
+    expect(() =>
+      validateScenario(scenario([], { correlation: [[1, 0], [0]] })),
+    ).toThrow(/square/);
+  });
+
+  it("rejects a non-symmetric matrix", () => {
+    expect(() =>
+      validateScenario(scenario([], {
+        correlation: [
+          [1, 0.3],
+          [0.4, 1],
+        ],
+      })),
+    ).toThrow(/symmetric/);
+  });
+
+  it("rejects a non-unit diagonal", () => {
+    expect(() =>
+      validateScenario(scenario([], {
+        correlation: [
+          [0.9, 0.3],
+          [0.3, 1],
+        ],
+      })),
+    ).toThrow(/diagonal/);
+  });
+
+  it("rejects an entry outside [-1, 1]", () => {
+    expect(() =>
+      validateScenario(scenario([], {
+        correlation: [
+          [1, 1.5],
+          [1.5, 1],
+        ],
+      })),
+    ).toThrow(/\[-1, 1\]/);
+  });
+
+  it("rejects a non-finite correlation entry", () => {
+    expect(() =>
+      validateScenario(scenario([], {
+        correlation: [
+          [1, NaN],
+          [NaN, 1],
+        ],
+      })),
+    ).toThrow(/finite/);
+  });
+
+  it("applyScenario surfaces a malformed correlation as a ScenarioError", () => {
+    expect(() =>
+      applyScenario(
+        { assets: ASSETS, paths: 100, seed: 1 },
+        scenario([], { correlation: [[1, 2], [2, 1]] }),
+      ),
+    ).toThrow(ScenarioError);
   });
 });
 

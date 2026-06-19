@@ -147,6 +147,48 @@ function validateShock(shock: Shock): void {
   }
 }
 
+/**
+ * Validate the shape of a scenario's optional correlation override: it must be
+ * a square matrix with a unit diagonal, symmetric, and every entry in [-1, 1].
+ * Positive-semi-definiteness is left to the Monte Carlo engine (it Cholesky-
+ * decomposes the matrix); this is a cheap scenario-layer sanity check so a
+ * malformed override fails loudly here rather than deep inside `simulateNetWorth`.
+ */
+function validateCorrelation(correlation: readonly (readonly number[])[]): void {
+  const n = correlation.length;
+  for (let i = 0; i < n; i++) {
+    const row = correlation[i];
+    if (row.length !== n) {
+      throw new ScenarioError(
+        `scenario correlation must be square: row ${i} has ${row.length} entries, expected ${n}`,
+      );
+    }
+    for (let j = 0; j < n; j++) {
+      const v = row[j];
+      if (!Number.isFinite(v)) {
+        throw new ScenarioError(
+          `scenario correlation[${i}][${j}] must be finite, got ${v}`,
+        );
+      }
+      if (v < -1 || v > 1) {
+        throw new ScenarioError(
+          `scenario correlation[${i}][${j}] must be in [-1, 1], got ${v}`,
+        );
+      }
+      if (i === j && v !== 1) {
+        throw new ScenarioError(
+          `scenario correlation diagonal must be 1, got ${v} at [${i}][${i}]`,
+        );
+      }
+      if (correlation[j][i] !== v) {
+        throw new ScenarioError(
+          `scenario correlation must be symmetric: [${i}][${j}]=${v} != [${j}][${i}]=${correlation[j][i]}`,
+        );
+      }
+    }
+  }
+}
+
 /** Validate the structure of a scenario; throws {@link ScenarioError}. */
 export function validateScenario(scenario: Scenario): void {
   if (!scenario.id) {
@@ -154,6 +196,9 @@ export function validateScenario(scenario: Scenario): void {
   }
   for (const shock of scenario.shocks) {
     validateShock(shock);
+  }
+  if (scenario.correlation) {
+    validateCorrelation(scenario.correlation);
   }
 }
 

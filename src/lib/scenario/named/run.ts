@@ -86,8 +86,10 @@ export function runScenario(
   base: ScenarioBaseInput,
   scenario: Scenario,
 ): ScenarioRun {
-  const baseline = simulateNetWorth(base);
+  // Build (and validate) the shocked input first so an invalid scenario fails
+  // fast, before we spend a full baseline Monte Carlo run.
   const shockedInput = applyScenario(base, scenario);
+  const baseline = simulateNetWorth(base);
   const scenarioResult = simulateNetWorth(shockedInput);
   return {
     scenario,
@@ -107,5 +109,17 @@ export function runScenarioSuite(
   base: ScenarioBaseInput,
   scenarios: readonly Scenario[] = NAMED_SCENARIOS,
 ): ScenarioRun[] {
-  return scenarios.map((s) => runScenario(base, s));
+  // The baseline is deterministic for a fixed `base`, so compute it once and
+  // reuse it across every scenario rather than re-running it per scenario.
+  const baseline = simulateNetWorth(base);
+  return scenarios.map((scenario) => {
+    const shockedInput = applyScenario(base, scenario);
+    const scenarioResult = simulateNetWorth(shockedInput);
+    return {
+      scenario,
+      baseline,
+      scenario_result: scenarioResult,
+      impact: impactOf(baseline, scenarioResult),
+    };
+  });
 }

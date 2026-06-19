@@ -128,6 +128,26 @@ describe("buildNetWorthDashboard", () => {
     expect(tiny.total.points.length).toBeGreaterThanOrEqual(2);
   });
 
+  it("aligns every per-class series date with the total series, point for point", () => {
+    const totalDates = model.total.points.map((p) => p.date);
+    for (const detail of model.byAssetClass) {
+      expect(detail.series.points.map((p) => p.date)).toEqual(totalDates);
+    }
+  });
+
+  it("labels months correctly across a year boundary (anchor in January)", () => {
+    // Window of 3 ending Jan 2026 must walk back into 2025: Nov, Dec, Jan.
+    const m = buildNetWorthDashboard(seededPortfolio, networthRateTable, {
+      windowMonths: 3,
+      anchor: { year: 2026, month: 1 },
+    });
+    expect(m.total.points.map((p) => p.date)).toEqual([
+      "2025-11-01",
+      "2025-12-01",
+      "2026-01-01",
+    ]);
+  });
+
   it("handles an empty portfolio without throwing (flat zero net worth)", () => {
     const empty: Portfolio = {
       id: "pf-empty",

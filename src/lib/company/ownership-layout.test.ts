@@ -156,6 +156,68 @@ describe("layoutOwnership", () => {
     expect(layout.edges.some((e) => e.parentId === "co-opco")).toBe(false);
     expect(opCo.subsidiaries).toEqual([]);
   });
+
+  it("preserves distinct duplicate parent->child edges and sorts edges by id", () => {
+    // Adversarial: the same parent lists the same child twice (e.g. two share
+    // classes). The layout must keep BOTH edges so display percentages are not
+    // silently collapsed, and emit them in stable id-sorted order.
+    const parent = Company.parse({
+      id: "p",
+      name: "Parent",
+      entityType: "holding_company",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [
+        { id: "e-b", companyId: "c", percentage: "30" },
+        { id: "e-a", companyId: "c", percentage: "20" },
+      ],
+    });
+    const child = Company.parse({
+      id: "c",
+      name: "Child",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+    });
+    const layout = layoutOwnership([parent, child]);
+    const intoChild = layout.edges.filter((e) => e.childId === "c");
+    expect(intoChild).toHaveLength(2);
+    // Stable id-sorted ordering: "e-a" before "e-b".
+    expect(intoChild.map((e) => e.id)).toEqual(["e-a", "e-b"]);
+    expect(intoChild.map((e) => e.percentage).sort()).toEqual([20, 30]);
+    // Both endpoints align with the same node centres.
+    const c = layout.nodes.find((n) => n.id === "c")!;
+    for (const e of intoChild) {
+      expect(e.target).toEqual({ x: c.x, y: c.y });
+    }
+  });
+
+  it("falls back to a single rank when the graph is one pure cycle", () => {
+    // No root exists; layout must still position both nodes and not throw.
+    const a = Company.parse({
+      id: "a",
+      name: "A",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "ab", companyId: "b", percentage: "50" }],
+    });
+    const b = Company.parse({
+      id: "b",
+      name: "B",
+      entityType: "corporation",
+      jurisdiction: "FI",
+      currency: "EUR",
+      subsidiaries: [{ id: "ba", companyId: "a", percentage: "50" }],
+    });
+    const layout = layoutOwnership([a, b]);
+    expect(layout.nodes).toHaveLength(2);
+    expect(layout.edges).toHaveLength(2);
+    for (const n of layout.nodes) {
+      expect(n.x).toBeGreaterThanOrEqual(0);
+      expect(n.y).toBeGreaterThanOrEqual(0);
+    }
+  });
 });
 
 describe("computeRanks", () => {

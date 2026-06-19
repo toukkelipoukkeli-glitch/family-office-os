@@ -103,11 +103,60 @@ describe("CompanyProfile schema", () => {
     const fy2023 = venturesProfile.financials.find((f) => f.fiscalYear === 2023);
     expect(Number(fy2023?.netIncome.amount)).toBeLessThan(0);
   });
+
+  it("rejects a financial figure in a non-reporting currency", () => {
+    const res = CompanyProfile.safeParse({
+      companyId: "c1",
+      reportingCurrency: "EUR",
+      financials: [
+        {
+          fiscalYear: 2024,
+          revenue: { amount: "1", currency: "USD" }, // mismatched currency
+          ebitda: { amount: "1", currency: "EUR" },
+          netIncome: { amount: "1", currency: "EUR" },
+          totalAssets: { amount: "1", currency: "EUR" },
+          totalEquity: { amount: "1", currency: "EUR" },
+          cash: { amount: "1", currency: "EUR" },
+          debt: { amount: "1", currency: "EUR" },
+        },
+      ],
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues.some((i) => /reporting currency/.test(i.message))).toBe(
+        true,
+      );
+    }
+  });
+
+  it("rejects a holding value in a non-reporting currency", () => {
+    const res = CompanyProfile.safeParse({
+      companyId: "c1",
+      reportingCurrency: "EUR",
+      holdings: [
+        { id: "h", name: "A", kind: "cash", value: { amount: "1", currency: "GBP" } },
+      ],
+    });
+    expect(res.success).toBe(false);
+  });
 });
 
 describe("latestFinancialYear", () => {
   it("returns the most recent year regardless of input order", () => {
     expect(latestFinancialYear(topcoProfile)?.fiscalYear).toBe(2024);
+
+    // Explicitly exercise an input whose first element is NOT the latest year,
+    // so the test locks in order-independence rather than relying on the
+    // fixture's ordering. Move the max year out of position 0.
+    const reordered = [...topcoProfile.financials].sort(
+      (a, b) => a.fiscalYear - b.fiscalYear,
+    ); // ascending → 2024 is last, not first
+    const shuffled = CompanyProfile.parse({
+      ...topcoProfile,
+      financials: reordered,
+    });
+    expect(shuffled.financials[0].fiscalYear).not.toBe(2024);
+    expect(latestFinancialYear(shuffled)?.fiscalYear).toBe(2024);
   });
 
   it("returns undefined for an empty profile", () => {
@@ -170,6 +219,24 @@ describe("holdingWeights", () => {
     expect(holdingWeights(zeroed)).toEqual([
       { id: "a", name: "A", kind: "cash", weight: 0 },
     ]);
+  });
+
+  it("computes weights with exact decimal math on a thirds split", () => {
+    const thirds = CompanyProfile.parse({
+      companyId: "c0",
+      reportingCurrency: "EUR",
+      holdings: [
+        { id: "a", name: "A", kind: "cash", value: { amount: "1", currency: "EUR" } },
+        { id: "b", name: "B", kind: "cash", value: { amount: "1", currency: "EUR" } },
+        { id: "c", name: "C", kind: "cash", value: { amount: "1", currency: "EUR" } },
+      ],
+    });
+    const weights = holdingWeights(thirds);
+    for (const w of weights) {
+      expect(w.weight).toBeCloseTo(100 / 3, 9);
+    }
+    // The three repeating-decimal shares still sum back to ~100.
+    expect(weights.reduce((a, w) => a + w.weight, 0)).toBeCloseTo(100, 9);
   });
 });
 

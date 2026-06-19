@@ -1,3 +1,4 @@
+import { Decimal } from "decimal.js";
 import * as z from "zod";
 
 import { Money } from "../money";
@@ -134,7 +135,26 @@ export const CompanyProfile = z
   })
   .strict()
   .superRefine((profile, ctx) => {
-    // Fiscal years must be unique.
+    const ccy = profile.reportingCurrency;
+
+    /** Flag any money field whose currency differs from the reporting currency. */
+    const assertReportingCurrency = (
+      money: { currency: string },
+      path: (string | number)[],
+      field: string,
+    ) => {
+      if (money.currency !== ccy) {
+        ctx.addIssue({
+          code: "custom",
+          message: `${field} currency ${money.currency} must match reporting currency ${ccy}`,
+          path,
+        });
+      }
+    };
+
+    // Fiscal years must be unique, and every monetary field must be reported in
+    // the profile's reporting currency (selectors below assume this and would
+    // otherwise throw a currency-mismatch at runtime).
     const seenYear = new Set<number>();
     profile.financials.forEach((f, i) => {
       if (seenYear.has(f.fiscalYear)) {
@@ -145,9 +165,23 @@ export const CompanyProfile = z
         });
       }
       seenYear.add(f.fiscalYear);
+
+      const moneyFields = [
+        "revenue",
+        "ebitda",
+        "netIncome",
+        "totalAssets",
+        "totalEquity",
+        "cash",
+        "debt",
+      ] as const;
+      moneyFields.forEach((field) => {
+        assertReportingCurrency(f[field], ["financials", i, field], field);
+      });
     });
 
-    // Holding ids must be unique.
+    // Holding ids must be unique, and each holding's value must be in the
+    // reporting currency.
     const seenHolding = new Set<string>();
     profile.holdings.forEach((h, i) => {
       if (seenHolding.has(h.id)) {
@@ -158,6 +192,7 @@ export const CompanyProfile = z
         });
       }
       seenHolding.add(h.id);
+      assertReportingCurrency(h.value, ["holdings", i, "value"], "holding value");
     });
 
     // A person may appear at most once on a company's people list.
@@ -206,19 +241,23 @@ export function totalHoldingsValue(profile: CompanyProfile): Money {
 
 /**
  * Each holding's share of the total holdings value, as a percentage in
- * [0, 100]. Returns `[]` when there are no holdings; returns equal weights of 0
- * when the total is zero. The shares sum to ~100 (subject to float display).
+ * [0, 100]. Returns `[]` when there are no holdings; returns weights of 0 when
+ * the total is zero. The weight is computed with exact {@link Decimal} math (no
+ * floating point) and only converted to a `number` at the final display
+ * boundary; the shares sum to ~100.
  */
 export function holdingWeights(
   profile: CompanyProfile,
 ): { id: string; name: string; kind: HoldingKind; weight: number }[] {
-  const total = totalHoldingsValue(profile);
-  const totalNum = Number(total.amount.toFixed());
+  const total = totalHoldingsValue(profile).amount;
+  const isZeroTotal = total.isZero();
   return profile.holdings.map((h) => ({
     id: h.id,
     name: h.name,
     kind: h.kind,
-    weight: totalNum === 0 ? 0 : (Number(h.value.amount) / totalNum) * 100,
+    weight: isZeroTotal
+      ? 0
+      : new Decimal(h.value.amount).div(total).times(100).toNumber(),
   }));
 }
 

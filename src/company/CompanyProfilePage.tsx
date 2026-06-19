@@ -111,7 +111,7 @@ function FinancialsCard({ profile }: { profile: CompanyProfile }) {
         {
           label: "Net income",
           value: money(latest.netIncome.amount, ccy),
-          negative: Number(latest.netIncome.amount) < 0,
+          negative: Money.of(latest.netIncome.amount, ccy).isNegative(),
         },
         { label: "Total assets", value: money(latest.totalAssets.amount, ccy) },
         { label: "Equity", value: money(latest.totalEquity.amount, ccy) },
@@ -198,14 +198,20 @@ function HoldingsCard({ profile }: { profile: CompanyProfile }) {
   const weights = holdingWeights(profile);
   const total = totalHoldingsValue(profile);
 
-  // Largest first.
+  // Largest first. Order by exact Money comparison (never float coercion).
   const rows = profile.holdings
     .map((h) => ({
       ...h,
       weight: weights.find((w) => w.id === h.id)?.weight ?? 0,
     }))
-    .sort((a, b) => Number(b.value.amount) - Number(a.value.amount));
+    .sort((a, b) =>
+      Money.of(b.value.amount, b.value.currency).compare(
+        Money.of(a.value.amount, a.value.currency),
+      ),
+    );
 
+  // Chart pixel heights are inherently numeric; convert at the render boundary
+  // only, after the exact-Money ordering above.
   const donutData = rows.map((h) => ({
     label: h.name,
     value: Number(h.value.amount),

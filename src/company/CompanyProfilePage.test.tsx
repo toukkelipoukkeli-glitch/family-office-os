@@ -111,7 +111,11 @@ describe("CompanyProfilePage", () => {
       within(k).queryByText(/net income/i),
     );
     expect(netIncome).toBeDefined();
-    // FY2024 net income is -180,000 → rendered with a minus sign.
-    expect(netIncome!.textContent).toMatch(/-/);
+    // FY2024 net income is negative → rendered with a minus sign AND in the
+    // destructive style. Assert the class, not only the sign, so a style
+    // regression can't pass silently.
+    const value = within(netIncome!).getByText(/-/);
+    expect(value.textContent).toMatch(/-/);
+    expect(value.className).toContain("text-destructive");
   });
 });

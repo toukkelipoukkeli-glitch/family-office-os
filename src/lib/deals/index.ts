@@ -12,3 +12,5 @@ export * from "./pipeline-stage";
 export * from "./interaction";
 export * from "./deal";
 export * from "./email";
+export * from "./pipeline-board";
+export * from "./pipeline-format";

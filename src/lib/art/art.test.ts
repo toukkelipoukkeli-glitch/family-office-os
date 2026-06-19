@@ -375,6 +375,51 @@ describe("appraise — determinism & errors", () => {
     ).toThrow(/Unsupported confidence/);
   });
 
+  it("throws on a zero-priced comparable (cannot take log)", () => {
+    // "0" is a valid NonNegativeDecimalString, so the appraisal math must
+    // guard against log(0) rather than emit NaN/-Infinity.
+    const zeroPrice = Comparable.parse({
+      id: "zero",
+      price: "0",
+      currency: "USD",
+      soldOn: "2025-01-01",
+    });
+    expect(() => appraise(artworkRothko, [zeroPrice])).toThrow(
+      /non-positive price/,
+    );
+  });
+
+  it("propagates the recencyHalfLifeYears option into the appraisal", () => {
+    // The half-life option must actually flow through to the weighting (a
+    // regression guard against it being silently dropped). With comps sold at
+    // different dates, changing the half-life re-weights them and shifts the
+    // band width away from the default.
+    const dflt = appraise(artworkRothko, tightComps, { asOf: "2025-01-08" });
+    const shortHalfLife = appraise(artworkRothko, tightComps, {
+      asOf: "2025-01-08",
+      recencyHalfLifeYears: 0.25,
+    });
+    expect(shortHalfLife.relativeWidth).not.toBeCloseTo(dflt.relativeWidth, 4);
+  });
+
+  it("rejects a non-positive recencyHalfLifeYears option", () => {
+    expect(() =>
+      appraise(artworkRothko, tightComps, { recencyHalfLifeYears: 0 }),
+    ).toThrow(/positive/);
+  });
+
+  it("supports the 0.5 confidence boundary (narrowest supported band)", () => {
+    const c50 = appraise(artworkRothko, tightComps, { confidence: 0.5 });
+    const c95 = appraise(artworkRothko, tightComps, { confidence: 0.95 });
+    expect(c50.confidence).toBe(0.5);
+    // Lower confidence => narrower band, same centre.
+    expect(c50.relativeWidth).toBeLessThan(c95.relativeWidth);
+    expect(c50.estimate.amount.toNumber()).toBeCloseTo(
+      c95.estimate.amount.toNumber(),
+      2,
+    );
+  });
+
   it("exposes a sane default half-life", () => {
     expect(DEFAULT_RECENCY_HALF_LIFE_YEARS).toBeGreaterThan(0);
   });

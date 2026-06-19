@@ -81,7 +81,7 @@ describe("FxConverter", () => {
   it("rejects negative and non-finite rates", () => {
     expect(() =>
       FxConverter.fromTable({ base: "USD", rates: { EUR: "-1" } }),
-    ).toThrow(/non-negative/);
+    ).toThrow(/positive number/);
     expect(() =>
       FxConverter.fromTable({ base: "USD", rates: { EUR: "abc" } }),
     ).toThrow(/Invalid FX rate/);
@@ -91,6 +91,27 @@ describe("FxConverter", () => {
     expect(() => FxConverter.fromTable({ base: "US", rates: {} })).toThrow(
       /Invalid currency code/,
     );
+  });
+
+  it("rejects a zero rate for a non-base currency", () => {
+    // A zero rate would silently value the holding at zero base currency.
+    expect(() =>
+      FxConverter.fromTable({ base: "USD", rates: { EUR: "0" } }),
+    ).toThrow(/positive number/);
+  });
+
+  it("canConvert returns false for malformed input instead of throwing", () => {
+    const fx = FxConverter.fromTable(usdRateTable);
+    expect(fx.canConvert("US")).toBe(false);
+    expect(fx.canConvert("")).toBe(false);
+    expect(fx.canConvert("dollars")).toBe(false);
+  });
+
+  it("rejects a zero base rate is allowed only as exactly 1", () => {
+    // Sanity: the base must be 1, and a non-base zero is rejected; together
+    // these mean no currency can ever convert at a non-positive rate.
+    const fx = FxConverter.fromTable({ base: "USD", rates: { USD: "1" } });
+    expect(fx.toBase(Money.of("42", "USD")).amount.toFixed()).toBe("42");
   });
 });
 
@@ -164,6 +185,32 @@ describe("latestValuation / holdingValue", () => {
     const h: Holding = { ...equityHolding, valuations: [] };
     expect(latestValuation(h)).toBeUndefined();
     expect(holdingValue(h)).toBeUndefined();
+  });
+
+  it("stays deterministic when asOf is unparseable (defensive fallback)", () => {
+    // asOf is validated upstream, but the comparator must not return NaN if a
+    // bad value ever slips through: it falls back to a total lexicographic order.
+    const h: Holding = {
+      ...cashHolding,
+      valuations: [
+        {
+          id: "v-a",
+          value: { amount: "100", currency: "USD" },
+          asOf: "not-a-date-a",
+          source: "manual",
+          confidence: "high",
+        },
+        {
+          id: "v-b",
+          value: { amount: "200", currency: "USD" },
+          asOf: "not-a-date-b",
+          source: "manual",
+          confidence: "high",
+        },
+      ] as unknown as Holding["valuations"],
+    };
+    // "not-a-date-b" > "not-a-date-a" lexicographically, so v-b wins.
+    expect(latestValuation(h)?.id).toBe("v-b");
   });
 });
 

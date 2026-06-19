@@ -18,9 +18,15 @@ import type { Valuation } from "../model/valuation";
 function compareAsOf(a: string, b: string): number {
   const ta = Date.parse(a);
   const tb = Date.parse(b);
+  // `asOf` is validated as an ISO datetime upstream, so both parse to finite
+  // numbers in practice. Guard the unparseable case explicitly (Date.parse
+  // returns NaN, and NaN !== NaN, so a plain `ta !== tb` would slip through and
+  // return NaN): fall back to a lexicographic compare so the ordering stays
+  // total and deterministic.
+  if (Number.isNaN(ta) || Number.isNaN(tb)) {
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
   if (ta !== tb) return ta - tb;
-  // Fall back to lexicographic compare if the timestamps parse equal (or NaN)
-  // so the ordering is still total and deterministic.
   return a < b ? -1 : a > b ? 1 : 0;
 }
 

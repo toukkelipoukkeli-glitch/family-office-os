@@ -77,9 +77,13 @@ export class FxConverter {
           `Invalid FX rate for ${norm}: ${JSON.stringify(rate)}`,
         );
       }
-      if (!dec.isFinite() || dec.isNegative()) {
+      // A non-base rate of 0 would silently value any holding in that currency
+      // at zero base-currency, corrupting allocation weights and totals with no
+      // error. Real FX rates are strictly positive, so reject zero for non-base
+      // entries (the base itself is handled by the `=== base` check below).
+      if (!dec.isFinite() || dec.isNegative() || dec.isZero()) {
         throw new Error(
-          `FX rate for ${norm} must be a finite, non-negative number`,
+          `FX rate for ${norm} must be a finite, positive number`,
         );
       }
       if (norm === base && !dec.equals(1)) {
@@ -92,9 +96,19 @@ export class FxConverter {
     return new FxConverter(base, rates);
   }
 
-  /** True when this converter can convert `currency` to the base. */
+  /**
+   * True when this converter can convert `currency` to the base. A malformed
+   * currency string (not a 3-letter code) is simply not convertible and
+   * returns `false` rather than throwing, so callers can probe arbitrary input.
+   */
   canConvert(currency: string): boolean {
-    return this.rates.has(normalizeCode(currency));
+    let code: string;
+    try {
+      code = normalizeCode(currency);
+    } catch {
+      return false;
+    }
+    return this.rates.has(code);
   }
 
   /**

@@ -496,3 +496,119 @@ describe("forest portfolio aggregation (valuation.ts)", () => {
     expect(() => valueForest([eur, usd])).toThrow(/mixed currencies/);
   });
 });
+
+describe("forest adversarial edge cases", () => {
+  it("floors the lower band at zero under an extreme z (never negative)", () => {
+    const idx = buildTimberPriceIndex(timberPriceSeriesVolatileEur);
+    const v = valueStandWithIndex(spruceNorthBlock, idx, { z: 100 });
+    // band fraction blows past 1, so a naive (1 - z*sigma) would go negative
+    expect(v.bandFraction.greaterThan(1)).toBe(true);
+    expect(amt(v.low).equals(0)).toBe(true);
+    expect(amt(v.low).greaterThanOrEqualTo(0)).toBe(true);
+    expect(v.high.greaterThan(v.pointEstimate)).toBe(true);
+    expect(v.confidence).toBe("low");
+  });
+
+  it("dedups duplicate season years deterministically (last entry wins)", () => {
+    const params = growthParams("spruce", "good");
+    // same calendar year recorded twice: a drought row and a wet row
+    const wetWins = standingVolumePerHectare(50, params, [
+      { year: 2024, droughtIndex: 0.9 },
+      { year: 2024, droughtIndex: -0.5 },
+    ]);
+    const droughtWins = standingVolumePerHectare(50, params, [
+      { year: 2024, droughtIndex: -0.5 },
+      { year: 2024, droughtIndex: 0.9 },
+    ]);
+    // exactly one season modulates regardless of how many dup rows are passed
+    expect(wetWins.seasonsApplied).toBe(1);
+    expect(droughtWins.seasonsApplied).toBe(1);
+    // the surviving (last-by-year-sort) entry decides the direction:
+    // wet => above base, drought => below base
+    expect(wetWins.volumePerHectare.greaterThan(wetWins.baseVolumePerHectare)).toBe(
+      true,
+    );
+    expect(
+      droughtWins.volumePerHectare.lessThan(droughtWins.baseVolumePerHectare),
+    ).toBe(true);
+    // fully deterministic: rerunning gives an identical result
+    const repeat = standingVolumePerHectare(50, params, [
+      { year: 2024, droughtIndex: 0.9 },
+      { year: 2024, droughtIndex: -0.5 },
+    ]);
+    expect(repeat.volumePerHectare.equals(wetWins.volumePerHectare)).toBe(true);
+  });
+
+  it("only modulates the recent window, leaving older standing wood at base", () => {
+    const params = growthParams("pine", "average");
+    // a single severe-drought season on a much older stand: by recency it maps
+    // to the most-recent year, so only that one annual increment is modulated;
+    // all the wood grown before the window stays on the base curve.
+    const r = standingVolumePerHectare(80, params, [
+      { year: 2024, droughtIndex: 0.9 },
+    ]);
+    expect(r.seasonsApplied).toBe(1);
+    // a single suppressed increment near the asymptote barely moves the total
+    expect(r.volumePerHectare.lessThan(r.baseVolumePerHectare)).toBe(true);
+    const pull = r.baseVolumePerHectare
+      .minus(r.volumePerHectare)
+      .div(r.baseVolumePerHectare);
+    expect(pull.lessThan("0.02")).toBe(true);
+  });
+
+  it("aligns the latest season to the current age regardless of calendar year", () => {
+    const params = growthParams("spruce", "good");
+    // identical drought signal at two different calendar years => same effect,
+    // because the model aligns the most-recent season to the current age.
+    const a = standingVolumePerHectare(40, params, [
+      { year: 2024, droughtIndex: 0.8 },
+    ]);
+    const b = standingVolumePerHectare(40, params, [
+      { year: 1990, droughtIndex: 0.8 },
+    ]);
+    expect(a.volumePerHectare.equals(b.volumePerHectare)).toBe(true);
+    expect(a.seasonsApplied).toBe(1);
+    expect(b.seasonsApplied).toBe(1);
+  });
+
+  it("handles a fractional stand age without breaking the band ordering", () => {
+    const idx = buildTimberPriceIndex(timberPriceSeriesEur);
+    const stand = ForestStand.parse({
+      id: "frac",
+      name: "fractional",
+      species: "fir",
+      siteClass: "average",
+      areaHectares: 8.5,
+      standAgeYears: 42.5,
+      currency: "EUR",
+      seasons: [{ year: 2024, droughtIndex: 0.4 }],
+    });
+    const v = valueStandWithIndex(stand, idx);
+    expect(v.volumePerHectare.greaterThan(0)).toBe(true);
+    expect(amt(v.low).lessThan(amt(v.pointEstimate))).toBe(true);
+    expect(amt(v.pointEstimate).lessThan(amt(v.high))).toBe(true);
+  });
+
+  it("rejects a zero z and a negative modelUncertainty", () => {
+    const idx = buildTimberPriceIndex(timberPriceSeriesEur);
+    expect(() => valueStandWithIndex(spruceNorthBlock, idx, { z: 0 })).toThrow();
+    expect(() =>
+      valueStandWithIndex(spruceNorthBlock, idx, { z: Number.NaN }),
+    ).toThrow();
+    expect(() =>
+      valueStandWithIndex(spruceNorthBlock, idx, { modelUncertainty: -0.1 }),
+    ).toThrow();
+  });
+
+  it("widens the band monotonically as model uncertainty rises", () => {
+    const idx = buildTimberPriceIndex(timberPriceSeriesEur);
+    const lo = valueStandWithIndex(oakRiverside, idx, { modelUncertainty: 0 });
+    const mid = valueStandWithIndex(oakRiverside, idx, { modelUncertainty: 0.1 });
+    const hi = valueStandWithIndex(oakRiverside, idx, { modelUncertainty: 0.5 });
+    expect(mid.bandFraction.greaterThan(lo.bandFraction)).toBe(true);
+    expect(hi.bandFraction.greaterThan(mid.bandFraction)).toBe(true);
+    // a wider band can only push low down and high up
+    expect(amt(hi.low).lessThanOrEqualTo(amt(lo.low))).toBe(true);
+    expect(amt(hi.high).greaterThanOrEqualTo(amt(lo.high))).toBe(true);
+  });
+});

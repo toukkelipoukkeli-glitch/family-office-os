@@ -43,6 +43,13 @@ export function Dashboard() {
               Pipeline
             </a>
             <a
+              href="#/companies"
+              data-testid="nav-companies"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Companies
+            </a>
+            <a
               href="#/ops"
               data-testid="nav-ops"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

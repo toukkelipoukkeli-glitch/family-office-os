@@ -1,6 +1,7 @@
 import { Decimal } from "decimal.js";
 
 import { Money } from "../money";
+import { IsoDate } from "../model/primitives";
 import {
   ConfidenceLevel,
   Valuation,
@@ -185,6 +186,13 @@ export function estimateSetValue(
   options: PriceGuideOptions = {},
 ): PriceGuideResult {
   const opts = { ...DEFAULTS, ...options };
+  // Validate `asOf` up-front so an invalid valuation date fails fast with a
+  // clear message rather than silently producing NaN ages downstream.
+  const asOfParsed = IsoDate.safeParse(asOf);
+  if (!asOfParsed.success) {
+    throw new Error(`asOf must be an ISO date (YYYY-MM-DD), got ${asOf}`);
+  }
+  asOf = asOfParsed.data;
   const parsedSet = LegoSet.parse(set);
   const currency = parsedSet.currency;
 

@@ -453,6 +453,99 @@ describe("estimateSetValue — errors", () => {
     ).toThrow(/no usable/i);
   });
 
+  it("throws a clear error on an invalid asOf date", () => {
+    expect(() =>
+      estimateSetValue(
+        millenniumFalcon,
+        falconComps,
+        { condition: "sealed" },
+        "not-a-date",
+      ),
+    ).toThrow(/asOf must be an ISO date/i);
+    // a structurally-shaped but non-calendar date is also rejected
+    expect(() =>
+      estimateSetValue(
+        millenniumFalcon,
+        falconComps,
+        { condition: "sealed" },
+        "2024-02-30",
+      ),
+    ).toThrow(/asOf must be an ISO date/i);
+  });
+
+  it("clamps a future-dated comp to age 0 (treats it as fresh)", () => {
+    const set = LegoSet.parse({
+      id: "s",
+      setNumber: "12345",
+      name: "n",
+      theme: "t",
+      year: 2015,
+      retailPrice: "100",
+      currency: "USD",
+    });
+    const comp = Comparable.parse({
+      id: "future",
+      price: "200",
+      currency: "USD",
+      condition: "sealed",
+      soldOn: "2024-05-01",
+      source: "auction",
+    });
+    // asOf is BEFORE the sale: age would be negative, clamped to 0.
+    const r = estimateSetValue(set, [comp], { condition: "sealed" }, "2020-01-01");
+    expect(r.compCountUsed).toBe(1);
+    expect(r.sealedValue.amount.toNumber()).toBe(200);
+  });
+
+  it("keeps a comp exactly at maxAgeDays but drops one a day older", () => {
+    const set = LegoSet.parse({
+      id: "s",
+      setNumber: "12345",
+      name: "n",
+      theme: "t",
+      year: 2015,
+      retailPrice: "100",
+      currency: "USD",
+    });
+    // asOf 2024-06-01; maxAgeDays 10. soldOn 2024-05-22 is exactly 10 days old
+    // (kept), 2024-05-21 is 11 days old (dropped).
+    const onBoundary = Comparable.parse({
+      id: "boundary",
+      price: "111",
+      currency: "USD",
+      condition: "sealed",
+      soldOn: "2024-05-22",
+      source: "auction",
+    });
+    const tooOld = Comparable.parse({
+      id: "too-old",
+      price: "999",
+      currency: "USD",
+      condition: "sealed",
+      soldOn: "2024-05-21",
+      source: "auction",
+    });
+    const r = estimateSetValue(
+      set,
+      [onBoundary, tooOld],
+      { condition: "sealed" },
+      "2024-06-01",
+      { maxAgeDays: 10 },
+    );
+    expect(r.compCountUsed).toBe(1);
+    expect(r.sealedValue.amount.toNumber()).toBe(111);
+  });
+
+  it("trims surrounding whitespace in asOf", () => {
+    const r = estimateSetValue(
+      millenniumFalcon,
+      falconComps,
+      { condition: "sealed" },
+      "  2024-06-01  ",
+    );
+    expect(r.valuation.asOf).toBe("2024-06-01T00:00:00Z");
+  });
+
   it("ignores incomplete comps that carry no price signal", () => {
     // completeness 0 -> sealed-equivalent 0 -> skipped, leaving one usable comp
     const comps = [

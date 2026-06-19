@@ -14,7 +14,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}", "convex/**/*.{test,spec}.ts"],
     exclude: ["e2e/**", "node_modules/**", "dist/**"],
+    // convex-test relies on its source being transformed by Vitest.
+    server: { deps: { inline: ["convex-test"] } },
   },
 });

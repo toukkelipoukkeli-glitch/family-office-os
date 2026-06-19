@@ -478,6 +478,176 @@ describe("Deal", () => {
   });
 });
 
+describe("Deal — adversarial edge cases", () => {
+  it("accepts expectedCloseOn equal to openedOn (same-day close)", () => {
+    const res = Deal.safeParse({
+      id: "d",
+      name: "D",
+      pipelineId: "p",
+      stageId: "s",
+      openedOn: "2026-06-01",
+      expectedCloseOn: "2026-06-01",
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it("rejects an interaction referencing a contact when the deal has none", () => {
+    const res = Deal.safeParse({
+      id: "d",
+      name: "D",
+      pipelineId: "p",
+      stageId: "s",
+      openedOn: "2026-01-01",
+      interactions: [
+        {
+          id: "i1",
+          kind: "note",
+          occurredAt: "2026-01-02T10:00:00Z",
+          summary: "X",
+          contactIds: ["nobody"],
+        },
+      ],
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(
+        res.error.issues.some((i) => i.message.includes("unknown contact id")),
+      ).toBe(true);
+    }
+  });
+
+  it("accepts distinct interactions that share the same valid contact", () => {
+    const res = Deal.safeParse({
+      id: "d",
+      name: "D",
+      pipelineId: "p",
+      stageId: "s",
+      openedOn: "2026-01-01",
+      contacts: [contactBroker],
+      interactions: [
+        {
+          id: "i1",
+          kind: "call",
+          occurredAt: "2026-01-02T10:00:00Z",
+          summary: "First",
+          contactIds: [contactBroker.id],
+        },
+        {
+          id: "i2",
+          kind: "email",
+          occurredAt: "2026-01-03T10:00:00Z",
+          summary: "Second",
+          contactIds: [contactBroker.id],
+        },
+      ],
+    });
+    expect(res.success).toBe(true);
+  });
+
+  it("rejects an empty deal name even with surrounding whitespace", () => {
+    expect(
+      Deal.safeParse({
+        id: "d",
+        name: "   ",
+        pipelineId: "p",
+        stageId: "s",
+        openedOn: "2026-01-01",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an empty-string tag", () => {
+    expect(
+      Deal.safeParse({
+        id: "d",
+        name: "D",
+        pipelineId: "p",
+        stageId: "s",
+        openedOn: "2026-01-01",
+        tags: ["ok", "  "],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an empty id", () => {
+    expect(
+      Deal.safeParse({
+        id: "",
+        name: "D",
+        pipelineId: "p",
+        stageId: "s",
+        openedOn: "2026-01-01",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts a zero-amount opportunity (free / nominal)", () => {
+    const d = Deal.parse({
+      id: "d",
+      name: "D",
+      pipelineId: "p",
+      stageId: "s",
+      openedOn: "2026-01-01",
+      amount: { amount: "0", currency: "USD" },
+    });
+    expect(d.amount?.amount).toBe("0");
+  });
+
+  it("accepts probability at both inclusive bounds", () => {
+    for (const p of [0, 1]) {
+      expect(
+        Deal.safeParse({
+          id: "d",
+          name: "D",
+          pipelineId: "p",
+          stageId: "s",
+          openedOn: "2026-01-01",
+          probability: p,
+        }).success,
+      ).toBe(true);
+    }
+  });
+});
+
+describe("orderedStages — purity", () => {
+  it("does not mutate the input pipeline's stages array", () => {
+    const before = samplePipeline.stages.map((s) => s.id);
+    const sorted = orderedStages(samplePipeline);
+    expect(samplePipeline.stages.map((s) => s.id)).toEqual(before);
+    // returns a new array, not the same reference
+    expect(sorted).not.toBe(samplePipeline.stages);
+  });
+});
+
+describe("Pipeline — additional terminal-stage cases", () => {
+  it("rejects a pipeline missing a lost stage", () => {
+    expect(
+      Pipeline.safeParse({
+        id: "p",
+        name: "P",
+        stages: [
+          { id: "a", name: "A", order: 0 },
+          { id: "w", name: "W", order: 1, kind: "won", probability: 1 },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects two lost stages", () => {
+    expect(
+      Pipeline.safeParse({
+        id: "p",
+        name: "P",
+        stages: [
+          { id: "w", name: "W", order: 0, kind: "won", probability: 1 },
+          { id: "l1", name: "L1", order: 1, kind: "lost" },
+          { id: "l2", name: "L2", order: 2, kind: "lost" },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+});
+
 describe("isTerminalDealStatus", () => {
   it("classifies terminal vs active statuses", () => {
     expect(isTerminalDealStatus("active")).toBe(false);

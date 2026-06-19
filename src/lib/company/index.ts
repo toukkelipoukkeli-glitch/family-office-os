@@ -11,3 +11,4 @@ export * from "./ownership-stake";
 export * from "./company";
 export * from "./ownership-graph";
 export * from "./ownership-layout";
+export * from "./company-profile";

@@ -8,6 +8,7 @@ import OpsPage from "@/ops/OpsPage";
 import OrgChartPage from "@/org/OrgChartPage";
 import PipelinePage from "@/pipeline/PipelinePage";
 import { RelationshipGraphPage } from "@/relationship/RelationshipGraphPage";
+import { ScenarioCockpit } from "@/scenario/ScenarioCockpitPage";
 
 function App() {
   const path = useHashRoute();
@@ -26,6 +27,10 @@ function App() {
 
   if (path === "/charts") {
     return <ChartsGalleryPage />;
+  }
+
+  if (path === "/scenarios") {
+    return <ScenarioCockpit />;
   }
 
   if (path === "/ownership") {

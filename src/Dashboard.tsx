@@ -22,6 +22,13 @@ export function Dashboard() {
               Charts
             </a>
             <a
+              href="#/scenarios"
+              data-testid="nav-scenarios"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Scenarios
+            </a>
+            <a
               href="#/captable"
               data-testid="nav-captable"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

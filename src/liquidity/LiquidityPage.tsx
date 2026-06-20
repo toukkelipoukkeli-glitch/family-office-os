@@ -18,31 +18,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildLiquidityModel, type LiquidityModel } from "@/lib/liquidity";
+import {
+  formatMoneyCompact,
+  formatMoneyWhole,
+  formatMultiple,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Compact currency, e.g. `$9.2M`, in the model's currency. */
 function compact(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, currency);
 }
 
 /** Full currency with no fractional cents, e.g. `$9,190,000`. */
 function whole(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, currency);
 }
 
 /** A coverage ratio as `2.02×`, or `—` when undefined. */
 function coverageLabel(ratio: number | null): string {
   if (ratio === null) return "—";
-  return `${ratio.toFixed(2)}×`;
+  return formatMultiple(ratio, { suffix: "×" });
 }
 
 /** A readable month label, e.g. `Jul 2024`, from an ISO `YYYY-MM`. */

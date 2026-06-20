@@ -17,25 +17,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildCashflowModel, type CashflowModel } from "@/lib/cashflow";
+import { formatMoneyCompact, formatMoneyWhole } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Compact currency, e.g. `$4.0M`, in the model's currency. */
 function compact(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, currency);
 }
 
 /** Full currency with no fractional cents, e.g. `$4,000,000`, in the model's currency. */
 function whole(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, currency);
 }
 
 /** A readable month label, e.g. `Jul 2024`, from an ISO `YYYY-MM`. */

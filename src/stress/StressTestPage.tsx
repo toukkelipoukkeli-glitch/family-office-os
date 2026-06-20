@@ -10,6 +10,12 @@ import {
 } from "@/components/ui/card";
 import { WaterfallChart } from "@/scenario/WaterfallChart";
 import { buildStressModel, STRESS_BASE_INPUT, type StressModel } from "@/lib/stress";
+import {
+  formatMoneyCompact,
+  formatMoneySignedCompact,
+  formatPercent,
+  formatPercentSigned,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { BeforeAfterChart } from "./BeforeAfterChart";
@@ -18,28 +24,21 @@ const CURRENCY = "USD";
 
 /** Compact currency, e.g. `$12.5M`. */
 function compact(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, CURRENCY);
 }
 
 /** Signed compact currency, e.g. `-$1.3M`. */
 function signedCompact(value: number): string {
-  const sign = value < 0 ? "-" : "+";
-  return `${sign}${compact(Math.abs(value))}`;
+  return formatMoneySignedCompact(value, CURRENCY);
 }
 
 /** Signed percentage, e.g. `-32.5%`. */
 function signedPercent(value: number): string {
-  const sign = value < 0 ? "" : "+";
-  return `${sign}${(value * 100).toFixed(1)}%`;
+  return formatPercentSigned(value);
 }
 
 function percent(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
+  return formatPercent(value);
 }
 
 interface KpiProps {

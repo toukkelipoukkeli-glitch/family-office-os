@@ -7,6 +7,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { formatMoneyValue, formatMoneyValueWhole } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   buildRegistry,
@@ -30,23 +31,14 @@ const KIND_TONE: Record<ObligationKind, string> = {
 };
 
 function money(amount: { currency: string; amount: { toNumber(): number } }): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: amount.currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(amount.amount.toNumber());
+  return formatMoneyValue(amount);
 }
 
 function moneyFull(amount: {
   currency: string;
   amount: { toNumber(): number };
 }): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: amount.currency,
-    maximumFractionDigits: 0,
-  }).format(amount.amount.toNumber());
+  return formatMoneyValueWhole(amount);
 }
 
 interface KpiProps {

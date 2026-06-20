@@ -32,6 +32,7 @@ import {
   topcoProfile,
   venturesProfile,
 } from "@/lib/company/profile-fixtures";
+import { formatMoneyCompact } from "@/lib/format";
 import { Money } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -73,13 +74,7 @@ function money(amount: string, currency: string): string {
 }
 
 function moneyCompact(amount: string, currency: string): string {
-  const n = Number(amount);
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(n);
+  return formatMoneyCompact(amount, currency);
 }
 
 function roleLabel(role: string): string {

@@ -23,6 +23,7 @@ import {
   type EstatePlan,
   type LiquidityClass,
 } from "@/lib/estate";
+import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { SuccessionFlow } from "./SuccessionFlow";
@@ -36,12 +37,7 @@ const RELATION_LABELS: Record<string, string> = {
 };
 
 function money(currency: string, value: number, compactN = true): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: compactN ? "compact" : "standard",
-    maximumFractionDigits: compactN ? 1 : 0,
-  }).format(value);
+  return formatMoney(value, currency, { compact: compactN });
 }
 
 interface KpiProps {

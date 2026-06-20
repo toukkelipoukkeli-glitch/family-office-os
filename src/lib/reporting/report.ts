@@ -28,6 +28,7 @@ import { FAMILY_OFFICE_ATTRIBUTION } from "@/lib/attribution/fixtures";
 import { buildFeeModel } from "@/lib/fees";
 import { buildPrivateMarketsModel } from "@/lib/privatemarkets";
 import { assetClassLabel } from "@/lib/model/asset-class";
+import { formatMoneyCompact, formatMultiple, formatPercent } from "@/lib/format";
 
 /**
  * Default "as of" date for the seeded report. Fixed (never the wall clock) so
@@ -191,20 +192,15 @@ function round(value: number, dp = 6): number {
 }
 
 function fmtCurrency(value: number, currency = REPORT_CURRENCY): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, currency);
 }
 
 function fmtPercent(value: number, digits = 1): string {
-  return `${(value * 100).toFixed(digits)}%`;
+  return formatPercent(value, { digits });
 }
 
 function fmtRatio(value: number, digits = 2): string {
-  return value.toFixed(digits);
+  return formatMultiple(value, { digits, suffix: "" });
 }
 
 function fmtMultiple(value: number, digits = 2): string {

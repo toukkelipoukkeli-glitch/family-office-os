@@ -20,32 +20,28 @@ import {
   buildPrivateMarketsModel,
   type PrivateMarketsModel,
 } from "@/lib/privatemarkets";
+import {
+  formatMoneyCompact,
+  formatMoneyWhole,
+  formatMultiple,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const CURRENCY = "USD";
 
 /** Compact currency, e.g. `$12.5M`. */
 function compact(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, CURRENCY);
 }
 
 /** Full currency with no fractional cents, e.g. `$1,250,000`. */
 function whole(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, CURRENCY);
 }
 
 /** Multiple, e.g. `1.72x`. */
 function multiple(value: number): string {
-  return `${value.toFixed(2)}x`;
+  return formatMultiple(value);
 }
 
 /** Percent, e.g. `12.0%`, or an em-dash for an undefined IRR. */

@@ -1,3 +1,4 @@
+import { formatMoneyCompact, formatPercent } from "@/lib/format";
 import type { BoardReport } from "@/lib/reporting";
 
 /**
@@ -12,16 +13,11 @@ import type { BoardReport } from "@/lib/reporting";
  */
 
 function pct(value: number, digits = 1): string {
-  return `${(value * 100).toFixed(digits)}%`;
+  return formatPercent(value, { digits });
 }
 
 function money(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, currency);
 }
 
 /**

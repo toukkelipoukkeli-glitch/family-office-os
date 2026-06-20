@@ -13,32 +13,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildFeeModel, type FeeModel } from "@/lib/fees";
+import { formatMoneyCompact, formatMoneyWhole, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const CURRENCY = "USD";
 
 /** Compact currency, e.g. `$12.5M`. */
 function compact(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, CURRENCY);
 }
 
 /** Full currency with no fractional cents, e.g. `$1,250,000`. */
 function whole(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, CURRENCY);
 }
 
 /** Basis-points-aware percent, e.g. `0.45%` or `12.3%`. */
 function percent(value: number, digits = 2): string {
-  return `${(value * 100).toFixed(digits)}%`;
+  return formatPercent(value, { digits });
 }
 
 const COMPOSITION_COLORS: Record<string, string> = {

@@ -25,15 +25,11 @@ import {
   type FundingSummary,
   type GoalFunding,
 } from "@/lib/goals";
+import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 function money(currency: string, value: number, compactN = true): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: compactN ? "compact" : "standard",
-    maximumFractionDigits: compactN ? 1 : 0,
-  }).format(value);
+  return formatMoney(value, currency, { compact: compactN });
 }
 
 const num = (m: { amount: { toNumber(): number } }) => m.amount.toNumber();

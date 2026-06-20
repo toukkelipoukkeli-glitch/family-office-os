@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatMoney } from "@/lib/format";
 import {
   analyzeGivingPlan,
   compareInKindVsCash,
@@ -39,12 +40,7 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 function money(currency: string, value: number, compact = true): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: compact ? "compact" : "standard",
-    maximumFractionDigits: compact ? 1 : 0,
-  }).format(value);
+  return formatMoney(value, currency, { compact });
 }
 
 interface KpiProps {

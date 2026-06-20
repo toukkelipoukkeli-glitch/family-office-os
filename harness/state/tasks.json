@@ -1,19 +1,21 @@
 {
-  "updatedAt": "2026-06-20",
-  "generation": 7,
-  "phase": "gen-6 complete (7/7); gen-7 building (SEQUENTIAL rollout/consistency)",
-  "gen1": { "status": "complete", "merged": "35/35" },
-  "gen2": { "status": "complete", "merged": "8/10" },
-  "gen3": { "status": "complete", "merged": "9/9" },
-  "gen4": { "status": "complete", "merged": "7/7" },
-  "gen5": { "status": "complete", "merged": "8/8" },
-  "gen6": { "status": "complete", "merged": "7/7", "units": ["m12-route-registry", "m12-theme-print", "m12-command-palette", "m12-chart-a11y", "m12-export-toolkit", "m12-tag-filter", "m12-reporting-currency"] },
-  "gen7": {
-    "status": "building (sequential)",
-    "units": ["m13-format-boundary", "m13-currency-rollout", "m13-export-rollout", "m13-filter-scope-consistency", "m13-url-subview-state", "m13-palette-deeplink-actions", "m13-holdings-index"],
-    "note": "Consistency/rollout pass: the gen-6 polish (reporting-currency, export, tag-filter) was built but not adopted on every page. Roll it out everywhere + a shared format-boundary module + deep-linkable URL state + a global holdings index. The PM ideation auditing adoption (not just adding features) is exactly the right maturity signal."
+  "updatedAt": "2026-06-21",
+  "generation": "hardening-v1",
+  "phase": "DEPLOYED + hardening building → then handoff → v1 done",
+  "liveUrl": "https://toukkelipoukkeli-glitch.github.io/family-office-os/",
+  "gens_1_7": "complete — 73 feature units across 7 generations + polish layer",
+  "gen7": { "status": "complete", "merged": "6/7", "note": "m13-export-rollout (#85) closed: reviewer caught real float-money + currency bugs across ~10 export pages; superseded by m14-export-precision in the hardening pass." },
+  "deploy": {
+    "status": "LIVE",
+    "url": "https://toukkelipoukkeli-glitch.github.io/family-office-os/",
+    "how": "GitHub Pages, source=GitHub Actions (.github/workflows/deploy-pages.yml). Vite base is conditional (VITE_BASE=/family-office-os/ only in the Pages build; dev/e2e/CI use '/'). Hash routing ⇒ no SPA 404 fallback. Auto-redeploys on every push to main.",
+    "verified": "HTTP 200; app renders the executive dashboard ($7.22M net worth, full allocation, drill-down) live in-browser."
   },
-  "stats": "main: ~77 PR merges, ~3116 tests, ~39 routes, dark/light theme, Cmd-K palette, a11y, export. Healthy.",
-  "trajectory": "App is now feature-complete + polished. Asked gen-8 ideation to be honest about saturation and weigh production-readiness vs more features.",
+  "hardening": {
+    "status": "building (sequential)",
+    "units": ["m14-export-precision", "m14-mobile-nav", "m14-csv-injection", "m14-cross-browser", "m14-no-key-guard"]
+  },
+  "remaining": "After hardening: write harness/HANDOFF.md + copy gen workflow scripts into harness/workflows/ + README demo link (so Touko can continue from another machine), then declare v1 DONE.",
+  "needsTouko": ["real bank/brokerage data", "auth", "Convex prod with real data", "custom domain"],
   "blocked": []
 }

@@ -59,11 +59,30 @@ export interface GenerationState {
 /** Shape of `harness/state/tasks.json` (the fields the cockpit reads). */
 export interface TasksState {
   updatedAt: string;
-  generation: number;
+  /**
+   * The loop's current generation marker. Early generations are plain counters
+   * (`1`, `2`, …); once the numbered backlog is exhausted the harness advances
+   * into named phases (e.g. `"hardening-v1"`), so this is `number | string`. The
+   * cockpit renders it as text either way.
+   */
+  generation: number | string;
   phase: string;
   gen1?: GenerationState;
   gen2?: GenerationState;
+  /**
+   * Consolidated rollup written once the early numbered generations have all
+   * shipped (e.g. `"complete — 73 feature units across 7 generations…"`). When
+   * present and reading complete, every backlog (gen-1) unit is treated as
+   * merged even though the per-generation `gen1` field is no longer carried.
+   */
+  gens_1_7?: string;
   blocked?: string[];
+}
+
+/** True when the consolidated gens-1..7 rollup reads complete/done/shipped. */
+function gensConsolidatedComplete(tasks: TasksState): boolean {
+  const rollup = tasks.gens_1_7;
+  return typeof rollup === "string" && /\b(complete|done|shipped)\b/i.test(rollup);
 }
 
 // Cast the bundled JSON to our typed views. The casts are validated by the
@@ -93,7 +112,11 @@ function backlogUnitStatus(
   tasks: TasksState,
 ): UnitStatus {
   if (tasks.blocked?.includes(unitId)) return "blocked";
-  if (isGenerationComplete(tasks.gen1)) return "merged";
+  // Merged once gen-1 completes, or once the consolidated gens-1..7 rollup
+  // (written after the numbered backlog shipped) reports completion.
+  if (isGenerationComplete(tasks.gen1) || gensConsolidatedComplete(tasks)) {
+    return "merged";
+  }
   return "backlog";
 }
 

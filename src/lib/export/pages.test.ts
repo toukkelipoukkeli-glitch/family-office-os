@@ -91,6 +91,47 @@ function expectSerializable(ds: ReturnType<typeof givingExport>): void {
 }
 
 /* ------------------------------------------------------------------------- */
+/* Conversion-boundary invariants (adversarial)                              */
+/* ------------------------------------------------------------------------- */
+
+describe("export conversion boundary", () => {
+  // The number path (fees/cashflow/etc.) and the Money path (giving/estate/etc.)
+  // must apply IDENTICAL FX math, so a number figure and an equal Money figure
+  // convert to the exact same reporting-currency string. fees uses `num`,
+  // giving uses `money`; a base value present in both must agree.
+  it("number-path and Money-path conversions agree to the exact digit", () => {
+    const v = 1_234_567.89;
+    const viaMoney = EUR_CONV.convert(Money.of(v, "USD")).amount.toFixed();
+    const viaNumber = new Decimal(v).div(EUR_RATE).toFixed();
+    expect(viaMoney).toBe(viaNumber);
+  });
+
+  // toFixed() must never emit exponential notation or lose precision, even for a
+  // value whose exact EUR conversion is a long non-terminating-looking decimal.
+  it("emits a plain decimal string (no exponent) for awkward conversions", () => {
+    const model = buildFeeModel();
+    const eur = feesExport(model, EUR);
+    const totalCol = eur.table.columns.indexOf("totalCost (EUR)");
+    for (const row of eur.table.rows) {
+      const cell = String(row[totalCol]);
+      expect(cell).not.toMatch(/[eE]/); // no scientific notation
+      expectDecimalString(cell);
+    }
+  });
+
+  // The USD (base) path is an exact pass-through: no FX division, no rounding,
+  // identical to the engine's own toFixed().
+  it("base-currency export is an exact pass-through (no rounding)", () => {
+    const analysis = analyzeGivingPlan(seededGivingPlan);
+    const usd = givingExport(analysis, USD);
+    const col = usd.table.columns.indexOf("gifted (USD)");
+    analysis.yearResults.forEach((y, i) => {
+      expect(usd.table.rows[i][col]).toBe(y.gifted.amount.toFixed());
+    });
+  });
+});
+
+/* ------------------------------------------------------------------------- */
 /* Giving                                                                    */
 /* ------------------------------------------------------------------------- */
 

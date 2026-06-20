@@ -76,6 +76,15 @@ describe("App", () => {
     expect(screen.getByTestId("relationship-graph")).toBeInTheDocument();
   });
 
+  it("renders the tax-loss harvesting finder at #/harvest", () => {
+    setHash("#/harvest");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /tax-loss harvesting/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("harvest-page")).toBeInTheDocument();
+  });
+
   it("navigates between dashboard and ops on hash change", () => {
     setHash("");
     render(<App />);

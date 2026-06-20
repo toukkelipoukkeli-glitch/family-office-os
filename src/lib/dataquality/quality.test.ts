@@ -144,6 +144,46 @@ describe("latestValuation", () => {
     });
     expect(latestValuation(h)?.id).toBe("v-a");
   });
+
+  it("skips valuations whose asOf is unparseable", () => {
+    const h = holding({
+      id: "h-nan",
+      valuations: [
+        {
+          id: "v-bad",
+          value: { amount: "999.00", currency: "USD" },
+          asOf: "not-a-date",
+          source: "appraisal",
+          confidence: "low",
+        },
+        {
+          id: "v-good",
+          value: { amount: "10.00", currency: "USD" },
+          asOf: "2025-01-01T00:00:00Z",
+          source: "market",
+          confidence: "high",
+        },
+      ],
+    });
+    // The garbage-dated valuation is ignored, not picked as "latest".
+    expect(latestValuation(h)?.id).toBe("v-good");
+  });
+
+  it("returns undefined when every valuation has an unparseable asOf", () => {
+    const h = holding({
+      id: "h-all-nan",
+      valuations: [
+        {
+          id: "v-bad",
+          value: { amount: "1.00", currency: "USD" },
+          asOf: "garbage",
+          source: "appraisal",
+          confidence: "low",
+        },
+      ],
+    });
+    expect(latestValuation(h)).toBeUndefined();
+  });
 });
 
 describe("assessHolding", () => {
@@ -314,6 +354,53 @@ describe("assessPortfolio edge cases", () => {
     expect(r.score).toBe(1);
     expect(r.grade).toBe("A");
     expect(r.holdings).toEqual([]);
+  });
+
+  it("uses the average fallback when every valued holding is worth zero", () => {
+    // A valued-but-zero holding has weight 0, so the value-weighted roll-up
+    // would divide by zero; the report must fall back to the simple average
+    // rather than producing NaN.
+    const zeroValued = holding({
+      id: "h-zero",
+      assetClass: "equity",
+      valuations: [
+        {
+          id: "v-zero",
+          value: { amount: "0.00", currency: "USD" },
+          asOf: TODAY.toISOString(),
+          source: "market",
+          confidence: "high",
+          confidenceScore: 0.95,
+        },
+      ],
+    });
+    const r = assessPortfolio([zeroValued], TODAY);
+    expect(Number.isNaN(r.score)).toBe(false);
+    // Fresh, scored, high-confidence, complete -> headline equals its score.
+    expect(r.score).toBe(r.holdings[0].score);
+    expect(r.totalsByCurrency).toEqual([
+      expect.objectContaining({ currency: "USD" }),
+    ]);
+  });
+
+  it("counts a zero-value valued holding as not stale and not missing", () => {
+    const zeroValued = holding({
+      id: "h-zero-2",
+      valuations: [
+        {
+          id: "v-zero-2",
+          value: { amount: "0.00", currency: "USD" },
+          asOf: TODAY.toISOString(),
+          source: "market",
+          confidence: "high",
+          confidenceScore: 0.9,
+        },
+      ],
+    });
+    const r = assessPortfolio([zeroValued], TODAY);
+    expect(r.missingValuationCount).toBe(0);
+    expect(r.staleCount).toBe(0);
+    expect(r.byStatus.fresh).toBe(1);
   });
 
   it("is deterministic — same inputs give identical output", () => {

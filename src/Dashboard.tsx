@@ -50,30 +50,44 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <h1 className="text-lg font-semibold tracking-tight">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
+          <h1 className="shrink-0 text-lg font-semibold tracking-tight">
             Family Office OS
           </h1>
-          <div className="flex items-center gap-4">
-            <nav className="flex items-center gap-4">
-              {ROUTES.filter((r) => r.nav !== false).map((r, i) => (
-                <a
-                  key={r.path}
-                  href={`#${r.path}`}
-                  data-testid={r.navTestId}
-                  className={cn(
-                    "text-sm underline-offset-4 hover:underline",
-                    // The first link (Overview) is emphasised; the rest are
-                    // muted, matching the original hand-written navigation.
-                    i === 0
-                      ? "font-medium text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {r.label}
-                </a>
-              ))}
-            </nav>
+          {/* The registry-driven route nav can hold ~40 links, far more than fit
+              on a phone (and a tight squeeze even on a laptop). Make the nav the
+              flex item that absorbs the overflow: `min-w-0` lets it shrink below
+              its content width instead of forcing the header — and therefore the
+              page — wider than the viewport, and `overflow-x-auto` turns the link
+              row into a self-contained horizontal scroller. `scrollbar-none`
+              hides the scrollbar chrome (the row still scrolls via swipe /
+              shift-wheel / keyboard). Without this the row pushed the document
+              past the viewport at 390px, producing horizontal page overflow. */}
+          <nav
+            data-testid="dashboard-nav"
+            className="scrollbar-none flex min-w-0 flex-1 items-center gap-4 overflow-x-auto"
+          >
+            {ROUTES.filter((r) => r.nav !== false).map((r, i) => (
+              <a
+                key={r.path}
+                href={`#${r.path}`}
+                data-testid={r.navTestId}
+                className={cn(
+                  "whitespace-nowrap text-sm underline-offset-4 hover:underline",
+                  // The first link (Overview) is emphasised; the rest are
+                  // muted, matching the original hand-written navigation.
+                  i === 0
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground",
+                )}
+              >
+                {r.label}
+              </a>
+            ))}
+          </nav>
+          {/* The header controls stay pinned on the right and never shrink, so
+              they remain reachable no matter how far the nav row scrolls. */}
+          <div className="flex shrink-0 items-center gap-4">
             {/* The dashboard is the holdings net-worth view, so the tag filter
                 always applies here regardless of the hash route. */}
             <TagFilter applies />

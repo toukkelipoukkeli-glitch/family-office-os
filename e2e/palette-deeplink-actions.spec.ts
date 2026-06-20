@@ -84,7 +84,9 @@ test.describe("m13 command palette: deep-links + actions", () => {
     // route hash), and the global reporting currency switched — the shell
     // <select> and the headline KPI both follow.
     await expect(page.getByTestId("command-palette")).toHaveCount(0);
-    await expect(page).toHaveURL(/localhost:\d+\/(#\/?)?$/);
+    // Host-agnostic: assert only the dashboard path/hash invariant (root path,
+    // with no route hash) so the test holds under 127.0.0.1 / CI hostnames too.
+    await expect(page).toHaveURL(/\/(#\/?)?$/);
     await expect(select).toHaveValue("EUR");
     await expect(page.getByTestId("kpi-current")).toContainText("€");
   });

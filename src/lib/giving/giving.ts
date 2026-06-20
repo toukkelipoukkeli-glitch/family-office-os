@@ -202,8 +202,13 @@ function rate(value: number, name: string): Decimal {
 
 /** AGI ceiling fraction that applies to a given gift. */
 function agiLimitFor(gift: Gift, profile: TaxProfile): Decimal {
-  const cash = profile.cashAgiLimit ?? 0.6;
-  const appreciated = profile.appreciatedAgiLimit ?? 0.3;
+  // Validate configurable ceilings: an out-of-range fraction would silently
+  // corrupt every downstream deduction. rate() enforces a finite value in [0,1].
+  const cash = rate(profile.cashAgiLimit ?? 0.6, "cashAgiLimit").toNumber();
+  const appreciated = rate(
+    profile.appreciatedAgiLimit ?? 0.3,
+    "appreciatedAgiLimit",
+  ).toNumber();
   // Private foundations get a lower ceiling for appreciated property (20%);
   // model that explicitly so foundation gifts don't over-deduct.
   if (gift.recipient === "private-foundation") {
@@ -481,7 +486,20 @@ export function compareInKindVsCash(
     throw new GivingError("compareInKindVsCash requires an appreciated gift");
   }
   const fmv = gift.fairMarketValue;
+  if (fmv.currency !== ccy) {
+    throw new GivingError(
+      `Gift ${gift.id} FMV currency ${fmv.currency} != plan currency ${ccy}`,
+    );
+  }
+  if (fmv.isNegative()) {
+    throw new GivingError(`Gift ${gift.id} FMV must not be negative`);
+  }
   const basis = gift.costBasis ?? Money.zero(ccy);
+  if (basis.currency !== ccy) {
+    throw new GivingError(
+      `Gift ${gift.id} basis currency ${basis.currency} != plan currency ${ccy}`,
+    );
+  }
   const gainAmt = Decimal.max(fmv.amount.minus(basis.amount), new Decimal(0));
   const gain = Money.of(gainAmt, ccy);
   const cgRate = rate(profile.capitalGainsRate, "capitalGainsRate");

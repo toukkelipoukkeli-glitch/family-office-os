@@ -55,7 +55,10 @@ describe("GivingPage", () => {
     expect(screen.getByTestId("kpi-gifted")).toHaveTextContent("$2.1M");
     expect(screen.getByTestId("kpi-cg-avoided")).toHaveTextContent("$316.5K");
     expect(screen.getByTestId("kpi-benefit")).toHaveTextContent("$1.1M");
-    expect(screen.getByTestId("kpi-net-cost")).toHaveTextContent("$1M");
+    // Net cost ≈ $1,006,460. Compact currency notation renders this as either
+    // "$1M" or "$1.0M" depending on the ICU version (the trailing ".0" is
+    // dropped by newer ICU, kept by older ICU on CI) — accept both.
+    expect(screen.getByTestId("kpi-net-cost")).toHaveTextContent(/\$1(\.0)?M/);
   });
 
   it("renders the in-kind spotlight for the largest appreciated gift", () => {

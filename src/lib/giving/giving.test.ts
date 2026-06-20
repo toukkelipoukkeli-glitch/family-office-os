@@ -144,6 +144,73 @@ describe("compareInKindVsCash (oracle: hand-calc)", () => {
       ),
     ).toThrow(GivingError);
   });
+
+  it("rejects an FMV currency mismatch (no cross-currency math)", () => {
+    expect(() =>
+      compareInKindVsCash(
+        {
+          id: "g",
+          label: "stock",
+          kind: "appreciated",
+          recipient: "daf",
+          fairMarketValue: Money.of("1000", "EUR"),
+          costBasis: m("100"),
+        },
+        seededTaxProfile,
+      ),
+    ).toThrow(GivingError);
+  });
+
+  it("rejects a basis currency mismatch", () => {
+    expect(() =>
+      compareInKindVsCash(
+        {
+          id: "g",
+          label: "stock",
+          kind: "appreciated",
+          recipient: "daf",
+          fairMarketValue: m("1000"),
+          costBasis: Money.of("100", "EUR"),
+        },
+        seededTaxProfile,
+      ),
+    ).toThrow(GivingError);
+  });
+
+  it("rejects a negative FMV", () => {
+    expect(() =>
+      compareInKindVsCash(
+        {
+          id: "g",
+          label: "stock",
+          kind: "appreciated",
+          recipient: "daf",
+          fairMarketValue: m("-1"),
+        },
+        seededTaxProfile,
+      ),
+    ).toThrow(GivingError);
+  });
+});
+
+describe("AGI-limit input validation", () => {
+  it("rejects an out-of-range cashAgiLimit", () => {
+    expect(() =>
+      analyzeGivingPlan({
+        ...seededGivingPlan,
+        profile: { ...seededTaxProfile, cashAgiLimit: 1.5 },
+      }),
+    ).toThrow(GivingError);
+  });
+
+  it("rejects a negative appreciatedAgiLimit", () => {
+    expect(() =>
+      analyzeGivingPlan({
+        ...seededGivingPlan,
+        profile: { ...seededTaxProfile, appreciatedAgiLimit: -0.1 },
+      }),
+    ).toThrow(GivingError);
+  });
 });
 
 describe("analyzeGivingPlan — seeded plan (oracle: full hand-calc)", () => {

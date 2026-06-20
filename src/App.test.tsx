@@ -49,6 +49,15 @@ describe("App", () => {
     expect(screen.getByTestId("ownership-network")).toBeInTheDocument();
   });
 
+  it("renders the look-through view at #/lookthrough", () => {
+    setHash("#/lookthrough");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /cross-entity look-through/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("lookthrough-view")).toBeInTheDocument();
+  });
+
   it("renders the relationship graph at #/relationships", () => {
     setHash("#/relationships");
     render(<App />);

@@ -57,6 +57,13 @@ export function Dashboard() {
               Companies
             </a>
             <a
+              href="#/lookthrough"
+              data-testid="nav-lookthrough"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Look-through
+            </a>
+            <a
               href="#/org"
               data-testid="nav-org"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

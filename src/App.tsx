@@ -4,6 +4,7 @@ import CompanyProfilePage from "@/company/CompanyProfilePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
 import { OwnershipGraphPage } from "@/components/ownership/ownership-graph-page";
 import { useHashRoute } from "@/lib/use-hash-route";
+import LookThroughPage from "@/lookthrough/LookThroughPage";
 import OpsPage from "@/ops/OpsPage";
 import OrgChartPage from "@/org/OrgChartPage";
 import PipelinePage from "@/pipeline/PipelinePage";
@@ -35,6 +36,10 @@ function App() {
 
   if (path === "/ownership") {
     return <OwnershipGraphPage />;
+  }
+
+  if (path === "/lookthrough") {
+    return <LookThroughPage />;
   }
 
   if (path === "/pipeline" || path.startsWith("/pipeline/")) {

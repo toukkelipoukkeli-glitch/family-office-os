@@ -62,4 +62,9 @@ describe("BenchmarkPage", () => {
     render(<BenchmarkPage />);
     expect(screen.getByTestId("benchmark-back")).toHaveAttribute("href", "#/");
   });
+
+  it("throws if asked to render with no benchmarks and no precomputed view", () => {
+    // Guards against an empty selectable set crashing on benchmarks[0] access.
+    expect(() => render(<BenchmarkPage benchmarks={[]} />)).toThrow();
+  });
 });

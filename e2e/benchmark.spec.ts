@@ -9,6 +9,11 @@ const EVIDENCE_DIR = join(here, "evidence", "m9-benchmark");
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
 
+// The Playwright config already records a trace for every test (`trace: "on"`);
+// this makes the UI-evidence requirement explicit at the suite level so the
+// trace is always captured even if the global default changes.
+test.use({ trace: "on" });
+
 test.describe("benchmark + relative performance", () => {
   test("navigates from the dashboard to benchmark and back", async ({
     page,

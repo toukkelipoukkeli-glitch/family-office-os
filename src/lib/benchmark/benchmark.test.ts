@@ -290,7 +290,9 @@ describe("adversarial edge cases", () => {
 
   it("informationRatio is negative when the portfolio consistently lags", () => {
     const p = [0.0, 0.01, -0.01];
-    const b = [0.02, 0.03, 0.01]; // active always negative
+    const b = [0.02, 0.02, 0.02]; // active = [-0.02, -0.01, -0.03]
+    // Negative mean active AND genuine dispersion (not a flat series, which
+    // would instead trip the zero-tracking-error throw).
     expect(informationRatio(p, b)).toBeLessThan(0);
   });
 
@@ -385,6 +387,36 @@ describe("adversarial edge cases", () => {
   it("a zero excess return still reconciles in the geometric headline", () => {
     const s = [0.01, 0.02, -0.01];
     expect(excessReturn(s, s)).toBeCloseTo(0, 12);
+  });
+
+  it("buy-and-hold throws if the basket is wiped out before the window ends", () => {
+    // A -100% return zeroes both sleeves; the next period would divide by 0.
+    const policy: PolicyBenchmark = {
+      id: "wipe",
+      label: "Wipeout",
+      components: [
+        { id: "a", label: "A", weight: 0.6, returns: [-1, 0.1] },
+        { id: "b", label: "B", weight: 0.4, returns: [-1, 0.1] },
+      ],
+    };
+    expect(() => blendPolicyReturns(policy, { mode: "buy-and-hold" })).toThrow(
+      BenchmarkInputError,
+    );
+  });
+
+  it("buy-and-hold tolerates a single -100% period at the very end", () => {
+    // Wipeout on the final period is fine: there is no subsequent division.
+    const policy: PolicyBenchmark = {
+      id: "tail",
+      label: "Tail wipe",
+      components: [
+        { id: "a", label: "A", weight: 0.6, returns: [0.1, -1] },
+        { id: "b", label: "B", weight: 0.4, returns: [0.05, -1] },
+      ],
+    };
+    const bah = blendPolicyReturns(policy, { mode: "buy-and-hold" });
+    expect(bah).toHaveLength(2);
+    expect(bah[1]).toBeCloseTo(-1, 12); // basket fully wiped that period
   });
 });
 

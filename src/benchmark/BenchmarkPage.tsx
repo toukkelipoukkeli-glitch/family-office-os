@@ -79,6 +79,12 @@ export interface BenchmarkPageProps {
  * deterministic and offline — driven by the benchmark engine.
  */
 export function BenchmarkPage({ view, benchmarks = BENCHMARKS }: BenchmarkPageProps) {
+  if (!view && benchmarks.length === 0) {
+    throw new Error(
+      "BenchmarkPage requires at least one benchmark when `view` is not provided.",
+    );
+  }
+
   const [benchmarkId, setBenchmarkId] = React.useState<string>(
     view?.benchmarkId ?? benchmarks[0].id,
   );
@@ -95,6 +101,10 @@ export function BenchmarkPage({ view, benchmarks = BENCHMARKS }: BenchmarkPagePr
   }, [view, benchmarks, benchmarkId]);
 
   const { performance: perf, rows } = model;
+  if (rows.length === 0) {
+    throw new Error("BenchmarkPage requires at least one period row.");
+  }
+  const lastRow = rows[rows.length - 1];
   const excessTone = perf.excessReturn >= 0 ? "up" : "down";
   const irTone = perf.informationRatio >= 0 ? "up" : "down";
 
@@ -202,11 +212,11 @@ export function BenchmarkPage({ view, benchmarks = BENCHMARKS }: BenchmarkPagePr
               </span>
               . Portfolio ended at{" "}
               <span className="font-medium text-foreground tabular-nums">
-                {rows[rows.length - 1].portfolioGrowth.toFixed(3)}
+                {lastRow.portfolioGrowth.toFixed(3)}
               </span>{" "}
               vs benchmark{" "}
               <span className="font-medium text-foreground tabular-nums">
-                {rows[rows.length - 1].benchmarkGrowth.toFixed(3)}
+                {lastRow.benchmarkGrowth.toFixed(3)}
               </span>
               .
             </CardDescription>
@@ -332,10 +342,10 @@ export function BenchmarkPage({ view, benchmarks = BENCHMARKS }: BenchmarkPagePr
                       {pct(perf.excessReturn, { signed: true })}
                     </td>
                     <td className="py-2 px-3 text-right tabular-nums">
-                      {rows[rows.length - 1].portfolioGrowth.toFixed(3)}
+                      {lastRow.portfolioGrowth.toFixed(3)}
                     </td>
                     <td className="py-2 pl-3 text-right tabular-nums">
-                      {rows[rows.length - 1].benchmarkGrowth.toFixed(3)}
+                      {lastRow.benchmarkGrowth.toFixed(3)}
                     </td>
                   </tr>
                 </tfoot>

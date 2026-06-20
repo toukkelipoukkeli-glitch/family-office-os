@@ -136,6 +136,11 @@ export function blendPolicyReturns(
   const out: number[] = new Array(len);
   for (let t = 0; t < len; t++) {
     const prevTotal = sum(values);
+    if (prevTotal <= 0 || !Number.isFinite(prevTotal)) {
+      throw new BenchmarkInputError(
+        `buy-and-hold benchmark is undefined at period ${t + 1}: basket value is ${prevTotal}`,
+      );
+    }
     for (let i = 0; i < components.length; i++) {
       values[i] *= 1 + components[i].returns[t];
     }

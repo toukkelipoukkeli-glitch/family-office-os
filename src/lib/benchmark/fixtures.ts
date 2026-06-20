@@ -7,7 +7,8 @@ import type { PolicyBenchmark } from "./policy";
  * family-office book and the index series it is benchmarked against. The
  * numbers are hand-chosen so every relative metric is non-trivial and signed:
  * the portfolio beats its 60/40 policy on a total-return basis, runs a modest
- * tracking error, a positive information ratio, and a beta a touch below one.
+ * tracking error, a positive information ratio, and an equity-tilted beta well
+ * above one (≈1.70) against the blended policy benchmark.
  *
  * Nothing here hits a live API; these are static fixtures used by the engine
  * tests (oracle) and the charted view.

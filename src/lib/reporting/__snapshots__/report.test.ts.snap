@@ -1,0 +1,375 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildBoardReport > snapshot of the full composed report 1`] = `
+{
+  "asOf": "2026-06-30",
+  "attribution": {
+    "activeReturn": 0.00825,
+    "method": "BF",
+    "segments": [
+      {
+        "allocation": 0.000558,
+        "id": "public-equity",
+        "interaction": 0.0005,
+        "label": "Public equity",
+        "selection": 0.0035,
+        "total": 0.004558,
+      },
+      {
+        "allocation": 0.002385,
+        "id": "fixed-income",
+        "interaction": 0.0005,
+        "label": "Fixed income",
+        "selection": -0.00125,
+        "total": 0.001635,
+      },
+      {
+        "allocation": 0.001558,
+        "id": "private-equity",
+        "interaction": 0.0005,
+        "label": "Private equity",
+        "selection": 0.0015,
+        "total": 0.003558,
+      },
+      {
+        "allocation": 0,
+        "id": "real-assets",
+        "interaction": 0,
+        "label": "Real assets",
+        "selection": -0.0015,
+        "total": -0.0015,
+      },
+      {
+        "allocation": 0,
+        "id": "cash",
+        "interaction": 0,
+        "label": "Cash & equivalents",
+        "selection": 0,
+        "total": 0,
+      },
+    ],
+    "totalAllocation": 0.0045,
+    "totalEffect": 0.00825,
+    "totalInteraction": 0.0015,
+    "totalSelection": 0.00225,
+  },
+  "benchmark": {
+    "alpha": 0.000279,
+    "benchmarkId": "family-policy-55-35-10",
+    "benchmarkLabel": "Family policy (55/35/10)",
+    "benchmarkReturn": 0.088553,
+    "beta": 1.696989,
+    "excessReturn": 0.068751,
+    "informationRatio": 2.148335,
+    "portfolioReturn": 0.157304,
+    "trackingError": 0.029404,
+  },
+  "currency": "USD",
+  "fees": {
+    "blendedRate": 0.012705,
+    "dragShareOfProfit": 0.287275,
+    "horizonYears": 20,
+    "terminalDrag": 11568696.71,
+    "totalAnnualCost": 139750,
+    "totalInvested": 11000000,
+  },
+  "kpis": [
+    {
+      "display": "$287.8K",
+      "key": "net-worth",
+      "label": "Net worth",
+      "raw": 287776,
+    },
+    {
+      "display": "4.9%",
+      "key": "twr",
+      "label": "Window TWR",
+      "raw": 0.049075,
+    },
+    {
+      "display": "6.9%",
+      "key": "excess-return",
+      "label": "Excess vs. policy",
+      "raw": 0.068751,
+    },
+    {
+      "display": "2.15",
+      "key": "info-ratio",
+      "label": "Information ratio",
+      "raw": 2.148335,
+    },
+    {
+      "display": "3",
+      "key": "policy-breaches",
+      "label": "IPS breaches",
+      "raw": 3,
+    },
+    {
+      "display": "1.27%",
+      "key": "fee-rate",
+      "label": "Blended fee",
+      "raw": 0.012705,
+    },
+    {
+      "display": "1.57×",
+      "key": "pe-tvpi",
+      "label": "PE TVPI",
+      "raw": 1.567568,
+    },
+  ],
+  "netWorth": {
+    "baseCurrency": "USD",
+    "byAssetClass": [
+      {
+        "assetClass": "cash",
+        "label": "Cash",
+        "value": 250000,
+        "weight": 0.868731,
+      },
+      {
+        "assetClass": "equity",
+        "label": "Equities",
+        "value": 30000,
+        "weight": 0.104248,
+      },
+      {
+        "assetClass": "wine",
+        "label": "Fine wine",
+        "value": 7776,
+        "weight": 0.027021,
+      },
+    ],
+    "current": 287776,
+    "months": 24,
+    "opening": 274314.15,
+    "series": [
+      {
+        "date": "2024-07-01",
+        "value": 274314.15,
+      },
+      {
+        "date": "2024-08-01",
+        "value": 274858.36,
+      },
+      {
+        "date": "2024-09-01",
+        "value": 275406.03,
+      },
+      {
+        "date": "2024-10-01",
+        "value": 275957.2,
+      },
+      {
+        "date": "2024-11-01",
+        "value": 276511.92,
+      },
+      {
+        "date": "2024-12-01",
+        "value": 277070.21,
+      },
+      {
+        "date": "2025-01-01",
+        "value": 277632.11,
+      },
+      {
+        "date": "2025-02-01",
+        "value": 278197.67,
+      },
+      {
+        "date": "2025-03-01",
+        "value": 278766.92,
+      },
+      {
+        "date": "2025-04-01",
+        "value": 279339.91,
+      },
+      {
+        "date": "2025-05-01",
+        "value": 279916.66,
+      },
+      {
+        "date": "2025-06-01",
+        "value": 280497.22,
+      },
+      {
+        "date": "2025-07-01",
+        "value": 281081.62,
+      },
+      {
+        "date": "2025-08-01",
+        "value": 281669.92,
+      },
+      {
+        "date": "2025-09-01",
+        "value": 282262.14,
+      },
+      {
+        "date": "2025-10-01",
+        "value": 282858.33,
+      },
+      {
+        "date": "2025-11-01",
+        "value": 283458.54,
+      },
+      {
+        "date": "2025-12-01",
+        "value": 284062.82,
+      },
+      {
+        "date": "2026-01-01",
+        "value": 284671.17,
+      },
+      {
+        "date": "2026-02-01",
+        "value": 285283.68,
+      },
+      {
+        "date": "2026-03-01",
+        "value": 285900.38,
+      },
+      {
+        "date": "2026-04-01",
+        "value": 286521.29,
+      },
+      {
+        "date": "2026-05-01",
+        "value": 287146.48,
+      },
+      {
+        "date": "2026-06-01",
+        "value": 287776,
+      },
+    ],
+    "totalReturn": 0.049075,
+  },
+  "policy": {
+    "breachCount": 3,
+    "breaches": [
+      {
+        "bound": "max",
+        "exceedanceAmount": 192416,
+        "kind": "positionCap",
+        "limit": 0.2,
+        "severity": "critical",
+        "subject": "USD Cash",
+        "weight": 0.868297,
+      },
+      {
+        "bound": "max",
+        "exceedanceAmount": 106040,
+        "kind": "assetClassBand",
+        "limit": 0.5,
+        "severity": "warning",
+        "subject": "Cash",
+        "weight": 0.868297,
+      },
+      {
+        "bound": "min",
+        "exceedanceAmount": 13188,
+        "kind": "assetClassBand",
+        "limit": 0.15,
+        "severity": "warning",
+        "subject": "Equities",
+        "weight": 0.104196,
+      },
+    ],
+    "compliant": false,
+    "criticalBreaches": 1,
+    "total": 287920,
+    "warningBreaches": 2,
+  },
+  "privateMarkets": {
+    "committed": 24000000,
+    "distributed": 19300000,
+    "dpi": 1.043243,
+    "irr": 0.108874,
+    "nav": 9700000,
+    "paidIn": 18500000,
+    "rvpi": 0.524324,
+    "tvpi": 1.567568,
+    "unfunded": 5500000,
+  },
+}
+`;
+
+exports[`export > snapshot of the Markdown export 1`] = `
+"# Board Report — 2026-06-30
+
+Reporting currency: USD
+
+## Headline
+
+| Metric | Value |
+| --- | --- |
+| Net worth | $287.8K |
+| Window TWR | 4.9% |
+| Excess vs. policy | 6.9% |
+| Information ratio | 2.15 |
+| IPS breaches | 3 |
+| Blended fee | 1.27% |
+| PE TVPI | 1.57× |
+
+## Net worth & TWR
+
+- Opening: $274,314
+- Current: $287,776
+- Window TWR: 4.91% over 24 months
+
+| Asset class | Value | Weight |
+| --- | --- | --- |
+| Cash | $250,000 | 86.9% |
+| Equities | $30,000 | 10.4% |
+| Fine wine | $7,776 | 2.7% |
+
+## Allocation vs. policy (IPS)
+
+- Status: 3 breach(es) — 1 critical, 2 warning.
+
+| Subject | Constraint | Weight | Limit | Over/Under |
+| --- | --- | --- | --- | --- |
+| USD Cash | positionCap (max) | 86.8% | 20.0% | $192,416 |
+| Cash | assetClassBand (max) | 86.8% | 50.0% | $106,040 |
+| Equities | assetClassBand (min) | 10.4% | 15.0% | $13,188 |
+
+## Benchmark-relative performance
+
+- Benchmark: Family policy (55/35/10)
+- Portfolio: 15.73%
+- Benchmark: 8.86%
+- Excess (active): +688 bps
+- Tracking error: 2.94%
+- Information ratio: 2.15
+- Beta: 1.70 · Alpha: +3 bps
+
+## Attribution (BF)
+
+- Active return: +83 bps
+- Allocation: +45 bps
+- Selection: +23 bps
+- Interaction: +15 bps
+
+| Segment | Allocation | Selection | Interaction | Total |
+| --- | --- | --- | --- | --- |
+| Public equity | +6 bps | +35 bps | +5 bps | +46 bps |
+| Fixed income | +24 bps | -12 bps | +5 bps | +16 bps |
+| Private equity | +16 bps | +15 bps | +5 bps | +36 bps |
+| Real assets | +0 bps | -15 bps | +0 bps | -15 bps |
+| Cash & equivalents | +0 bps | +0 bps | +0 bps | +0 bps |
+
+## Fees & total cost of ownership
+
+- Capital invested: $11,000,000
+- All-in annual cost: $139,750
+- Blended expense ratio: 1.27%
+- Fee drag: 28.7% of gross gains over 20 years ($11,568,697).
+
+## Private markets (PE)
+
+- Committed: $24,000,000
+- Paid in: $18,500,000 · Distributed: $19,300,000
+- NAV: $9,700,000 · Unfunded: $5,500,000
+- TVPI: 1.57× · DPI: 1.04× · RVPI: 0.52×
+- Pooled IRR: 10.89%
+
+"
+`;

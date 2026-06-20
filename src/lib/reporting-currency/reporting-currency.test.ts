@@ -226,4 +226,78 @@ describe("reexpressNetWorth", () => {
     // GBP is stronger than EUR vs USD, so the same book is a smaller number in GBP.
     expect(gbp.current.amount.lessThan(eur.current.amount)).toBe(true);
   });
+
+  // --- adversarial coverage (independent tester) ---
+
+  it("re-expresses opening and current through the identical divisor (no per-field drift)", () => {
+    // The "change over window" KPI is current - opening. Both must be divided by
+    // the exact same rate so the converted pair stays internally consistent: each
+    // field equals its USD source divided by the rate, with matching rounding.
+    const rate = new Decimal("1.27");
+    const gbp = reexpressNetWorth(usdModel, USD_TABLE, "GBP");
+    expect(gbp.current.amount.equals(usdModel.current.amount.div(rate))).toBe(
+      true,
+    );
+    expect(gbp.opening.amount.equals(usdModel.opening.amount.div(rate))).toBe(
+      true,
+    );
+  });
+
+  it("CHF drill-down reconciles to the total the same way the USD model does", () => {
+    // The drill-down reconciliation is a property of the model build, preserved
+    // by re-expression: classes sum to current in CHF iff they do in USD.
+    const chf = reexpressNetWorth(usdModel, USD_TABLE, "CHF");
+    const usdSum = usdModel.byAssetClass.reduce(
+      (acc, d) => acc.plus(d.value.amount),
+      new Decimal(0),
+    );
+    const chfSum = chf.byAssetClass.reduce(
+      (acc, d) => acc.plus(d.value.amount),
+      new Decimal(0),
+    );
+    // Whatever the USD residual is, CHF carries the same shape: sum-of-classes
+    // equals current re-expressed by the same divisor as each class.
+    expect(usdSum.equals(usdModel.current.amount)).toBe(true);
+    expect(chf.current.amount.equals(usdModel.current.amount.div("1.12"))).toBe(
+      true,
+    );
+    chf.byAssetClass.forEach((d, i) => {
+      expect(
+        d.value.amount.equals(usdModel.byAssetClass[i].value.amount.div("1.12")),
+      ).toBe(true);
+    });
+    // And the CHF classes still sum within a sub-cent tolerance of the headline.
+    expect(chfSum.minus(chf.current.amount).abs().lessThan("0.01")).toBe(true);
+  });
+
+  it("does not mutate the source USD model when re-expressing", () => {
+    const beforeCurrent = usdModel.current.amount.toString();
+    const beforeBase = usdModel.baseCurrency;
+    const beforeFirstSlice = usdModel.allocation.slices[0].value.amount.toString();
+    reexpressNetWorth(usdModel, USD_TABLE, "EUR");
+    expect(usdModel.current.amount.toString()).toBe(beforeCurrent);
+    expect(usdModel.baseCurrency).toBe(beforeBase);
+    expect(usdModel.allocation.slices[0].value.amount.toString()).toBe(
+      beforeFirstSlice,
+    );
+  });
+
+  it("the reporting === model-base short-circuit returns the same reference for every supported code", () => {
+    // Whatever the model's declared base, asking to re-express into that same
+    // base is a no-op (same reference) — the default-view invariant the UI relies
+    // on for byte-for-byte stability.
+    for (const code of ["USD", "EUR", "GBP", "CHF"]) {
+      const m: typeof usdModel = { ...usdModel, baseCurrency: code };
+      expect(reexpressNetWorth(m, USD_TABLE, code)).toBe(m);
+      expect(reexpressNetWorth(m, USD_TABLE, code.toLowerCase())).toBe(m);
+    }
+  });
+
+  it("convert() guards against a Money already in a third currency", () => {
+    // The converter only accepts amounts in its table base (USD). A stray Money
+    // in some other currency must throw rather than be silently mis-scaled —
+    // protecting the model-built-in-base invariant.
+    const conv = ReportingConverter.from(USD_TABLE, "EUR");
+    expect(() => conv.convert(Money.of("100", "CHF"))).toThrow(/expects base USD/);
+  });
 });

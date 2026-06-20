@@ -22,6 +22,27 @@ describe("formatting helpers", () => {
     expect(formatSigned("0", "USD")).toBe("$0.00");
   });
 
+  it("treats negative zero as zero (no minus sign)", () => {
+    expect(formatSigned("-0", "USD")).toBe("$0.00");
+    expect(formatSigned("-0.00", "USD")).toBe("$0.00");
+  });
+
+  it("formats large amounts without floating-point drift", () => {
+    // Beyond 2^53 cents: a Number() round-trip would lose the last digits.
+    expect(formatMoney("9007199254740993.01", "USD")).toBe(
+      "$9,007,199,254,740,993.01",
+    );
+  });
+
+  it("rounds to cents using exact decimal arithmetic", () => {
+    expect(formatMoney("1234.555", "USD")).toBe("$1,234.56");
+    expect(formatMoney("0.005", "USD")).toBe("$0.01");
+  });
+
+  it("formats a negative amount with a leading minus", () => {
+    expect(formatMoney("-42.5", "USD")).toBe("-$42.50");
+  });
+
   it("labels holding periods", () => {
     expect(formatHoldingPeriod("short")).toBe("Short-term");
     expect(formatHoldingPeriod("long")).toBe("Long-term");
@@ -53,7 +74,10 @@ describe("buildViewModel", () => {
   it("HIFO yields a smaller-or-equal realized gain than FIFO", () => {
     const fifo = buildViewModel(sampleLedger, "fifo", OPTS).realized.gain;
     const hifo = buildViewModel(sampleLedger, "hifo", OPTS).realized.gain;
-    const num = (s: string) => Number(s.replace(/[+−$,]/g, ""));
+    // Preserve sign: map the display minus (U+2212) to ASCII "-" and strip the
+    // leading "+" and currency punctuation, so a loss compares as negative.
+    const num = (s: string) =>
+      Number(s.replace(/[$,]/g, "").replace("−", "-").replace("+", ""));
     expect(num(hifo)).toBeLessThanOrEqual(num(fifo));
   });
 

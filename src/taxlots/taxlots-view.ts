@@ -1,3 +1,5 @@
+import { Decimal } from "decimal.js";
+
 import {
   LOT_METHOD_LABEL,
   type Ledger,
@@ -86,18 +88,54 @@ export interface TaxLotViewModel {
 }
 
 function signOf(amount: string): Sign {
-  if (amount.startsWith("-")) return "negative";
+  // Check zero (including negative zero like "-0" / "-0.00") before sign, so a
+  // signed-but-zero amount is classified as zero rather than negative.
   if (/^-?0(\.0+)?$/.test(amount)) return "zero";
+  if (amount.startsWith("-")) return "negative";
   return "positive";
 }
 
-/** Format a decimal-string amount as a localized currency string. */
+/**
+ * Format a decimal-string amount as a localized currency string.
+ *
+ * The amount is kept as an exact {@link Decimal} (never parsed through a JS
+ * float — see AGENTS.md: never floating-point currency). We round to the
+ * currency's minor-unit precision with Decimal, group the integer digits, then
+ * splice those exact digits into the locale's currency template (symbol +
+ * placement) obtained from `Intl.NumberFormat.formatToParts`.
+ */
 export function formatMoney(amount: string, currency: string): string {
-  const n = Number(amount);
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(n);
+  const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency });
+  const fractionDigits = fmt.resolvedOptions().maximumFractionDigits ?? 2;
+
+  const value = new Decimal(amount).toDecimalPlaces(
+    fractionDigits,
+    Decimal.ROUND_HALF_UP,
+  );
+  const negative = value.isNegative() && !value.isZero();
+  const abs = value.abs();
+  const fixed = abs.toFixed(fractionDigits);
+  const [whole, frac] = fixed.split(".");
+  const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const digits = frac ? `${groupedWhole}.${frac}` : groupedWhole;
+
+  // Render a sentinel number once to learn the locale's symbol + layout, then
+  // swap in our exact digits. Use 0 so the template has no grouping/sign noise.
+  const parts = fmt.formatToParts(0);
+  let out = "";
+  for (const part of parts) {
+    if (part.type === "integer" || part.type === "decimal" || part.type === "fraction") {
+      // Replace the whole numeric run in one shot at the first integer part.
+      if (part.type === "integer") out += digits;
+      // Skip the template's own decimal/fraction parts — our `digits` already
+      // contains them.
+    } else if (part.type === "minusSign") {
+      // Ignore the template sign; we add our own below.
+    } else {
+      out += part.value;
+    }
+  }
+  return negative ? `-${out}` : out;
 }
 
 /** Format a signed currency amount with an explicit leading sign. */

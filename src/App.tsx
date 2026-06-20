@@ -4,6 +4,7 @@ import { AttributionPage } from "@/attribution/AttributionPage";
 import CapTablePage from "@/captable/CapTablePage";
 import CompanyProfilePage from "@/company/CompanyProfilePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
+import EstatePlannerPage from "@/estate/EstatePlannerPage";
 import { OwnershipGraphPage } from "@/components/ownership/ownership-graph-page";
 import FeesPage from "@/fees/FeesPage";
 import { useHashRoute } from "@/lib/use-hash-route";
@@ -60,6 +61,10 @@ function App() {
 
   if (path === "/lookthrough") {
     return <LookThroughPage />;
+  }
+
+  if (path === "/estate") {
+    return <EstatePlannerPage />;
   }
 
   if (path === "/pipeline" || path.startsWith("/pipeline/")) {

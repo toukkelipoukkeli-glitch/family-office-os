@@ -106,6 +106,13 @@ export function Dashboard() {
               Relationships
             </a>
             <a
+              href="#/estate"
+              data-testid="nav-estate"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Estate
+            </a>
+            <a
               href="#/ops"
               data-testid="nav-ops"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

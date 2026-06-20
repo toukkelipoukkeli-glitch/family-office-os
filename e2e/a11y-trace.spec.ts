@@ -26,12 +26,17 @@ test("a11y trace evidence: charts page with a data table open (desktop)", async 
   if (!existsSync(EVIDENCE_DIR)) mkdirSync(EVIDENCE_DIR, { recursive: true });
 
   await page.context().tracing.start({ screenshots: true, snapshots: true });
-  await page.setViewportSize(DESKTOP);
-  await page.goto("/#/charts");
-  await expect(page.getByTestId("charts-gallery")).toBeVisible();
-  await page.getByTestId("fig-bar-table-toggle").click();
-  await expect(page.getByTestId("fig-bar-table")).toBeVisible();
-  await page.context().tracing.stop({
-    path: join(EVIDENCE_DIR, "trace-desktop.zip"),
-  });
+  try {
+    await page.setViewportSize(DESKTOP);
+    await page.goto("/#/charts");
+    await expect(page.getByTestId("charts-gallery")).toBeVisible();
+    await page.getByTestId("fig-bar-table-toggle").click();
+    await expect(page.getByTestId("fig-bar-table")).toBeVisible();
+  } finally {
+    // Always flush the trace zip — even if an assertion above failed — so the
+    // committed evidence captures the failure for debugging.
+    await page.context().tracing.stop({
+      path: join(EVIDENCE_DIR, "trace-desktop.zip"),
+    });
+  }
 });

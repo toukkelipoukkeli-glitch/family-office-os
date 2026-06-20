@@ -9,9 +9,9 @@
  *
  *   Goal (USD target @ due)         dedicated now  growth  → at due      status
  *   --------------------------------------------------------------------------
- *   Hospital wing pledge   5,000,000 @ 3y   4,200,000  4%/yr → 4,724,608  SHORT
+ *   Hospital wing pledge   5,000,000 @ 3y   4,200,000  4%/yr → 4,724,429  SHORT
  *   School fees (twins)    1,200,000 @ 2y   1,200,000  0%/yr → 1,200,000  FUNDED
- *   Estate-tax reserve    12,000,000 @ 8y   6,000,000  5%/yr → 8,864,937  SHORT
+ *   Estate-tax reserve    12,000,000 @ 8y   6,000,000  5%/yr → 8,864,733  SHORT
  *   Spending floor        20,000,000 @ 1y  22,000,000  0%/yr →22,000,000  SURPLUS
  *   University endowment   3,000,000 @ 5y   2,000,000  6%/yr → 2,676,451  SHORT
  *

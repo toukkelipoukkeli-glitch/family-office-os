@@ -151,8 +151,12 @@ export interface RebalanceProposal {
   taxEstimate: TaxEstimate;
   /**
    * Tax saved versus selling the identical quantities under FIFO instead of the
-   * chosen (tax-minimizing) method. Always ≥ 0 — the chosen method never costs
-   * more tax than FIFO. Zero when `method === "fifo"`.
+   * chosen method. The chosen method (e.g. HIFO) minimizes the realized *gain*,
+   * but the resulting *tax* depends on the schedule — a smaller long-term gain
+   * can fall in a 0% bracket while a smaller short-term gain is taxed, so FIFO
+   * can occasionally produce a lower tax bill. To keep the field a meaningful
+   * "saving", it is clamped to ≥ 0 (never reports a negative saving). Zero when
+   * `method === "fifo"`.
    */
   taxSavedVsFifo: Money;
   /**
@@ -295,6 +299,11 @@ export function proposeRebalance(options: RebalanceOptions): RebalanceProposal {
   } = options;
   const method = options.method ?? "hifo";
   const band = dec(options.band ?? "0.05");
+  // A tolerance band must be a finite weight in [0, 1]; a negative or >1 band
+  // makes drift/reconciliation meaningless. Reject it up front.
+  if (!band.isFinite() || band.isNegative() || band.greaterThan(1)) {
+    throw new RebalanceError("band must be a finite weight in [0, 1]");
+  }
 
   const fx = FxConverter.fromTable(fxTable);
   const baseCurrency = portfolio.baseCurrency.trim().toUpperCase();
@@ -340,6 +349,14 @@ export function proposeRebalance(options: RebalanceOptions): RebalanceProposal {
   const trades: ProposedTrade[] = [];
   // Track the signed base-currency trade amount per asset class for projection.
   const tradeAmountByClass = new Map<AssetClass, Money>();
+
+  // Pass 1 — execute SELLs for every overweight class, accumulating the actual
+  // funded proceeds. A holding that cannot be priced or lot-sold is skipped, so
+  // the proceeds raised may fall short of the drift (e.g. an overweight class
+  // made entirely of a cash buffer).
+  let fundedProceeds = Money.zero(baseCurrency);
+  // The underweight classes (and their base-currency shortfall) to fund in pass 2.
+  const buys: { ac: AssetClass; need: Money }[] = [];
 
   for (const slice of drift.slices) {
     const ac = slice.key;
@@ -403,23 +420,43 @@ export function proposeRebalance(options: RebalanceOptions): RebalanceProposal {
           realized,
         });
       }
+      fundedProceeds = fundedProceeds.plus(soldBase);
       tradeAmountByClass.set(ac, soldBase.times(-1));
     } else {
-      // Underweight: BUY `driftAmount` of base value into this class. A buy has
-      // no realized gain and no lot selection; it is modelled as a single
-      // notional trade so the projection reconciles.
-      const buyBase = slice.driftAmount;
-      tradeAmountByClass.set(ac, buyBase);
-      trades.push({
-        holdingId: `${ac}-buy`,
-        holdingName: `${assetClassLabel(ac)} (target buy)`,
-        assetClass: ac,
-        side: "buy",
-        quantity: "1",
-        price: buyBase,
-        amount: buyBase,
-      });
+      // Underweight: defer to pass 2 so buys can be sized to funded proceeds.
+      buys.push({ ac, need: slice.driftAmount });
+      // Default to zero; pass 2 fills in the funded amount.
+      tradeAmountByClass.set(ac, Money.zero(baseCurrency));
     }
+  }
+
+  // Pass 2 — emit BUYs, scaled so the *total* bought never exceeds the proceeds
+  // actually raised by the sells (the book is self-funding: sells fund buys). If
+  // every sell executed in full this scale is 1 and buys equal their drift; if
+  // some sells were skipped the buys shrink proportionally so the projection
+  // stays honest and `reconciles` reflects real funding.
+  const totalNeed = buys.reduce(
+    (sum, b) => sum.plus(b.need),
+    Money.zero(baseCurrency),
+  );
+  const buyScale = totalNeed.amount.isZero()
+    ? new Decimal(0)
+    : Decimal.min(new Decimal(1), fundedProceeds.amount.div(totalNeed.amount));
+  for (const { ac, need } of buys) {
+    const buyBase = Money.of(need.amount.times(buyScale), baseCurrency);
+    tradeAmountByClass.set(ac, buyBase);
+    if (!buyBase.isPositive()) continue;
+    // A buy has no realized gain and no lot selection; it is modelled as a
+    // single notional trade so the projection reconciles.
+    trades.push({
+      holdingId: `${ac}-buy`,
+      holdingName: `${assetClassLabel(ac)} (target buy)`,
+      assetClass: ac,
+      side: "buy",
+      quantity: "1",
+      price: buyBase,
+      amount: buyBase,
+    });
   }
 
   // --- 4. Aggregate realized gains + tax ---------------------------------

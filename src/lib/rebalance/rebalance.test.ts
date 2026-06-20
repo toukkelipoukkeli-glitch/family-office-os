@@ -299,6 +299,49 @@ describe("proposeRebalance", () => {
     const p = proposal("hifo");
     expect(p.totalSold.amount.toFixed()).toBe(p.totalBought.amount.toFixed());
   });
+
+  it("rejects a band outside [0, 1]", () => {
+    for (const bad of ["-0.1", "1.5", "2"]) {
+      expect(() =>
+        proposeRebalance({
+          portfolio: rebalancePortfolio,
+          targets: rebalanceTargets,
+          prices: rebalancePrices,
+          fxTable: rebalanceRateTable,
+          schedule: rebalanceSchedule,
+          asOf: rebalanceAsOf,
+          year: rebalanceYear,
+          band: bad,
+        }),
+      ).toThrow(RebalanceError);
+    }
+  });
+
+  it("never buys more than the proceeds actually raised by sells", () => {
+    // Skip all prices: the overweight equity class cannot be lot-sold, so no
+    // proceeds are raised. Buys must therefore be zero — never unfunded — and
+    // the proposal must not over-state progress by reconciling falsely.
+    const p = proposeRebalance({
+      portfolio: rebalancePortfolio,
+      targets: rebalanceTargets,
+      prices: {}, // nothing is priceable ⇒ no sells ⇒ no funded proceeds
+      fxTable: rebalanceRateTable,
+      schedule: rebalanceSchedule,
+      asOf: rebalanceAsOf,
+      year: rebalanceYear,
+    });
+    expect(p.totalSold.amount.toFixed()).toBe("0");
+    // No proceeds ⇒ buys are clamped to zero (no unfunded buys).
+    expect(p.totalBought.amount.toFixed()).toBe("0");
+    expect(p.trades).toHaveLength(0);
+    // With nothing actually traded, the book is still off-target, so the
+    // proposal must NOT claim to reconcile.
+    expect(p.reconciles).toBe(false);
+    // Invariant: bought never exceeds sold.
+    expect(
+      p.totalBought.amount.lessThanOrEqualTo(p.totalSold.amount),
+    ).toBe(true);
+  });
 });
 
 /** Strip non-serializable Decimals/Money into plain strings for equality. */

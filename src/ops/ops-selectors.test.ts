@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { tableExport } from "@/lib/export/tables";
+import { toCsv } from "@/lib/export/csv";
 import type { OpsSnapshot } from "./ops-data";
 import { opsSnapshot } from "./ops-data";
 import {
@@ -267,4 +269,129 @@ describe("opsExportRows", () => {
       }
     }
   });
+
+  // Adversarial: real unit titles/notes contain commas ("Decimal money type +
+  // currency utils", "Net worth ... TWR, ...") and could contain quotes or
+  // newlines. Prove the full ops export pipeline (rows -> tableExport -> CSV)
+  // keeps each row's cell count intact under RFC-4180 quoting, so a comma in a
+  // title never shifts columns and corrupts the export.
+  it("survives commas/quotes/newlines in unit fields through to RFC-4180 CSV", () => {
+    const hostile: OpsSnapshot = {
+      ...fixture,
+      milestones: [
+        {
+          id: "mx",
+          title: "Has, comma",
+          units: [
+            {
+              id: "mx-1",
+              title: 'Comma, and "quote"',
+              oracle: "line1\nline2",
+              deps: ["a", "b"],
+              status: "merged",
+              note: "trailing,",
+            },
+          ],
+        },
+      ],
+    };
+    const rows = opsExportRows(hostile);
+    const columns = [
+      "milestoneId",
+      "milestoneTitle",
+      "id",
+      "title",
+      "status",
+      "oracle",
+      "deps",
+      "pr",
+      "note",
+    ] as const;
+    const ds = tableExport(
+      "ops-build",
+      columns,
+      rows.map((r) => columns.map((c) => r[c])),
+      rows,
+    );
+    const csv = toCsv(ds.table);
+    // Header + one data line per unit, split on the RFC-4180 record separator.
+    // (Embedded \n inside a quoted field must NOT create an extra record.)
+    const records = csv.replace(/\r\n/g, "\n").trimEnd().split("\n");
+    // The hostile title contains a literal newline, so a naive line-split would
+    // see an extra row; assert the *parsed* table round-trips to one data row.
+    const parsed = parseCsv(csv);
+    expect(parsed).toHaveLength(rows.length + 1); // header + 1 data row
+    for (const rec of parsed) expect(rec).toHaveLength(columns.length);
+    // The comma-bearing title survived intact, not split across cells.
+    const titleIdx = columns.indexOf("title");
+    expect(parsed[1][titleIdx]).toBe('Comma, and "quote"');
+    // The header is always exactly one physical line.
+    expect(records[0]).toBe(columns.join(","));
+    expect(csv).not.toContain("[object Object]");
+  });
 });
+
+/**
+ * Minimal RFC-4180 CSV parser for tests: handles quoted fields containing
+ * commas, escaped quotes (`""`), and embedded CR/LF. Returns an array of
+ * records, each an array of cell strings. Deterministic and dependency-free.
+ */
+function parseCsv(input: string): string[][] {
+  const records: string[][] = [];
+  let field = "";
+  let record: string[] = [];
+  let inQuotes = false;
+  let i = 0;
+  while (i < input.length) {
+    const ch = input[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (input[i + 1] === '"') {
+          field += '"';
+          i += 2;
+          continue;
+        }
+        inQuotes = false;
+        i += 1;
+        continue;
+      }
+      field += ch;
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = true;
+      i += 1;
+      continue;
+    }
+    if (ch === ",") {
+      record.push(field);
+      field = "";
+      i += 1;
+      continue;
+    }
+    if (ch === "\r" && input[i + 1] === "\n") {
+      record.push(field);
+      records.push(record);
+      field = "";
+      record = [];
+      i += 2;
+      continue;
+    }
+    if (ch === "\n") {
+      record.push(field);
+      records.push(record);
+      field = "";
+      record = [];
+      i += 1;
+      continue;
+    }
+    field += ch;
+    i += 1;
+  }
+  if (field !== "" || record.length > 0) {
+    record.push(field);
+    records.push(record);
+  }
+  return records;
+}

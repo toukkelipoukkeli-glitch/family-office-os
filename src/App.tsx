@@ -36,6 +36,9 @@ const PrivateMarketsPage = lazy(
 const CashflowPage = lazy(() => import("@/cashflow/CashflowPage"));
 const CurrencyPage = lazy(() => import("@/currency/CurrencyPage"));
 const RiskCockpitPage = lazy(() => import("@/risk/RiskCockpitPage"));
+const ConcentrationPage = lazy(
+  () => import("@/concentration/ConcentrationPage"),
+);
 const VaultPage = lazy(() => import("@/vault/VaultPage"));
 const ReportsPage = lazy(() => import("@/reports/ReportsPage"));
 const InsightsPage = lazy(() => import("@/insights/InsightsPage"));
@@ -124,6 +127,7 @@ function routeElement(path: string) {
   if (path === "/ownership") return <OwnershipGraphPage />;
   if (path === "/lookthrough") return <LookThroughPage />;
   if (path === "/risk") return <RiskCockpitPage />;
+  if (path === "/concentration") return <ConcentrationPage />;
   if (path === "/privatemarkets") return <PrivateMarketsPage />;
   if (path === "/cashflow") return <CashflowPage />;
   if (path === "/currency") return <CurrencyPage />;

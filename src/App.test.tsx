@@ -58,6 +58,15 @@ describe("App", () => {
     expect(screen.getByTestId("lookthrough-view")).toBeInTheDocument();
   });
 
+  it("renders the limit alerts at #/alerts", () => {
+    setHash("#/alerts");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /limit alerts/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("alerts-page")).toBeInTheDocument();
+  });
+
   it("renders the relationship graph at #/relationships", () => {
     setHash("#/relationships");
     render(<App />);

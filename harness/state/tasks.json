@@ -1,24 +1,16 @@
 {
   "updatedAt": "2026-06-20",
   "generation": 3,
-  "phase": "gen-2 complete; gen-3 building",
+  "phase": "gen-3 partial (2/9); recovery run building remaining 7",
   "gen1": { "status": "complete", "merged": "35/35" },
-  "gen2": {
-    "status": "complete",
-    "merged": "8/10",
-    "units": ["m7-tax-lots", "m7-attribution", "m7-fees", "m7-alerts", "m7-ops-live", "m8-lookthrough", "m7-harvest", "m8-estate"],
-    "notMerged": [
-      "m7-cashflow (PR #44 closed: review agent failed to emit verdict + branch conflicted with 8 merges; rebuilt fresh as gen-3 m9-cashflow)",
-      "m8-reporting (skipped, depended on cashflow; rebuilt as gen-3 m9-reporting)"
-    ],
-    "verified": "1889 unit tests pass on main; typecheck + build green",
-    "reviewBots": "CodeRabbit prepaid credits + Greptile 50-review trial largely exhausted; reviewers now fall back to CI + independent adversarial review + visual-QA gate",
-    "qaGaps": ["527kB single JS chunk (no code-splitting)", "no app-level error boundary (one page error blanks app)", "equities fetch lacks offline cache/rate-limit guard", "thin visual-regression baselines", "single chromium e2e project"]
-  },
+  "gen2": { "status": "complete", "merged": "8/10", "note": "m7-cashflow + m8-reporting deferred to gen-3 (m9-cashflow/m9-reporting)" },
   "gen3": {
-    "status": "building",
-    "units": ["m9-pe-lifecycle", "m9-benchmark", "m9-ips", "m9-cashflow", "m9-tax-estimate", "m9-reporting", "m9-vault", "m9-risk-limits", "m9-hardening"],
-    "note": "PE lifecycle + benchmark + IPS + cashflow + tax-estimate + reporting(/reports) + vault(/vault) + risk-limits(/risk), plus m9-hardening addressing the gen-2 QA gaps (error boundary, code-splitting, equities cache guard)."
+    "status": "partial -> recovering",
+    "mergedFirstRun": ["m9-tax-estimate", "m9-hardening"],
+    "incident": "A harness/state/tasks.json edit (commit a92005b) broke a brittle e2e (ops.spec.ts hardcoded 'launching gen-2'), turning main CI red, so 7 gen-3 units correctly refused to merge red and the dep chain collapsed. m9-hardening fixed the test to read the live phase from tasks.json at runtime; main is green again (1959 tests). Lesson: the /ops page + its e2e render live tasks.json — now robust to phase-string changes.",
+    "recovering": ["m9-pe-lifecycle", "m9-benchmark", "m9-ips", "m9-cashflow", "m9-reporting", "m9-vault", "m9-risk-limits"],
+    "recoveryNote": "PRs #49/#51 (pe-lifecycle/benchmark) were correct but conflicted with m9-hardening's App.tsx code-splitting rewrite; closed and rebuilding all 7 fresh against healthy main."
   },
+  "reviewBots": "CodeRabbit + Greptile at/near trial limits; gate = CI + independent adversarial review + visual QA",
   "blocked": []
 }

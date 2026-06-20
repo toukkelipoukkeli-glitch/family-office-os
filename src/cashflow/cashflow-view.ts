@@ -15,14 +15,21 @@ import {
   periodLabel,
 } from "@/lib/cashflow";
 
-/** Compact currency, e.g. `$8.0M`. Negative zero is normalized to `$0`. */
+/** Compact currency, e.g. `$8M` / `$1.2M`. Negative zero is normalized to `$0`. */
 export function compactCurrency(value: number, currency: string): string {
   // `value + 0` collapses `-0` to `+0` so a drained-to-empty flow never
   // renders as the nonsensical `-$0`.
+  //
+  // `minimumFractionDigits: 0` is set EXPLICITLY: without it, the trailing
+  // fraction of a compact currency ("$8M" vs "$8.0M") depends on the host
+  // ICU version's default, which differs between the local bun runtime and
+  // CI's Node — a real test-determinism hazard. Pinning the minimum to 0
+  // makes the formatting identical everywhere.
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     notation: "compact",
+    minimumFractionDigits: 0,
     maximumFractionDigits: 1,
   }).format(value + 0);
 }

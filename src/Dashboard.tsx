@@ -148,6 +148,13 @@ export function Dashboard() {
               Cashflow
             </a>
             <a
+              href="#/currency"
+              data-testid="nav-currency"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Currency
+            </a>
+            <a
               href="#/org"
               data-testid="nav-org"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

@@ -5,7 +5,16 @@ import type {
   ProposedTrade,
   RebalanceProposal,
 } from "@/lib/rebalance";
-import { LOT_METHOD_LABEL } from "@/lib/taxlots";
+import { LOT_METHOD_LABEL, type LotMethod } from "@/lib/taxlots";
+
+/** One-line explanation of how each lot-selection method picks lots to sell. */
+const METHOD_BLURB: Record<LotMethod, string> = {
+  hifo:
+    "HIFO sells the highest-cost lots first to minimize the realized gain and the tax it triggers.",
+  fifo: "FIFO sells the oldest lots first, which usually realizes more long-term gain.",
+  lifo: "LIFO sells the newest lots first, which often realizes short-term gain.",
+  "spec-id": "Specific-ID sells the lots you nominate, lot by lot.",
+};
 
 /**
  * View-model adapter for the tax-aware rebalancing page. Turns a
@@ -68,6 +77,8 @@ export interface TradeRow {
 export interface RebalanceViewModel {
   baseCurrency: string;
   methodLabel: string;
+  /** One-line explanation of the selected lot-selection method. */
+  methodBlurb: string;
   totalLabel: string;
   /** Tolerance band, e.g. "5.0%". */
   bandLabel: string;
@@ -167,6 +178,7 @@ export function buildRebalanceViewModel(
   return {
     baseCurrency: proposal.baseCurrency,
     methodLabel: LOT_METHOD_LABEL[proposal.method],
+    methodBlurb: METHOD_BLURB[proposal.method],
     totalLabel: proposal.total.format(),
     bandLabel: pct(proposal.band),
     reconciles: proposal.reconciles,

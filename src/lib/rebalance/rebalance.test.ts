@@ -212,6 +212,93 @@ describe("proposeRebalance", () => {
       expect(["buy", "sell"]).toContain(t.side);
     }
   });
+
+  // --- Adversarial edge cases (added by independent tester) ---------------
+
+  it("realizes a LOSS (signed negative gain) when marked below cost basis", () => {
+    // Mark AAPL at $90 — below both lot bases ($100 / $180). Selling realizes a
+    // loss; the signed realized gain must be negative and tax-saved clamps to 0.
+    const p = proposeRebalance({
+      portfolio: rebalancePortfolio,
+      targets: rebalanceTargets,
+      prices: { ...rebalancePrices, AAPL: "90" },
+      fxTable: rebalanceRateTable,
+      schedule: rebalanceSchedule,
+      asOf: rebalanceAsOf,
+      year: rebalanceYear,
+      method: "hifo",
+    });
+    const sell = p.trades.find((t) => t.side === "sell");
+    expect(sell).toBeDefined();
+    expect(p.realizedGain.isNegative()).toBe(true);
+    // Loss never produces a positive tax bill, and tax-saved never goes < 0.
+    expect(p.taxSavedVsFifo.amount.greaterThanOrEqualTo(0)).toBe(true);
+  });
+
+  it("never sells more units than are held in a holding", () => {
+    // Force a huge sell by targeting 0% equity; the sell must cap at units held.
+    const p = proposeRebalance({
+      portfolio: rebalancePortfolio,
+      targets: { equity: "0", etf: "0.5", cash: "0.5" },
+      prices: rebalancePrices,
+      fxTable: rebalanceRateTable,
+      schedule: rebalanceSchedule,
+      asOf: rebalanceAsOf,
+      year: rebalanceYear,
+      method: "hifo",
+    });
+    const sell = p.trades.find((t) => t.side === "sell")!;
+    // The book holds 200 AAPL shares; the proposal must never exceed that.
+    expect(new Decimal(sell.quantity).lessThanOrEqualTo(200)).toBe(true);
+  });
+
+  it("leaves an overweight class untouched when it cannot be priced", () => {
+    // Drop AAPL/VTI prices: with no price, an overweight equity class cannot be
+    // lot-sold, so no sell is proposed and the proposal must not throw.
+    const p = proposeRebalance({
+      portfolio: rebalancePortfolio,
+      targets: rebalanceTargets,
+      prices: {}, // no prices at all
+      fxTable: rebalanceRateTable,
+      schedule: rebalanceSchedule,
+      asOf: rebalanceAsOf,
+      year: rebalanceYear,
+      method: "hifo",
+    });
+    // No sellable holding ⇒ no sells, and realized gain is zero.
+    expect(p.trades.filter((t) => t.side === "sell")).toHaveLength(0);
+    expect(p.realizedGain.amount.toFixed()).toBe("0");
+  });
+
+  it("LIFO selects the newest lot (short-term) like HIFO here", () => {
+    // Newest lot B ($180 basis, 2025-12-01) is also the highest-cost, so LIFO
+    // and HIFO coincide on this book: a $1,600 short-term gain.
+    const p = proposal("lifo");
+    expect(p.method).toBe("lifo");
+    const sell = p.trades.find((t) => t.side === "sell")!;
+    expect(sell.realized!.disposals[0].slices[0].lotId).toBe("lot-aapl-b");
+    expect(p.realizedShortTermGain.amount.toFixed()).toBe("1600");
+  });
+
+  it("rejects a non-positive portfolio total", () => {
+    const empty = { ...rebalancePortfolio, holdings: [] };
+    expect(() =>
+      proposeRebalance({
+        portfolio: empty,
+        targets: rebalanceTargets,
+        prices: rebalancePrices,
+        fxTable: rebalanceRateTable,
+        schedule: rebalanceSchedule,
+        asOf: rebalanceAsOf,
+        year: rebalanceYear,
+      }),
+    ).toThrow(RebalanceError);
+  });
+
+  it("conserves book size: total sold equals total bought when fully priced", () => {
+    const p = proposal("hifo");
+    expect(p.totalSold.amount.toFixed()).toBe(p.totalBought.amount.toFixed());
+  });
 });
 
 /** Strip non-serializable Decimals/Money into plain strings for equality. */

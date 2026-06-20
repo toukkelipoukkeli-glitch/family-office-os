@@ -98,4 +98,21 @@ describe("buildRebalanceViewModel", () => {
     expect(fifo.realizedLongTermLabel).toBe("$8,000.00");
     expect(fifo.realizedShortTermLabel).toBe("$0.00");
   });
+
+  it("describes the selected method with a method-specific blurb", () => {
+    // Adversarial: the blurb must follow the chosen method, not be hardcoded to
+    // HIFO. Each blurb must name its own method.
+    const hifo = vmFor("hifo");
+    expect(hifo.methodBlurb).toContain("HIFO");
+    expect(hifo.methodBlurb).not.toContain("FIFO");
+
+    const fifo = vmFor("fifo");
+    expect(fifo.methodLabel).toBe("FIFO");
+    expect(fifo.methodBlurb).toContain("FIFO");
+    expect(fifo.methodBlurb).not.toContain("HIFO");
+
+    const lifo = vmFor("lifo");
+    expect(lifo.methodLabel).toBe("LIFO");
+    expect(lifo.methodBlurb).toContain("LIFO");
+  });
 });

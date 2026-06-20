@@ -125,8 +125,7 @@ export function RebalancePage() {
                 <span data-testid="rebalance-method" className="font-medium">
                   {vm.methodLabel}
                 </span>{" "}
-                lots. HIFO sells the highest-cost lots first to minimize the
-                realized gain and the tax it triggers.
+                lots. {vm.methodBlurb}
               </CardDescription>
             </div>
             <div

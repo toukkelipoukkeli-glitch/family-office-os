@@ -42,7 +42,9 @@ test.describe("unified tax timeline", () => {
       page,
     }) => {
       await expect(page.getByTestId("kpi-tax")).toContainText(/\$250/);
-      await expect(page.getByTestId("kpi-harvest")).toContainText("$21K");
+      // Compact notation renders "$21K" or "$21.0K" depending on the browser's
+      // ICU version, so accept both forms.
+      await expect(page.getByTestId("kpi-harvest")).toContainText(/\$21(\.0)?K/);
       await expect(page.getByTestId("kpi-deadlines")).toContainText("7");
 
       const track = page.getByTestId("year-track");

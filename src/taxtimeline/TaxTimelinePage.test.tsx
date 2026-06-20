@@ -19,8 +19,12 @@ describe("TaxTimelinePage", () => {
 
   it("shows the seeded composed headline numbers", () => {
     render(<TaxTimelinePage />);
+    // Intl compact notation renders "$21K" or "$21.0K" depending on the
+    // runtime's ICU version, so match both forms (CI uses a newer ICU).
     expect(screen.getByTestId("kpi-tax")).toHaveTextContent(/\$250\.3K|\$250K/);
-    expect(screen.getByTestId("kpi-harvest")).toHaveTextContent("$21K");
+    expect(screen.getByTestId("kpi-harvest")).toHaveTextContent(
+      /\$21(\.0)?K/,
+    );
     expect(screen.getByTestId("kpi-deadlines")).toHaveTextContent("7");
   });
 

@@ -23,6 +23,32 @@ export type RouteGroup =
   | "ops";
 
 /**
+ * Whether the global holding-tag filter applies on a route.
+ *
+ * The tag filter narrows the *tagged holding portfolio* (the `seededPortfolio`
+ * the net-worth dashboard is built from). A page is `"applies"` when its view is
+ * built from that portfolio and so narrows when tags are selected. A page is
+ * `"n/a"` when it has no holding-tag dimension — its data comes from a different
+ * model (entity/org structure, policy text, deal CRM, feed health, calendars,
+ * documents, …) so there is nothing for the tag filter to narrow.
+ *
+ * The default is `"n/a"`: a route opts *in* to `"applies"` only when it is
+ * actually wired to narrow by the selected tags. This keeps the shared filter
+ * control honest — it behaves as a live filter exactly where it narrows
+ * something, and renders visibly inert everywhere else instead of being a silent
+ * no-op. (Today the Overview / net-worth dashboard is the holding-portfolio
+ * view; the registered routes render entity-level or non-holding data.)
+ */
+export type FilterScope = "applies" | "n/a";
+
+/**
+ * Human-readable reason shown when the tag filter does not apply on a route.
+ * Kept short — it is surfaced as the disabled control's label/tooltip.
+ */
+export const FILTER_NA_REASON =
+  "The tag filter narrows the holdings dashboard; this page isn't holding-based.";
+
+/**
  * Props every lazily-loaded page component may receive. Most pages take no
  * props; route-aware pages (e.g. the pipeline board) receive the current hash
  * `path` so they can render sub-views without their own router.
@@ -56,6 +82,13 @@ export interface RouteDef {
   navTestId: string;
   /** Lazily-loaded page component for this route. */
   component: LazyExoticComponent<PageComponent>;
+  /**
+   * Whether the global holding-tag filter applies on this route. Defaults to
+   * `"n/a"`: a route opts in to `"applies"` only when its view is actually wired
+   * to narrow by the selected holding tags, so the shared filter control renders
+   * live exactly where it narrows something and visibly inert everywhere else.
+   */
+  filterScope?: FilterScope;
   /**
    * When true, the route also matches sub-paths (e.g. `/pipeline/<id>`) and the
    * current `path` is forwarded to the component as a prop. Defaults to false
@@ -384,4 +417,21 @@ export function matchRoute(path: string): RouteDef | undefined {
       ? path === r.path || path.startsWith(`${r.path}/`)
       : path === r.path,
   );
+}
+
+/**
+ * Resolve the {@link FilterScope} for a hash path.
+ *
+ * The dashboard (`/`, and any unmatched path that falls back to it) is the
+ * net-worth-over-holdings view, so the tag filter always `"applies"` there.
+ * Registered routes use their declared `filterScope`, defaulting to `"n/a"`
+ * (they render entity-level or non-holding data). This is the single source of
+ * truth the shared tag-filter control reads to decide whether to behave as an
+ * active filter or render visibly inert.
+ */
+export function filterScopeForPath(path: string): FilterScope {
+  const route = matchRoute(path);
+  // No matched route => dashboard fallback (the holdings net-worth view).
+  if (!route) return "applies";
+  return route.filterScope ?? "n/a";
 }

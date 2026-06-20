@@ -74,7 +74,9 @@ export function Dashboard() {
                 </a>
               ))}
             </nav>
-            <TagFilter />
+            {/* The dashboard is the holdings net-worth view, so the tag filter
+                always applies here regardless of the hash route. */}
+            <TagFilter applies />
             <ReportingCurrencySwitcher className="hidden sm:inline-flex" />
             <ExportMenu
               dataset={exportDataset}

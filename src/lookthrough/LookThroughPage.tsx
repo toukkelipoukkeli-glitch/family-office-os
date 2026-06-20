@@ -26,6 +26,8 @@ import type { Entity } from "@/lib/org";
 
 import { useReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { formatMoneyCompact, formatPct } from "./format";
 
@@ -184,6 +186,36 @@ export function LookThroughView({
             ))}
           </select>
         </label>
+        <ExportMenu
+          dataset={tableExport(
+            `look-through-${report.rootId}`,
+            ["assetClass", `value (${report.currency})`, "weight"],
+            report.lines.map((l) => [
+              l.assetClass,
+              l.value.amount.toFixed(),
+              l.weight,
+            ]),
+            {
+              rootId: report.rootId,
+              rootName: report.rootName,
+              currency: report.currency,
+              total: report.total.amount.toFixed(),
+              lines: report.lines.map((l) => ({
+                assetClass: l.assetClass,
+                value: l.value.amount.toFixed(),
+                weight: l.weight,
+                contributions: l.contributions.map((c) => ({
+                  entityId: c.entityId,
+                  entityName: c.entityName,
+                  effectivePct: c.effectivePct,
+                  gross: c.gross.amount.toFixed(),
+                  attributed: c.attributed.amount.toFixed(),
+                })),
+              })),
+            },
+          )}
+          testId="lookthrough-export"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

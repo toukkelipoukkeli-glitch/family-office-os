@@ -16,6 +16,8 @@ import { buildFeeModel, type FeeModel } from "@/lib/fees";
 import { formatMoneyCompact, formatMoneyWhole, formatPercent } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** Basis-points-aware percent, e.g. `0.45%` or `12.3%`. */
 function percent(value: number, digits = 2): string {
@@ -104,6 +106,37 @@ export function FeesPage({ model }: FeesPageProps) {
       backTestId="fees-back"
       mainClassName="space-y-6"
       mainTestId="fees-page"
+      actions={
+        <ExportMenu
+          dataset={tableExport(
+            "fees",
+            [
+              "id",
+              "name",
+              "category",
+              "invested",
+              "managementCost",
+              "fundExpenseCost",
+              "performanceCost",
+              "totalCost",
+              "effectiveRate",
+            ],
+            fees.funds.map((f) => [
+              f.id,
+              f.name,
+              f.category,
+              f.invested,
+              f.managementCost,
+              f.fundExpenseCost,
+              f.performanceCost,
+              f.totalCost,
+              f.effectiveRate,
+            ]),
+            fees,
+          )}
+          testId="fees-export"
+        />
+      }
     >
         {/* KPIs */}
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

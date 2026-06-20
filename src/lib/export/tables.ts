@@ -35,6 +35,38 @@ export interface ExportDataset {
 }
 
 /* ------------------------------------------------------------------------- */
+/* Generic adapter                                                           */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Build an {@link ExportDataset} from an already-flattened page model.
+ *
+ * Most page view-models are already plain, deterministic objects of finite
+ * numbers and strings (Decimals collapsed to fixed strings / numbers at the
+ * model boundary). For those pages the export is just: pick the primary table
+ * (its `columns` + `rows`) for CSV, and hand the full view to JSON verbatim.
+ * This keeps each page's export adapter a one-liner at the call site while still
+ * routing through the same pure, byte-stable serializers.
+ *
+ * `name` is slugified into the file-name stem; `columns`/`rows` become the CSV
+ * table; `json` is the full structured payload (defaults to a `{columns, rows}`
+ * wrapper when omitted). Nothing here touches the clock, network or DOM.
+ */
+export function tableExport(
+  name: string,
+  columns: readonly string[],
+  rows: ReadonlyArray<readonly CsvCell[]>,
+  json?: unknown,
+): ExportDataset {
+  const table: CsvTable = { columns, rows };
+  return {
+    name: slugifyFilename(name),
+    table,
+    json: json ?? { columns, rows },
+  };
+}
+
+/* ------------------------------------------------------------------------- */
 /* Net worth / holdings                                                      */
 /* ------------------------------------------------------------------------- */
 

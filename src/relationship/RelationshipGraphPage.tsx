@@ -18,6 +18,8 @@ import {
 
 import { KIND_COLOR, KIND_LABEL } from "./kind-style";
 import { RelationshipGraph } from "./RelationshipGraph";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 const KIND_ORDER: RelationshipNodeKind[] = [
   "company",
@@ -189,13 +191,33 @@ export function RelationshipGraphPage() {
           <h1 className="text-lg font-semibold tracking-tight">
             Relationship graph
           </h1>
-          <a
-            href="#/"
-            data-testid="relationships-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "relationship-graph",
+                ["id", "sourceId", "kind", "label", "sublabel"],
+                sampleRelationshipGraph.nodes.map((n) => [
+                  n.id,
+                  n.sourceId,
+                  n.kind,
+                  n.label,
+                  n.sublabel ?? null,
+                ]),
+                {
+                  nodes: sampleRelationshipGraph.nodes,
+                  edges: sampleRelationshipGraph.edges,
+                },
+              )}
+              testId="relationships-export"
+            />
+            <a
+              href="#/"
+              data-testid="relationships-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

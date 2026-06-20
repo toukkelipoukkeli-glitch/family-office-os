@@ -12,6 +12,8 @@ import { crossHoldingCompanies } from "@/lib/company/fixtures";
 
 import { entityTypeLabel } from "./entity-type-label";
 import { OwnershipNetwork } from "./ownership-network";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** Format a percentage for display, trimming trailing zeros. */
 function pct(value: number): string {
@@ -178,13 +180,43 @@ export function OwnershipGraphPage() {
           <h1 className="text-lg font-semibold tracking-tight">
             Ownership graph
           </h1>
-          <a
-            href="#/"
-            data-testid="ownership-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "ownership-graph",
+                ["id", "name", "entityType", "currency", "subsidiaries"],
+                crossHoldingCompanies.map((c) => [
+                  c.id,
+                  c.name,
+                  c.entityType,
+                  c.currency,
+                  c.subsidiaries
+                    .map((s) => `${s.companyId}:${s.percentage}`)
+                    .join("|"),
+                ]),
+                {
+                  companies: crossHoldingCompanies.map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    entityType: c.entityType,
+                    currency: c.currency,
+                    subsidiaries: c.subsidiaries.map((s) => ({
+                      companyId: s.companyId,
+                      percentage: s.percentage,
+                    })),
+                  })),
+                },
+              )}
+              testId="ownership-export"
+            />
+            <a
+              href="#/"
+              data-testid="ownership-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

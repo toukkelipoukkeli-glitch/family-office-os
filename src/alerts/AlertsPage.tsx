@@ -17,6 +17,8 @@ import {
 import { cn } from "@/lib/utils";
 
 import { buildAlertsViewModel, type AlertRow } from "./alerts-view";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** A filter the user can toggle: show all rules, or just the breaches. */
 type Filter = "breaches" | "all";
@@ -42,13 +44,46 @@ export function AlertsPage() {
           <h1 className="text-lg font-semibold tracking-tight">
             Limit alerts
           </h1>
-          <a
-            href="#/"
-            data-testid="alerts-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "limit-alerts",
+                [
+                  "id",
+                  "ruleLabel",
+                  "subject",
+                  "scopeLabel",
+                  "severityLabel",
+                  "breached",
+                  "weightLabel",
+                  "limitLabel",
+                  "valueLabel",
+                  "breachDetail",
+                ],
+                vm.rows.map((r) => [
+                  r.id,
+                  r.ruleLabel,
+                  r.subject,
+                  r.scopeLabel,
+                  r.severityLabel,
+                  r.breached,
+                  r.weightLabel,
+                  r.limitLabel,
+                  r.valueLabel,
+                  r.breachDetail ?? null,
+                ]),
+                vm,
+              )}
+              testId="alerts-export"
+            />
+            <a
+              href="#/"
+              data-testid="alerts-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

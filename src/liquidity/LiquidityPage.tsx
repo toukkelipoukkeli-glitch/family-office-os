@@ -25,6 +25,8 @@ import {
 } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** A coverage ratio as `2.02×`, or `—` when undefined. */
 function coverageLabel(ratio: number | null): string {
@@ -131,13 +133,42 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Liquidity & capital-call coverage
           </h1>
-          <a
-            href="#/"
-            data-testid="liquidity-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "liquidity",
+                [
+                  "index",
+                  "period",
+                  "availableLiquidity",
+                  "obligation",
+                  "coverageRatio",
+                  "shortfall",
+                  "closingLiquidity",
+                  "covered",
+                ],
+                lq.months.map((m) => [
+                  m.index,
+                  m.period,
+                  m.availableLiquidity,
+                  m.obligation,
+                  m.coverageRatio,
+                  m.shortfall,
+                  m.closingLiquidity,
+                  m.covered,
+                ]),
+                lq,
+              )}
+              testId="liquidity-export"
+            />
+            <a
+              href="#/"
+              data-testid="liquidity-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

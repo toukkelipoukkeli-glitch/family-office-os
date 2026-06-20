@@ -16,6 +16,8 @@ import {
 import { seededBoardReport } from "@/lib/reporting";
 import type { BoardReport } from "@/lib/reporting";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { reportExport } from "@/lib/export";
 
 /** Human-readable copy for each unavailable reason. */
 const REASON_COPY: Record<string, string> = {
@@ -106,6 +108,9 @@ export function InsightsPage({ report, result }: InsightsPageProps) {
       width="4xl"
       containerTestId="insights-page"
       backTestId="insights-back"
+      actions={
+        <ExportMenu dataset={reportExport(data)} testId="insights-export" />
+      }
     >
         <p className="mb-6 text-sm text-muted-foreground" data-testid="insights-asof">
           A plain-English narrative of the portfolio as of {data.asOf} (

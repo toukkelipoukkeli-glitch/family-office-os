@@ -18,6 +18,8 @@ import {
   formatPercentIntl,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** Compact base-currency amount, e.g. `€6.5M`. */
 function compact(value: number, currency: string): string {
@@ -115,13 +117,38 @@ export function CurrencyPage({ initialRatio = 0.5 }: CurrencyPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Currency exposure &amp; hedging
           </h1>
-          <a
-            href="#/"
-            data-testid="currency-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "currency-exposure",
+                [
+                  "currency",
+                  "isBase",
+                  "valueBase",
+                  "weight",
+                  "positionCount",
+                  "rateToBase",
+                ],
+                exposures.map((e) => [
+                  e.currency,
+                  e.isBase,
+                  e.valueBase,
+                  e.weight,
+                  e.positionCount,
+                  e.rateToBase,
+                ]),
+                model,
+              )}
+              testId="currency-export"
+            />
+            <a
+              href="#/"
+              data-testid="currency-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

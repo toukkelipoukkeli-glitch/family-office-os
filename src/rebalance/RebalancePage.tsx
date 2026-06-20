@@ -32,6 +32,8 @@ import {
   type AssetClassRow,
   type TradeRow,
 } from "./rebalance-view";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** The lot-selection methods the user can toggle between. */
 const METHODS: LotMethod[] = ["hifo", "fifo", "lifo"];
@@ -60,13 +62,42 @@ export function RebalancePage() {
           <h1 className="text-lg font-semibold tracking-tight">
             Rebalancing proposal
           </h1>
-          <a
-            href="#/"
-            data-testid="rebalance-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "rebalance",
+                [
+                  "assetClass",
+                  "label",
+                  "currentWeight",
+                  "targetWeight",
+                  "projectedWeight",
+                  "drift",
+                  "action",
+                  "tradeAmount",
+                ],
+                vm.assetClasses.map((a) => [
+                  a.assetClass,
+                  a.label,
+                  a.currentWeightLabel,
+                  a.targetWeightLabel,
+                  a.projectedWeightLabel,
+                  a.driftLabel,
+                  a.action,
+                  a.tradeAmountLabel,
+                ]),
+                vm,
+              )}
+              testId="rebalance-export"
+            />
+            <a
+              href="#/"
+              data-testid="rebalance-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

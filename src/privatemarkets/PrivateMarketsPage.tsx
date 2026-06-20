@@ -27,6 +27,8 @@ import {
 } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** Multiple, e.g. `1.72x`. */
 function multiple(value: number): string {
@@ -112,13 +114,54 @@ export function PrivateMarketsPage({ model }: PrivateMarketsPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Private-markets commitments
           </h1>
-          <a
-            href="#/"
-            data-testid="privatemarkets-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "private-markets",
+                [
+                  "id",
+                  "name",
+                  "strategy",
+                  "vintageYear",
+                  "committed",
+                  "paidIn",
+                  "distributed",
+                  "nav",
+                  "unfunded",
+                  "tvpi",
+                  "dpi",
+                  "rvpi",
+                  "moic",
+                  "irr",
+                ],
+                pm.commitments.map((c) => [
+                  c.id,
+                  c.name,
+                  c.strategy,
+                  c.vintageYear,
+                  c.committed,
+                  c.paidIn,
+                  c.distributed,
+                  c.nav,
+                  c.unfunded,
+                  c.tvpi,
+                  c.dpi,
+                  c.rvpi,
+                  c.moic,
+                  c.irr,
+                ]),
+                pm,
+              )}
+              testId="privatemarkets-export"
+            />
+            <a
+              href="#/"
+              data-testid="privatemarkets-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

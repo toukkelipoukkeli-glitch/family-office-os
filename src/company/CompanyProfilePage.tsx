@@ -35,6 +35,8 @@ import {
 import { formatMoneyCompact } from "@/lib/format";
 import { Money } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** Companies that have a profile, in display order. */
 const COMPANIES: { company: Company; profile: CompanyProfile }[] = [
@@ -350,6 +352,7 @@ export function CompanyProfilePage() {
     [selectedId],
   );
   const { company, profile } = selected;
+  const chrono = useMemo(() => financialsChronological(profile), [profile]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -358,12 +361,55 @@ export function CompanyProfilePage() {
           <h1 className="text-lg font-semibold tracking-tight">
             Company profiles
           </h1>
-          <a
-            href="#/"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                `company-${company.id}`,
+                [
+                  "fiscalYear",
+                  "revenue",
+                  "ebitda",
+                  "netIncome",
+                  "totalAssets",
+                  "totalEquity",
+                  "cash",
+                  "debt",
+                ],
+                chrono.map((f) => [
+                  f.fiscalYear,
+                  f.revenue.amount,
+                  f.ebitda.amount,
+                  f.netIncome.amount,
+                  f.totalAssets.amount,
+                  f.totalEquity.amount,
+                  f.cash.amount,
+                  f.debt.amount,
+                ]),
+                {
+                  companyId: company.id,
+                  companyName: company.name,
+                  reportingCurrency: profile.reportingCurrency,
+                  financials: chrono.map((f) => ({
+                    fiscalYear: f.fiscalYear,
+                    revenue: f.revenue.amount,
+                    ebitda: f.ebitda.amount,
+                    netIncome: f.netIncome.amount,
+                    totalAssets: f.totalAssets.amount,
+                    totalEquity: f.totalEquity.amount,
+                    cash: f.cash.amount,
+                    debt: f.debt.amount,
+                  })),
+                },
+              )}
+              testId="company-export"
+            />
+            <a
+              href="#/"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

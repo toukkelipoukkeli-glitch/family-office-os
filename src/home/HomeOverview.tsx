@@ -9,6 +9,8 @@ import {
 } from "@/lib/home";
 import { seededNetWorth } from "@/lib/networth";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** Per-status presentation: accent dot colour + banner copy. */
 const STATUS_META: Record<
@@ -144,9 +146,40 @@ export function HomeOverview({ model = seededOverview }: HomeOverviewProps) {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Headline metrics
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Headline metrics
+          </h2>
+          <ExportMenu
+            dataset={tableExport(
+              "overview",
+              ["id", "label", "value", "detail", "status", "module"],
+              model.kpis.map((k) => [
+                k.id,
+                k.label,
+                k.value,
+                k.detail,
+                k.status,
+                k.module,
+              ]),
+              {
+                baseCurrency: model.baseCurrency,
+                openBreaches: model.openBreaches,
+                worstStatus: model.worstStatus,
+                kpis: model.kpis.map((k) => ({
+                  id: k.id,
+                  label: k.label,
+                  value: k.value,
+                  detail: k.detail,
+                  status: k.status,
+                  href: k.href,
+                  module: k.module,
+                })),
+              },
+            )}
+            testId="home-export"
+          />
+        </div>
         <div
           data-testid="home-kpi-grid"
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"

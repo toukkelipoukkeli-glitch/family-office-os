@@ -21,6 +21,8 @@ import {
 } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { FanChart } from "./FanChart";
 import { TornadoChart } from "./TornadoChart";
@@ -123,13 +125,40 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Scenario cockpit
           </h1>
-          <a
-            href="#/"
-            data-testid="cockpit-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "scenario-cockpit",
+                [
+                  "scenarioId",
+                  "scenarioName",
+                  "meanDelta",
+                  "initialDelta",
+                  "varDelta",
+                ],
+                cockpit.tornado.bars.map((b) => [
+                  b.scenarioId,
+                  b.scenarioName,
+                  b.meanDelta,
+                  b.initialDelta,
+                  b.varDelta,
+                ]),
+                {
+                  horizonYears: cockpit.horizonYears,
+                  kpis: cockpit.kpis,
+                  tornado: cockpit.tornado,
+                },
+              )}
+              testId="scenario-export"
+            />
+            <a
+              href="#/"
+              data-testid="cockpit-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

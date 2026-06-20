@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { sampleCapTable, sampleRound } from "@/lib/captable";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import {
   buildViewModel,
@@ -40,13 +42,30 @@ export function CapTablePage() {
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <h1 className="text-lg font-semibold tracking-tight">Cap table</h1>
-          <a
-            href="#/"
-            data-testid="captable-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                `cap-table-${vm.companyName}`,
+                ["id", "holder", "securityClass", "shares", "percent"],
+                vm.rows.map((r) => [
+                  r.id,
+                  r.holder,
+                  r.securityClass,
+                  r.shares,
+                  r.percent,
+                ]),
+                vm,
+              )}
+              testId="captable-export"
+            />
+            <a
+              href="#/"
+              data-testid="captable-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

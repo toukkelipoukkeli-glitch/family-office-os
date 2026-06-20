@@ -22,6 +22,8 @@ import {
   formatHoldingPeriod,
   type Sign,
 } from "./taxlots-view";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 function gainClass(sign: Sign): string {
   if (sign === "negative") return "text-destructive";
@@ -46,13 +48,42 @@ export function TaxLotsPage() {
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <h1 className="text-lg font-semibold tracking-tight">Tax lots</h1>
-          <a
-            href="#/"
-            data-testid="taxlots-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "tax-lots",
+                [
+                  "lotId",
+                  "symbol",
+                  "acquiredOn",
+                  "quantity",
+                  "basis",
+                  "marketValue",
+                  "unrealizedGain",
+                  "holdingPeriod",
+                ],
+                vm.rows.map((r) => [
+                  r.lotId,
+                  r.symbol,
+                  r.acquiredOn,
+                  r.quantity,
+                  r.basis,
+                  r.marketValue,
+                  r.unrealizedGain,
+                  r.holdingPeriod,
+                ]),
+                vm,
+              )}
+              testId="taxlots-export"
+            />
+            <a
+              href="#/"
+              data-testid="taxlots-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

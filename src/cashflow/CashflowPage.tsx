@@ -20,6 +20,8 @@ import { buildCashflowModel, type CashflowModel } from "@/lib/cashflow";
 import { formatMoneyCompact, formatMoneyWhole } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** A readable month label, e.g. `Jul 2024`, from an ISO `YYYY-MM`. */
 function monthLabel(period: string): string {
@@ -113,13 +115,40 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Household cashflow projection
           </h1>
-          <a
-            href="#/"
-            data-testid="cashflow-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "cashflow",
+                [
+                  "index",
+                  "period",
+                  "openingBalance",
+                  "inflows",
+                  "outflows",
+                  "netFlow",
+                  "closingBalance",
+                ],
+                cf.months.map((m) => [
+                  m.index,
+                  m.period,
+                  m.openingBalance,
+                  m.inflows,
+                  m.outflows,
+                  m.netFlow,
+                  m.closingBalance,
+                ]),
+                cf,
+              )}
+              testId="cashflow-export"
+            />
+            <a
+              href="#/"
+              data-testid="cashflow-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

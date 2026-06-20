@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { evaluatePolicy, ipsPortfolio, ipsRateTable, sampleIps } from "@/lib/ips";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { buildIpsViewModel, type IpsRow } from "./ips-view";
 
@@ -34,6 +36,39 @@ export function IpsPage() {
       backTestId="ips-back"
       mainClassName="space-y-6"
       mainTestId="ips-page"
+      actions={
+        <ExportMenu
+          dataset={tableExport(
+            "ips-compliance",
+            [
+              "id",
+              "constraintLabel",
+              "subject",
+              "kindLabel",
+              "severityLabel",
+              "breached",
+              "weightLabel",
+              "limitLabel",
+              "valueLabel",
+              "breachDetail",
+            ],
+            vm.rows.map((r) => [
+              r.id,
+              r.constraintLabel,
+              r.subject,
+              r.kindLabel,
+              r.severityLabel,
+              r.breached,
+              r.weightLabel,
+              r.limitLabel,
+              r.valueLabel,
+              r.breachDetail ?? null,
+            ]),
+            vm,
+          )}
+          testId="ips-export"
+        />
+      }
     >
         <section className="grid gap-4 sm:grid-cols-3" data-testid="ips-summary">
           <SummaryCard

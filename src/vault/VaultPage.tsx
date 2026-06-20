@@ -9,6 +9,8 @@ import {
 
 import { formatMoneyValue, formatMoneyValueWhole } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 import {
   buildRegistry,
   documentKindLabel,
@@ -117,13 +119,53 @@ export function VaultPage({ vault }: VaultPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Document &amp; obligation vault
           </h1>
-          <a
-            href="#/"
-            data-testid="vault-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "vault-documents",
+                [
+                  "id",
+                  "title",
+                  "kind",
+                  "counterparty",
+                  "executedOn",
+                  "currency",
+                  "entityIds",
+                  "obligationCount",
+                ],
+                registry.map((d) => [
+                  d.document.id,
+                  d.document.title,
+                  d.document.kind,
+                  d.document.counterparty,
+                  d.document.executedOn,
+                  d.document.currency,
+                  d.document.entityIds.join("|"),
+                  d.obligations.length,
+                ]),
+                {
+                  documents: registry.map((d) => ({
+                    id: d.document.id,
+                    title: d.document.title,
+                    kind: d.document.kind,
+                    counterparty: d.document.counterparty,
+                    executedOn: d.document.executedOn,
+                    currency: d.document.currency,
+                    entityIds: d.document.entityIds,
+                    obligationCount: d.obligations.length,
+                  })),
+                },
+              )}
+              testId="vault-export"
+            />
+            <a
+              href="#/"
+              data-testid="vault-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

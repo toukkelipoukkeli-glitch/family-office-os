@@ -29,6 +29,8 @@ import {
   type GivingPlan,
 } from "@/lib/giving";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 const RECIPIENT_LABELS: Record<string, string> = {
   "public-charity": "Public charity",
@@ -143,6 +145,33 @@ export function GivingPage({ plan }: GivingPageProps) {
       backTestId="giving-back"
       mainClassName="space-y-6"
       mainTestId="giving-page"
+      actions={
+        <ExportMenu
+          dataset={tableExport(
+            "giving-plan",
+            [
+              "giftId",
+              "label",
+              "kind",
+              "fairMarketValue",
+              "embeddedGain",
+              "capitalGainsAvoided",
+              "deductibleAmount",
+            ],
+            analysis.giftBenefits.map((g) => [
+              g.giftId,
+              g.label,
+              g.kind,
+              g.fairMarketValue.amount.toFixed(),
+              g.embeddedGain.amount.toFixed(),
+              g.capitalGainsAvoided.amount.toFixed(),
+              g.deductibleAmount.amount.toFixed(),
+            ]),
+            analysis,
+          )}
+          testId="giving-export"
+        />
+      }
     >
         <p
           className="text-sm text-muted-foreground"

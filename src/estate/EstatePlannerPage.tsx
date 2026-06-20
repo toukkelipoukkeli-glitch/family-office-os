@@ -27,6 +27,8 @@ import { formatMoney } from "@/lib/format";
 import type { Money } from "@/lib/money";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { SuccessionFlow } from "./SuccessionFlow";
 
@@ -129,6 +131,24 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
       backTestId="estate-back"
       mainClassName="space-y-6"
       mainTestId="estate-page"
+      actions={
+        <ExportMenu
+          dataset={tableExport(
+            "estate-beneficiaries",
+            ["beneficiaryId", "name", "relation", "gross", "tax", "net"],
+            analysis.beneficiaryShares.map((b) => [
+              b.beneficiaryId,
+              b.name,
+              b.relation,
+              b.gross.amount.toFixed(),
+              b.tax.amount.toFixed(),
+              b.net.amount.toFixed(),
+            ]),
+            analysis,
+          )}
+          testId="estate-export"
+        />
+      }
     >
         <p className="text-sm text-muted-foreground" data-testid="estate-subtitle">
           {estatePlan.name} — modelling the succession of{" "}

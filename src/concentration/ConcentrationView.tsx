@@ -22,6 +22,8 @@ import {
 
 import { useReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { formatMoneyCompact, formatPct } from "./format";
 
@@ -241,6 +243,52 @@ export function ConcentrationView({
             ))}
           </select>
         </label>
+        <ExportMenu
+          dataset={tableExport(
+            `concentration-${report.bookId}`,
+            ["issuerId", "name", "sector", `value (${report.currency})`, "weight", "residual"],
+            report.singleNames.map((n) => [
+              n.issuerId,
+              n.name,
+              n.sector,
+              n.value.amount.toFixed(),
+              n.weight,
+              n.residual,
+            ]),
+            {
+              bookId: report.bookId,
+              bookName: report.bookName,
+              currency: report.currency,
+              total: report.total.amount.toFixed(),
+              hhi: report.hhi,
+              reconciles: report.reconciles,
+              singleNames: report.singleNames.map((n) => ({
+                issuerId: n.issuerId,
+                name: n.name,
+                sector: n.sector,
+                value: n.value.amount.toFixed(),
+                weight: n.weight,
+                residual: n.residual,
+              })),
+              issuers: report.issuers.map((i) => ({
+                issuerId: i.issuerId,
+                name: i.name,
+                value: i.value.amount.toFixed(),
+                weight: i.weight,
+              })),
+              sectors: report.sectors.map((s) => ({
+                label: s.label,
+                value: s.value.amount.toFixed(),
+                weight: s.weight,
+              })),
+              illiquid: {
+                value: report.illiquid.value.amount.toFixed(),
+                weight: report.illiquid.weight,
+              },
+            },
+          )}
+          testId="concentration-export"
+        />
       </div>
 
       {/* Status banner */}

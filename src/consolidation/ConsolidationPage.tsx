@@ -22,6 +22,8 @@ import { entityKindLabel } from "@/lib/org";
 import type { Entity } from "@/lib/org";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { formatMoneyCompact, formatPct } from "./format";
 
@@ -144,6 +146,53 @@ export function ConsolidationView({
             ))}
           </select>
         </label>
+        <ExportMenu
+          dataset={tableExport(
+            `consolidation-${report.rootId}`,
+            [
+              "entityId",
+              "entityName",
+              "kind",
+              "effectivePct",
+              "standaloneNav",
+              "ownedNav",
+              "minorityInterest",
+              "intercompanyHeld",
+            ],
+            report.entities.map((e) => [
+              e.entityId,
+              e.entityName,
+              e.kind,
+              e.effectivePct,
+              e.standaloneNav.amount.toFixed(),
+              e.ownedNav.amount.toFixed(),
+              e.minorityInterest.amount.toFixed(),
+              e.intercompanyHeld.amount.toFixed(),
+            ]),
+            {
+              rootId: report.rootId,
+              rootName: report.rootName,
+              currency: report.currency,
+              grossNav: report.grossNav.amount.toFixed(),
+              intercompanyEliminations:
+                report.intercompanyEliminations.amount.toFixed(),
+              minorityInterest: report.minorityInterest.amount.toFixed(),
+              consolidatedNetWorth:
+                report.consolidatedNetWorth.amount.toFixed(),
+              entities: report.entities.map((e) => ({
+                entityId: e.entityId,
+                entityName: e.entityName,
+                kind: e.kind,
+                effectivePct: e.effectivePct,
+                standaloneNav: e.standaloneNav.amount.toFixed(),
+                ownedNav: e.ownedNav.amount.toFixed(),
+                minorityInterest: e.minorityInterest.amount.toFixed(),
+                intercompanyHeld: e.intercompanyHeld.amount.toFixed(),
+              })),
+            },
+          )}
+          testId="consolidation-export"
+        />
       </div>
 
       {/* KPI tiles */}

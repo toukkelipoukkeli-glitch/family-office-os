@@ -18,6 +18,8 @@ import {
 } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { BeforeAfterChart } from "./BeforeAfterChart";
 
@@ -115,13 +117,38 @@ export function StressTestPage({ model }: StressTestPageProps) {
             <History className="size-5" aria-hidden="true" />
             Historical stress tests
           </h1>
-          <a
-            href="#/"
-            data-testid="stress-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "stress-tests",
+                [
+                  "scenarioId",
+                  "scenarioName",
+                  "netWorthBefore",
+                  "netWorthAfter",
+                  "drawdown",
+                  "drawdownPct",
+                ],
+                stress.results.map((r) => [
+                  r.scenario.id,
+                  r.scenario.name,
+                  r.netWorthBefore,
+                  r.netWorthAfter,
+                  r.drawdown,
+                  r.drawdownPct,
+                ]),
+                stress,
+              )}
+              testId="stress-export"
+            />
+            <a
+              href="#/"
+              data-testid="stress-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

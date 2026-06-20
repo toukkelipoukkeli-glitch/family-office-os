@@ -17,6 +17,8 @@ import {
   SYNTHETIC_FACTOR_FIXTURE,
 } from "@/lib/factors";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { ContributionChart } from "./ContributionChart";
 import { FactorBetasChart } from "./FactorBetasChart";
@@ -117,13 +119,30 @@ export function FactorAttributionPage({ view }: FactorAttributionPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Factor &amp; style attribution
           </h1>
-          <a
-            href="#/"
-            data-testid="factors-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "factor-attribution",
+                ["key", "label", "beta", "meanFactorReturn", "contribution"],
+                model.loadings.map((r) => [
+                  r.key,
+                  r.label,
+                  r.beta,
+                  r.meanFactorReturn,
+                  r.contribution,
+                ]),
+                model,
+              )}
+              testId="factors-export"
+            />
+            <a
+              href="#/"
+              data-testid="factors-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

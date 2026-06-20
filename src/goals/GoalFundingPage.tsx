@@ -29,6 +29,8 @@ import { formatMoney } from "@/lib/format";
 import type { Money } from "@/lib/money";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** A money formatter bound to a reporting currency. */
 type MoneyFn = (value: number | Money, compactN?: boolean) => string;
@@ -152,6 +154,37 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
       backTestId="goals-back"
       mainClassName="space-y-6"
       mainTestId="goals-page"
+      actions={
+        <ExportMenu
+          dataset={tableExport(
+            "goal-funding",
+            [
+              "goalId",
+              "name",
+              "category",
+              "target",
+              "dedicatedAtDue",
+              "gap",
+              "surplus",
+              "fundedRatio",
+              "funded",
+            ],
+            summary.goals.map((g) => [
+              g.goal.id,
+              g.goal.name,
+              g.goal.category,
+              g.target.amount.toFixed(),
+              g.dedicatedAtDue.amount.toFixed(),
+              g.gap.amount.toFixed(),
+              g.surplus.amount.toFixed(),
+              g.fundedRatio.toFixed(),
+              g.funded,
+            ]),
+            summary,
+          )}
+          testId="goals-export"
+        />
+      }
     >
         <p
           className="text-sm text-muted-foreground"

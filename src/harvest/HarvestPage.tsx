@@ -15,6 +15,8 @@ import {
 } from "@/lib/harvest";
 import { LOT_METHOD_LABEL, type LotMethod } from "@/lib/taxlots";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { HARVEST_METHODS, buildHarvestViewModel } from "./harvest-view";
 
@@ -48,13 +50,46 @@ export function HarvestPage() {
           <h1 className="text-lg font-semibold tracking-tight">
             Tax-loss harvesting
           </h1>
-          <a
-            href="#/"
-            data-testid="harvest-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                `harvest-${vm.asOf}`,
+                [
+                  "lotId",
+                  "symbol",
+                  "acquiredOn",
+                  "quantity",
+                  "basis",
+                  "marketValue",
+                  "unrealizedGain",
+                  "harvestableLoss",
+                  "holdingPeriod",
+                  "washSaleRisk",
+                ],
+                vm.rows.map((r) => [
+                  r.lotId,
+                  r.symbol,
+                  r.acquiredOn,
+                  r.quantity,
+                  r.basis,
+                  r.marketValue,
+                  r.unrealizedGain,
+                  r.harvestableLoss,
+                  r.holdingPeriod,
+                  r.washSaleRisk,
+                ]),
+                vm,
+              )}
+              testId="harvest-export"
+            />
+            <a
+              href="#/"
+              data-testid="harvest-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

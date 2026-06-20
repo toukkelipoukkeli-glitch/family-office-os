@@ -31,6 +31,8 @@ import {
 import { formatMoney } from "@/lib/format";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** A money formatter bound to a reporting currency. */
 type MoneyFn = (value: number, compactN?: boolean) => string;
@@ -214,13 +216,65 @@ export function InsurancePage({ book }: InsurancePageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Insurance coverage tracker
           </h1>
-          <a
-            href="#/"
-            data-testid="insurance-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "insurance",
+                [
+                  "kind",
+                  "label",
+                  "activeCoverage",
+                  "annualPremium",
+                  "activeCount",
+                  "inactiveCount",
+                  "exposure",
+                  "coverageRatio",
+                ],
+                analysis.categories.map((c) => [
+                  c.kind,
+                  c.label,
+                  c.activeCoverage.amount.toFixed(),
+                  c.annualPremium.amount.toFixed(),
+                  c.activeCount,
+                  c.inactiveCount,
+                  c.exposure.amount.toFixed(),
+                  c.coverageRatio ? c.coverageRatio.toFixed() : null,
+                ]),
+                {
+                  currency: analysis.currency,
+                  totalActiveCoverage: analysis.totalActiveCoverage.amount.toFixed(),
+                  totalAnnualPremium: analysis.totalAnnualPremium.amount.toFixed(),
+                  activePolicyCount: analysis.activePolicyCount,
+                  liabilityTowerCoverage:
+                    analysis.liabilityTowerCoverage.amount.toFixed(),
+                  liabilityCoverageRatio: analysis.liabilityCoverageRatio
+                    ? analysis.liabilityCoverageRatio.toFixed()
+                    : null,
+                  categories: analysis.categories.map((c) => ({
+                    kind: c.kind,
+                    label: c.label,
+                    activeCoverage: c.activeCoverage.amount.toFixed(),
+                    annualPremium: c.annualPremium.amount.toFixed(),
+                    activeCount: c.activeCount,
+                    inactiveCount: c.inactiveCount,
+                    exposure: c.exposure.amount.toFixed(),
+                    coverageRatio: c.coverageRatio
+                      ? c.coverageRatio.toFixed()
+                      : null,
+                  })),
+                  gaps: analysis.gaps,
+                },
+              )}
+              testId="insurance-export"
+            />
+            <a
+              href="#/"
+              data-testid="insurance-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

@@ -24,6 +24,8 @@ import {
   stageOf,
   summarizePipeline,
 } from "@/lib/deals";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 import { sampleDeals, samplePipeline } from "@/lib/deals/fixtures";
 import { Money } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -403,6 +405,54 @@ export function PipelinePage({
         </p>
       }
       mainClassName="space-y-6"
+      actions={
+        <ExportMenu
+          dataset={tableExport(
+            "deal-pipeline",
+            [
+              "id",
+              "name",
+              "stageId",
+              "status",
+              "assetClass",
+              "amount",
+              "probability",
+              "openedOn",
+              "expectedCloseOn",
+            ],
+            deals.map((d) => [
+              d.id,
+              d.name,
+              d.stageId,
+              d.status,
+              d.assetClass ?? null,
+              d.amount ? `${d.amount.amount} ${d.amount.currency}` : null,
+              d.probability ?? null,
+              d.openedOn,
+              d.expectedCloseOn ?? null,
+            ]),
+            {
+              pipelineId: pipeline.id,
+              pipelineName: pipeline.name,
+              deals: deals.map((d) => ({
+                id: d.id,
+                name: d.name,
+                stageId: d.stageId,
+                status: d.status,
+                assetClass: d.assetClass ?? null,
+                amount: d.amount
+                  ? { amount: d.amount.amount, currency: d.amount.currency }
+                  : null,
+                probability: d.probability ?? null,
+                openedOn: d.openedOn,
+                expectedCloseOn: d.expectedCloseOn ?? null,
+                tags: d.tags,
+              })),
+            },
+          )}
+          testId="pipeline-export"
+        />
+      }
     >
         {detailId ? (
           selected ? (

@@ -17,6 +17,8 @@ import {
   type AttributionMethod,
 } from "@/lib/attribution";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { AttributionBridge } from "./AttributionBridge";
 import { SegmentEffectsChart } from "./SegmentEffectsChart";
@@ -103,13 +105,48 @@ export function AttributionPage({ view }: AttributionPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Performance attribution
           </h1>
-          <a
-            href="#/"
-            data-testid="attribution-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "attribution",
+                [
+                  "id",
+                  "label",
+                  "portfolioWeight",
+                  "benchmarkWeight",
+                  "activeWeight",
+                  "portfolioReturn",
+                  "benchmarkReturn",
+                  "allocation",
+                  "selection",
+                  "interaction",
+                  "total",
+                ],
+                model.segments.map((s) => [
+                  s.id,
+                  s.label,
+                  s.portfolioWeight,
+                  s.benchmarkWeight,
+                  s.activeWeight,
+                  s.portfolioReturn,
+                  s.benchmarkReturn,
+                  s.allocation,
+                  s.selection,
+                  s.interaction,
+                  s.total,
+                ]),
+                model,
+              )}
+              testId="attribution-export"
+            />
+            <a
+              href="#/"
+              data-testid="attribution-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

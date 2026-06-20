@@ -19,6 +19,8 @@ import {
   type StalenessStatus,
 } from "@/lib/dataquality";
 import type { Holding } from "@/lib/model";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { formatMoneyCompact, formatPct, formatScore } from "./format";
 
@@ -247,6 +249,70 @@ export function DataQualityView({
 
   return (
     <div className="space-y-6" data-testid="dataquality-view">
+      <div className="flex justify-end">
+        <ExportMenu
+          dataset={tableExport(
+            `data-quality-${report.today}`,
+            [
+              "holdingId",
+              "name",
+              "assetClass",
+              `value`,
+              "asOf",
+              "stalenessDays",
+              "budgetDays",
+              "stalenessStatus",
+              "confidenceScore",
+              "freshnessScore",
+              "completenessScore",
+              "score",
+              "flags",
+            ],
+            report.holdings.map((h) => [
+              h.holdingId,
+              h.name,
+              h.assetClass,
+              h.value.amount.toFixed(),
+              h.asOf ?? null,
+              h.stalenessDays ?? null,
+              h.budgetDays,
+              h.stalenessStatus,
+              h.confidenceScore,
+              h.freshnessScore,
+              h.completenessScore,
+              h.score,
+              h.flags.join("|"),
+            ]),
+            {
+              today: report.today,
+              score: report.score,
+              grade: report.grade,
+              staleCount: report.staleCount,
+              missingValuationCount: report.missingValuationCount,
+              flagCount: report.flagCount,
+              byStatus: report.byStatus,
+              flagTotals: report.flagTotals,
+              holdings: report.holdings.map((h) => ({
+                holdingId: h.holdingId,
+                name: h.name,
+                assetClass: h.assetClass,
+                assetClassLabel: h.assetClassLabel,
+                value: h.value.amount.toFixed(),
+                asOf: h.asOf ?? null,
+                stalenessDays: h.stalenessDays ?? null,
+                budgetDays: h.budgetDays,
+                stalenessStatus: h.stalenessStatus,
+                confidenceScore: h.confidenceScore,
+                freshnessScore: h.freshnessScore,
+                completenessScore: h.completenessScore,
+                score: h.score,
+                flags: h.flags,
+              })),
+            },
+          )}
+          testId="dataquality-export"
+        />
+      </div>
       {/* Headline grade + summary stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat

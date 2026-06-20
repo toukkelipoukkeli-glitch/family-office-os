@@ -22,6 +22,8 @@ import {
 
 import { OrgTree } from "./OrgTree";
 import { formatNav, formatPct, kindColor } from "./org-format";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
@@ -106,6 +108,41 @@ export function OrgChartPage() {
       titleClassName="flex items-center gap-2"
       backTestId="org-back"
       mainClassName="space-y-6"
+      actions={
+        <ExportMenu
+          dataset={tableExport(
+            "org-entities",
+            ["id", "name", "kind", "jurisdiction", "nav", "owners"],
+            entities.map((e) => [
+              e.id,
+              e.name,
+              e.kind,
+              e.jurisdiction ?? null,
+              e.nav ? `${e.nav.amount} ${e.nav.currency}` : null,
+              e.owners
+                .map((o) => `${o.parentId}:${o.ownershipPct}`)
+                .join("|"),
+            ]),
+            {
+              entityCount: total,
+              maxDepth: depth,
+              entities: entities.map((e) => ({
+                id: e.id,
+                name: e.name,
+                kind: e.kind,
+                jurisdiction: e.jurisdiction ?? null,
+                nav: e.nav ? { amount: e.nav.amount, currency: e.nav.currency } : null,
+                note: e.note ?? null,
+                owners: e.owners.map((o) => ({
+                  parentId: o.parentId,
+                  ownershipPct: o.ownershipPct,
+                })),
+              })),
+            },
+          )}
+          testId="org-export"
+        />
+      }
     >
         <Card>
           <CardHeader>

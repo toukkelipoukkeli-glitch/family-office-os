@@ -18,6 +18,8 @@ import {
   type PolicyBenchmark,
 } from "@/lib/benchmark";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 /** Format a decimal as a percentage, optionally signed. */
 function pct(value: number, { signed = false, digits = 2 } = {}): string {
@@ -117,13 +119,40 @@ export function BenchmarkPage({ view, benchmarks = BENCHMARKS }: BenchmarkPagePr
           <h1 className="text-lg font-semibold tracking-tight">
             Benchmark &amp; relative performance
           </h1>
-          <a
-            href="#/"
-            data-testid="benchmark-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                `benchmark-${model.benchmarkId}`,
+                [
+                  "period",
+                  "portfolioReturn",
+                  "benchmarkReturn",
+                  "activeReturn",
+                  "portfolioGrowth",
+                  "benchmarkGrowth",
+                  "cumulativeExcess",
+                ],
+                model.rows.map((r) => [
+                  r.period,
+                  r.portfolioReturn,
+                  r.benchmarkReturn,
+                  r.activeReturn,
+                  r.portfolioGrowth,
+                  r.benchmarkGrowth,
+                  r.cumulativeExcess,
+                ]),
+                model,
+              )}
+              testId="benchmark-export"
+            />
+            <a
+              href="#/"
+              data-testid="benchmark-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

@@ -29,6 +29,8 @@ import {
 
 import { useReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 
 import { formatMoneyCompact, formatPct } from "./format";
 
@@ -275,6 +277,62 @@ export function RiskCockpitView({
             ))}
           </select>
         </label>
+        <ExportMenu
+          dataset={tableExport(
+            `risk-limits-${report.rootId}`,
+            [
+              "subject",
+              "kind",
+              "bound",
+              "weight",
+              "threshold",
+              "exceedance",
+              "breached",
+              "severity",
+              `value (${report.currency})`,
+            ],
+            report.checks.map((c) => [
+              c.subject,
+              c.kind,
+              c.bound,
+              c.weight,
+              c.threshold,
+              c.exceedance,
+              c.breached,
+              c.severity,
+              c.value.amount.toFixed(),
+            ]),
+            {
+              rootId: report.rootId,
+              rootName: report.rootName,
+              currency: report.currency,
+              total: report.total.amount.toFixed(),
+              compliant: report.compliant,
+              counts: report.counts,
+              concentration: report.concentration.map((l) => ({
+                assetClass: l.assetClass,
+                label: l.label,
+                liquidityTier: l.liquidityTier,
+                value: l.value.amount.toFixed(),
+                weight: l.weight,
+                limit: l.limit,
+                breached: l.breached,
+              })),
+              checks: report.checks.map((c) => ({
+                subject: c.subject,
+                kind: c.kind,
+                bound: c.bound,
+                weight: c.weight,
+                threshold: c.threshold,
+                exceedance: c.exceedance,
+                breached: c.breached,
+                severity: c.severity,
+                value: c.value.amount.toFixed(),
+              })),
+            },
+          )}
+          testId="risk-export"
+        />
       </div>
 
       {/* Status banner */}

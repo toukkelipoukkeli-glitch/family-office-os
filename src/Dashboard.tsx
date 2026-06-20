@@ -1,3 +1,4 @@
+import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NetWorthDashboard } from "@/networth/NetWorthDashboard";
@@ -47,7 +48,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main id={MAIN_CONTENT_ID} className="mx-auto max-w-6xl px-6 py-10">
         <NetWorthDashboard model={seededNetWorth} />
       </main>
     </div>

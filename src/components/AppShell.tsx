@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -145,6 +146,7 @@ export function AppShell({
       </header>
 
       <main
+        id={MAIN_CONTENT_ID}
         className={cn("mx-auto px-6 py-10", widthClass, mainClassName)}
         data-testid={mainTestId}
       >

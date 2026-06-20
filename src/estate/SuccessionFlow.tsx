@@ -86,17 +86,19 @@ export const SuccessionFlow = React.forwardRef<
     const nodeValue = (id: string) =>
       Math.max(inSum.get(id) ?? 0, outSum.get(id) ?? 0);
 
-    // Per-column vertical scale: the tallest column drives a shared value→pixel
-    // ratio so ribbon widths are comparable across columns.
+    // One shared value→pixel scale for every column and ribbon, so equal values
+    // always render at equal thickness (the Sankey "conserves value" visually).
+    // The scale is bounded by the column that has the least vertical slack
+    // (most inter-node gaps), so no column overflows the canvas.
+    const colInnerGap = 8;
     const colValueTotals = cols.map((col) =>
       col.reduce((acc, n) => acc + nodeValue(n.id), 0),
     );
     const maxColValue = Math.max(1, ...colValueTotals);
-    const colInnerGap = 8;
-    const valueScale = (col: FlowNode[]) => {
-      const slack = innerH - (col.length - 1) * colInnerGap;
-      return slack / maxColValue;
-    };
+    const minSlack = Math.min(
+      ...cols.map((col) => innerH - (col.length - 1) * colInnerGap),
+    );
+    const sharedScale = minSlack / maxColValue;
 
     const placed = new Map<string, PlacedNode>();
     const colX = [
@@ -105,7 +107,7 @@ export const SuccessionFlow = React.forwardRef<
       margin.left + innerW - nodeW,
     ];
     cols.forEach((col, ci) => {
-      const scale = valueScale(col);
+      const scale = sharedScale;
       const totalH =
         col.reduce((acc, n) => acc + nodeValue(n.id) * scale, 0) +
         (col.length - 1) * colInnerGap;
@@ -141,14 +143,11 @@ export const SuccessionFlow = React.forwardRef<
       const t = placed.get(l.target);
       const v = l.value.amount.toNumber();
       if (!s || !t) return null;
-      const sScale = valueScale(cols[COLUMN_BY_KIND[s.kind]]);
-      const tScale = valueScale(cols[COLUMN_BY_KIND[t.kind]]);
-      const wS = Math.max(1, v * sScale);
-      const wT = Math.max(1, v * tScale);
-      const y0 = s.outCursor + wS / 2;
-      const y1 = t.inCursor + wT / 2;
-      s.outCursor += wS;
-      t.inCursor += wT;
+      const w = Math.max(1, v * sharedScale);
+      const y0 = s.outCursor + w / 2;
+      const y1 = t.inCursor + w / 2;
+      s.outCursor += w;
+      t.inCursor += w;
       const x0 = s.x + s.w;
       const x1 = t.x;
       const xm = (x0 + x1) / 2;
@@ -163,7 +162,7 @@ export const SuccessionFlow = React.forwardRef<
           stroke={colorForKind(
             t.kind === "tax" || t.kind === "settlement" ? t.kind : s.kind,
           )}
-          strokeWidth={round(Math.max(wS, wT))}
+          strokeWidth={round(w)}
           strokeOpacity={0.28}
           data-testid="flow-link"
           data-source={l.source}

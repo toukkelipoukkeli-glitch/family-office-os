@@ -359,7 +359,14 @@ export function validateEstatePlan(plan: EstatePlan): void {
     benIds.add(b.id);
   }
 
+  const bequestIds = new Set<string>();
   for (const bq of plan.bequests) {
+    // Bequest ids key grossByBequest downstream; duplicates would silently
+    // overwrite and corrupt exempt totals, tax allocation and the flow graph.
+    if (bequestIds.has(bq.id)) {
+      throw new EstateError(`duplicate bequest id: ${bq.id}`);
+    }
+    bequestIds.add(bq.id);
     if (!benIds.has(bq.beneficiaryId)) {
       throw new EstateError(
         `bequest ${bq.id} references unknown beneficiary ${bq.beneficiaryId}`,

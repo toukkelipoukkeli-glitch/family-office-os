@@ -99,11 +99,11 @@ describe("estate engine invariants (property-style)", () => {
       const plan = randomPlan(seed);
       const a = analyzeEstate(plan);
       const cap = a.taxableEstate.times(plan.taxRate);
-      // tax ≤ cap + 1 minor unit of rounding slack.
+      // tax ≤ cap + 1 minor unit of rounding slack (inclusive of an exact cent).
       expect(
-        a.estateTax.minus(cap).lessThan(usd("0.01")),
+        a.estateTax.minus(cap).greaterThan(usd("0.01")),
         `seed ${seed}`,
-      ).toBe(true);
+      ).toBe(false);
     }
   });
 

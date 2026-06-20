@@ -120,6 +120,12 @@ describe("validateEstatePlan", () => {
     dup.assets.push({ ...dup.assets[0] });
     expect(() => validateEstatePlan(dup)).toThrow(/duplicate asset id/);
   });
+
+  it("rejects duplicate bequest ids (they key grossByBequest downstream)", () => {
+    const dup = tinyPlan();
+    dup.bequests.push({ ...dup.bequests[0] });
+    expect(() => validateEstatePlan(dup)).toThrow(/duplicate bequest id/);
+  });
 });
 
 describe("analyzeEstate — tax math", () => {

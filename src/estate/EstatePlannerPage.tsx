@@ -253,9 +253,10 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                 className="h-3 w-full overflow-hidden rounded-full bg-muted"
                 data-testid="coverage-meter"
                 role="meter"
-                aria-valuenow={Math.round(coveragePct)}
+                aria-valuenow={Math.round(coverageClamped)}
                 aria-valuemin={0}
                 aria-valuemax={100}
+                aria-valuetext={formatCoverage(analysis.coverageRatio)}
                 aria-label="liquidity coverage of settlement need"
               >
                 <div

@@ -100,6 +100,26 @@ describe("currencyCap — case-insensitive matching", () => {
   });
 });
 
+describe("evaluatePolicy — FX base-currency contract", () => {
+  const pf = portfolio([holding("h-usd", "USD Cash", "cash", "USD", "10000.00")]);
+  const policy: InvestmentPolicy = {
+    id: "p",
+    name: "p",
+    constraints: [{ id: "pos", kind: "positionCap", label: "cap", max: "0.50" }],
+  };
+
+  it("throws when the FX table base does not match the portfolio base", () => {
+    const mismatched: FxRateTable = { base: "EUR", rates: { EUR: "1", USD: "0.9" } };
+    expect(() => evaluatePolicy(pf, policy, mismatched)).toThrow(
+      /must match portfolio base currency/,
+    );
+  });
+
+  it("accepts a matching base currency", () => {
+    expect(() => evaluatePolicy(pf, policy, USD_TABLE)).not.toThrow();
+  });
+});
+
 describe("positionCap — unvalued holdings", () => {
   it("skips a holding with no valuation (contributes no check)", () => {
     const pf = portfolio([

@@ -169,6 +169,14 @@ export function evaluatePolicy(
   validatePolicy(policy);
 
   const fx = FxConverter.fromTable(fxTable);
+  // The contract above requires the FX base to match the portfolio's base
+  // currency; otherwise weights and exceedance amounts would be reported in an
+  // unintended base context. Fail loudly instead of producing a wrong report.
+  if (fx.base !== portfolio.baseCurrency.trim().toUpperCase()) {
+    throw new Error(
+      `evaluatePolicy: fxTable base (${fx.base}) must match portfolio base currency (${portfolio.baseCurrency})`,
+    );
+  }
   const total = portfolioTotal(portfolio, fx);
   const totalAmount = total.amount;
   const zero = Money.zero(total.currency);

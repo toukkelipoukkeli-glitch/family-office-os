@@ -132,6 +132,64 @@ describe("buildSnapshot — launching (gen-2) units", () => {
     const snap = buildSnapshot(backlog, noGen2);
     expect(snap.milestones.map((m) => m.id)).toEqual(["ma", "mb"]);
   });
+
+  it("marks no launching unit active when every gen-2 unit is blocked", () => {
+    const allBlocked: TasksState = {
+      ...tasks,
+      gen2: { status: "launching", units: ["mc-a", "mc-b"] },
+      blocked: ["mc-a", "mc-b"],
+    };
+    const snap = buildSnapshot(backlog, allBlocked);
+    const launching = allUnits(snap).filter((u) => u.id.startsWith("mc-"));
+    expect(launching.map((u) => u.status)).toEqual(["blocked", "blocked"]);
+    expect(launching.some((u) => u.status === "active")).toBe(false);
+  });
+
+  it("treats an empty gen-2 units array like no launching section", () => {
+    const emptyUnits: TasksState = {
+      ...tasks,
+      gen2: { status: "launching", units: [] },
+    };
+    const snap = buildSnapshot(backlog, emptyUnits);
+    expect(snap.milestones.map((m) => m.id)).toEqual(["ma", "mb"]);
+  });
+
+  it("labels the synthetic milestone 'launching' when gen-2 has no note", () => {
+    const noNote: TasksState = {
+      ...tasks,
+      gen2: { status: "launching", units: ["mc-x"] },
+    };
+    const snap = buildSnapshot(backlog, noNote);
+    const mc = snap.milestones.find((m) => m.id === "mc");
+    expect(mc?.title).toMatch(/launching/i);
+  });
+});
+
+describe("buildSnapshot — degenerate inputs", () => {
+  it("returns an empty milestone list for an empty backlog and no gen-2", () => {
+    const snap = buildSnapshot(
+      { milestones: [] },
+      {
+        updatedAt: "2026-06-20",
+        generation: 1,
+        phase: "boot",
+        gen1: { status: "in-progress" },
+      },
+    );
+    expect(snap.milestones).toEqual([]);
+    expect(countByStatus(snap).total).toBe(0);
+  });
+
+  it("does not crash when gen1 is absent (units fall back to backlog)", () => {
+    const snap = buildSnapshot(backlog, {
+      updatedAt: "2026-06-20",
+      generation: 1,
+      phase: "boot",
+    });
+    const counts = countByStatus(snap);
+    expect(counts.backlog).toBe(3);
+    expect(counts.merged).toBe(0);
+  });
 });
 
 describe("buildSnapshot — header fields", () => {

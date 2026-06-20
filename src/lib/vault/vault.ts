@@ -175,33 +175,55 @@ const CURRENCY_TOKENS: Record<string, string> = {
  * `defaultCurrency`. Understands thousands separators and a `million`/`m`
  * suffix. Returns `null` when no amount is present.
  *
+ * To avoid mistaking a bare date/year (e.g. the `2026` in `2026-09-30`) for an
+ * amount, a number with **no** explicit currency token must be "money-shaped":
+ * it must carry a thousands separator, a decimal part, or a scale word. A bare
+ * untokenised integer (like a year) is therefore not treated as money.
+ *
  * Examples: `$1,250,000`, `USD 1,250,000`, `EUR 2.5 million`, `£500k`.
  */
 export function parseAmount(
   fragment: string,
   defaultCurrency: string,
 ): Money | null {
-  // currency token (optional) + number (+ optional scale word)
+  // currency token (optional) + number (+ optional scale word). Scanned
+  // globally so an earlier non-money number (e.g. a date's year) is skipped
+  // rather than aborting the parse.
   const re =
-    /(us\$|usd|eur|gbp|chf|[$€£])?\s*([\d][\d,]*(?:\.\d+)?)\s*(million|mn|m|thousand|k)?/i;
-  const m = fragment.match(re);
-  if (!m) return null;
+    /(us\$|usd|eur|gbp|chf|[$€£])?\s*([\d][\d,]*(?:\.\d+)?)\s*(million|mn|m|thousand|k)?/gi;
 
-  const token = m[1]?.toLowerCase();
-  const rawNumber = m[2].replace(/,/g, "");
-  const scaleWord = m[3]?.toLowerCase();
+  for (const m of fragment.matchAll(re)) {
+    const token = m[1]?.toLowerCase();
+    const rawMatch = m[2];
+    const rawNumber = rawMatch.replace(/,/g, "");
+    const scaleWord = m[3]?.toLowerCase();
 
-  if (rawNumber === "" || Number.isNaN(Number(rawNumber))) return null;
+    if (rawNumber === "" || Number.isNaN(Number(rawNumber))) continue;
 
-  let value = Money.of(rawNumber, token ? CURRENCY_TOKENS[token] : defaultCurrency);
+    // Without an explicit currency token, only accept "money-shaped" numbers:
+    // a thousands separator, a decimal point, or a scale word. This stops a
+    // bare year (e.g. `2026` from an ISO date) from being read as money.
+    if (!token) {
+      const moneyShaped =
+        rawMatch.includes(",") || rawMatch.includes(".") || scaleWord != null;
+      if (!moneyShaped) continue;
+    }
 
-  if (scaleWord === "million" || scaleWord === "mn" || scaleWord === "m") {
-    value = value.times(1_000_000);
-  } else if (scaleWord === "thousand" || scaleWord === "k") {
-    value = value.times(1_000);
+    let value = Money.of(
+      rawNumber,
+      token ? CURRENCY_TOKENS[token] : defaultCurrency,
+    );
+
+    if (scaleWord === "million" || scaleWord === "mn" || scaleWord === "m") {
+      value = value.times(1_000_000);
+    } else if (scaleWord === "thousand" || scaleWord === "k") {
+      value = value.times(1_000);
+    }
+
+    return value;
   }
 
-  return value;
+  return null;
 }
 
 /* ------------------------------------------------------------------ *

@@ -65,6 +65,26 @@ describe("parseAmount", () => {
   it("returns null when there is no number", () => {
     expect(parseAmount("no amount here", "USD")).toBeNull();
   });
+
+  it("does not mistake a bare year inside an ISO date for an amount", () => {
+    // The `2026` in the date must NOT be read as money.
+    expect(parseAmount("renewal by no later than 2026-10-01", "USD")).toBeNull();
+  });
+
+  it("skips a leading non-money year and finds the real tokenised amount", () => {
+    // Amount appears AFTER the date in the clause.
+    const m = parseAmount("Premium due on 2026-01-15 of $50,000", "USD");
+    expect(m?.equals(usd("50000"))).toBe(true);
+  });
+
+  it("requires a token, separator, decimal or scale for default-currency amounts", () => {
+    // A bare untokenised integer is ambiguous (could be a year) → conservative null.
+    expect(parseAmount("fee of 45000 annually", "USD")).toBeNull();
+    // …but a thousands separator makes it unambiguous.
+    expect(
+      parseAmount("fee of 45,000 annually", "USD")?.equals(usd("45000")),
+    ).toBe(true);
+  });
 });
 
 describe("extractObligations — single document", () => {
@@ -131,6 +151,42 @@ describe("extractObligations — insurance & trust", () => {
     const obs = extractObligations(doc);
     expect(obs.every((o) => o.amount === undefined)).toBe(true);
     expect(obs.some((o) => o.kind === "deadline")).toBe(true);
+  });
+});
+
+describe("extractObligations — adversarial clauses", () => {
+  const make = (text: string): VaultDocument => ({
+    id: "adv",
+    title: "Adversarial",
+    kind: "insurance-policy",
+    entityIds: [],
+    counterparty: "X",
+    executedOn: "2025-01-01",
+    currency: "USD",
+    text,
+  });
+
+  it("skips a monetary clause that has a date but no parseable amount", () => {
+    // 'premium' is a needsAmount kind; the only number is the date's year, which
+    // is not money-shaped, so nothing should be emitted.
+    expect(extractObligations(make("Premium is due on 2026-01-15."))).toEqual([]);
+  });
+
+  it("extracts the amount even when it follows the date in the clause", () => {
+    const [ob] = extractObligations(
+      make("Premium due on 2026-01-15 of $50,000."),
+    );
+    expect(ob.kind).toBe("premium");
+    expect(ob.dueOn).toBe("2026-01-15");
+    expect(ob.amount?.equals(Money.of("50000", "USD"))).toBe(true);
+  });
+
+  it("never reads a date's year as an obligation amount", () => {
+    const obs = extractObligations(
+      make("Capital call of $1,000,000 due on 2026-09-30."),
+    );
+    expect(obs).toHaveLength(1);
+    expect(obs[0].amount?.equals(usd("1000000"))).toBe(true);
   });
 });
 

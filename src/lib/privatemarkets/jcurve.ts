@@ -61,6 +61,18 @@ export interface JCurve {
 const ZERO = new Decimal(0);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** True when `date` is a shape-valid AND calendar-real ISO `YYYY-MM-DD`. */
+function isRealIsoDate(date: string): boolean {
+  if (!ISO_DATE.test(date)) return false;
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (
+    dt.getUTCFullYear() === y &&
+    dt.getUTCMonth() === m - 1 &&
+    dt.getUTCDate() === d
+  );
+}
+
 interface PreparedEntry {
   date: string;
   kind: CashflowKind;
@@ -70,9 +82,9 @@ interface PreparedEntry {
 /** Chronologically sorted, validated ledger entries (positive magnitudes). */
 function sortedEntries(commitment: Commitment): PreparedEntry[] {
   const entries = commitment.ledger.map((e, i) => {
-    if (!ISO_DATE.test(e.date)) {
+    if (!isRealIsoDate(e.date)) {
       throw new Error(
-        `privatemarkets: jcurve ledger date at index ${i} must be ISO YYYY-MM-DD`,
+        `privatemarkets: jcurve ledger date at index ${i} must be a real ISO YYYY-MM-DD date`,
       );
     }
     const amount = e.amount instanceof Decimal ? e.amount : new Decimal(e.amount);

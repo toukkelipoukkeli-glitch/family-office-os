@@ -119,10 +119,27 @@ function toDecimal(value: Decimal.Value, context: string): Decimal {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * Validate an ISO `YYYY-MM-DD` string and reject calendar-impossible dates
+ * (e.g. `2020-13-40`, `2021-02-29`). Matches the calendar-real check the
+ * downstream {@link xirr} layer enforces, so a date accepted here can never be
+ * silently dropped (and the IRR turned `null`) later.
+ */
 function assertIsoDate(date: string, context: string): string {
   if (!ISO_DATE.test(date)) {
     throw new Error(
       `privatemarkets: ${context} must be ISO YYYY-MM-DD, got ${JSON.stringify(date)}`,
+    );
+  }
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (
+    dt.getUTCFullYear() !== y ||
+    dt.getUTCMonth() !== m - 1 ||
+    dt.getUTCDate() !== d
+  ) {
+    throw new Error(
+      `privatemarkets: ${context} is not a real calendar date: ${JSON.stringify(date)}`,
     );
   }
   return date;

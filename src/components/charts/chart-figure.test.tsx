@@ -135,5 +135,74 @@ describe("ChartFigure", () => {
     expect(table.querySelector("caption")).toHaveTextContent(
       "Exposure by region.",
     );
+    // With no visible figcaption, the figure must not dangle an aria-labelledby
+    // pointing at a non-existent caption id (that would be a broken a11y ref).
+    expect(screen.getByTestId("fig")).not.toHaveAttribute("aria-labelledby");
+  });
+
+  // --- Adversarial / edge cases (independent tester) ---
+
+  it("renders an empty data table (header only) without crashing on zero rows", () => {
+    render(
+      <ChartFigure
+        testId="fig"
+        caption="No data yet."
+        columns={COLUMNS}
+        rows={[]}
+        tableMode="visually-hidden"
+      >
+        <Chart />
+      </ChartFigure>,
+    );
+    const table = screen.getByTestId("fig-table");
+    // Header row still present; no data rows.
+    expect(within(table).getAllByRole("row")).toHaveLength(1);
+    expect(within(table).queryByRole("rowheader")).toBeNull();
+    expect(within(table).getAllByRole("columnheader")).toHaveLength(2);
+  });
+
+  it("does not drop extra cells when a row is longer than the column set", () => {
+    // A row with more cells than declared columns: the wrapper must still render
+    // every cell (no silent data loss) rather than truncating to columns.length.
+    render(
+      <ChartFigure
+        testId="fig"
+        caption="Ragged."
+        columns={COLUMNS}
+        rows={[["US", 55, 99]]}
+        tableMode="visually-hidden"
+      >
+        <Chart />
+      </ChartFigure>,
+    );
+    const table = screen.getByTestId("fig-table");
+    const dataRow = within(table).getAllByRole("row")[1];
+    // 1 row header + 2 data cells = the full 3-cell row is preserved.
+    expect(within(dataRow).getByRole("rowheader", { name: "US" })).toBeTruthy();
+    expect(within(dataRow).getAllByRole("cell")).toHaveLength(2);
+    expect(within(dataRow).getByRole("cell", { name: "99" })).toBeTruthy();
+  });
+
+  it("each toggle instance controls its own table (unique ids, no collision)", () => {
+    render(
+      <>
+        <ChartFigure testId="a" caption="A" columns={COLUMNS} rows={ROWS}>
+          <Chart />
+        </ChartFigure>
+        <ChartFigure testId="b" caption="B" columns={COLUMNS} rows={ROWS}>
+          <Chart />
+        </ChartFigure>
+      </>,
+    );
+    const aControls = screen
+      .getByTestId("a-table-toggle")
+      .getAttribute("aria-controls");
+    const bControls = screen
+      .getByTestId("b-table-toggle")
+      .getAttribute("aria-controls");
+    expect(aControls).toBeTruthy();
+    expect(bControls).toBeTruthy();
+    // Two figures on one page must not share a controlled-region id.
+    expect(aControls).not.toBe(bControls);
   });
 });

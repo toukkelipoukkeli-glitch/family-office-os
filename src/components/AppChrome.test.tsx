@@ -73,4 +73,39 @@ describe("RouteAnnouncer", () => {
       "Ops cockpit page",
     );
   });
+
+  // --- Adversarial / edge cases (independent tester) ---
+
+  it("re-rendering with the same path (StrictMode-style) does not re-announce", () => {
+    const { rerender } = render(<RouteAnnouncer path="/charts" />);
+    // Mounting directly on /charts: treated as the initial path → silent.
+    expect(screen.getByTestId("route-announcer")).toHaveTextContent("");
+
+    // A duplicate render with the unchanged path must stay silent (the ref guard
+    // ignores equal paths — important for React StrictMode double effects).
+    act(() => {
+      rerender(<RouteAnnouncer path="/charts" />);
+    });
+    expect(screen.getByTestId("route-announcer")).toHaveTextContent("");
+  });
+
+  it("announces again when navigating away and back to a prior path", () => {
+    const { rerender } = render(<RouteAnnouncer path="/" />);
+
+    act(() => rerender(<RouteAnnouncer path="/charts" />));
+    expect(screen.getByTestId("route-announcer")).toHaveTextContent(
+      "Charts page",
+    );
+
+    act(() => rerender(<RouteAnnouncer path="/ops" />));
+    expect(screen.getByTestId("route-announcer")).toHaveTextContent(
+      "Ops cockpit page",
+    );
+
+    // Returning to /charts is a real navigation and must be announced anew.
+    act(() => rerender(<RouteAnnouncer path="/charts" />));
+    expect(screen.getByTestId("route-announcer")).toHaveTextContent(
+      "Charts page",
+    );
+  });
 });

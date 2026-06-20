@@ -169,4 +169,93 @@ describe("regressFactors — input validation", () => {
       /singular|collinear/,
     );
   });
+
+  it("throws on a non-finite factor value", () => {
+    const rows: FactorObservation[] = SYNTHETIC_FACTOR_FIXTURE.factors.map(
+      (row) => ({ ...row }),
+    );
+    rows[3] = { ...rows[3], credit: Number.POSITIVE_INFINITY };
+    const y = rows.map(() => 0.01);
+    expect(() =>
+      regressFactors({ portfolioExcessReturns: y, factors: rows }),
+    ).toThrow(/finite/);
+  });
+
+  it("throws when a factor key is missing at an observation", () => {
+    const rows = SYNTHETIC_FACTOR_FIXTURE.factors.map((row) => ({ ...row }));
+    // Drop the `fx` column from one row.
+    const broken = { ...rows[2] } as Partial<FactorObservation>;
+    delete broken.fx;
+    rows[2] = broken as FactorObservation;
+    const y = rows.map(() => 0.01);
+    expect(() =>
+      regressFactors({ portfolioExcessReturns: y, factors: rows }),
+    ).toThrow(/missing/);
+  });
+});
+
+describe("regressFactors — adversarial invariants", () => {
+  it("reconciles contributions + alpha to the mean return on the realistic book", () => {
+    // Holds even with a non-zero residual: OLS with an intercept makes the
+    // fitted-value mean equal the sample mean, so α + Σβⱼ·mean(fⱼ) = mean(y).
+    const r = regressFactors(FAMILY_OFFICE_FACTOR_FIXTURE);
+    const explained = r.alpha.plus(r.totalFactorContribution);
+    expect(explained.toNumber()).toBeCloseTo(r.meanPortfolioReturn.toNumber(), 9);
+  });
+
+  it("is linear: scaling the portfolio scales every beta and alpha by the same factor", () => {
+    const base = regressFactors(SYNTHETIC_FACTOR_FIXTURE);
+    const scaled = regressFactors({
+      ...SYNTHETIC_FACTOR_FIXTURE,
+      portfolioExcessReturns: SYNTHETIC_FACTOR_FIXTURE.portfolioExcessReturns.map(
+        (v) => new Decimal(v).times(2).toString(),
+      ),
+    });
+    expect(scaled.alpha.toNumber()).toBeCloseTo(base.alpha.toNumber() * 2, 9);
+    for (const l of scaled.loadings) {
+      const baseBeta = base.loadings.find((b) => b.key === l.key)!.beta.toNumber();
+      expect(l.beta.toNumber()).toBeCloseTo(baseBeta * 2, 9);
+    }
+    // R² is scale-invariant.
+    expect(scaled.rSquared.toNumber()).toBeCloseTo(base.rSquared.toNumber(), 9);
+  });
+
+  it("recovers betas exactly even after a constant shift when fitting an intercept", () => {
+    // y' = y + c ⇒ same betas, alpha increases by exactly c.
+    const c = 0.0123;
+    const shifted = regressFactors({
+      ...SYNTHETIC_FACTOR_FIXTURE,
+      portfolioExcessReturns: SYNTHETIC_FACTOR_FIXTURE.portfolioExcessReturns.map(
+        (v) => new Decimal(v).plus(c).toString(),
+      ),
+    });
+    for (const l of shifted.loadings) {
+      expect(l.beta.toNumber()).toBeCloseTo(SYNTHETIC_TRUE_BETAS[l.key], 9);
+    }
+    expect(shifted.alpha.toNumber()).toBeCloseTo(SYNTHETIC_TRUE_ALPHA + c, 9);
+    expect(shifted.rSquared.toNumber()).toBeCloseTo(1, 9);
+  });
+
+  it("adjusted R² never exceeds R² and both stay in [−∞,1] for the realistic fit", () => {
+    const r = regressFactors(FAMILY_OFFICE_FACTOR_FIXTURE);
+    expect(r.adjustedRSquared.lessThanOrEqualTo(r.rSquared)).toBe(true);
+    expect(r.rSquared.toNumber()).toBeLessThanOrEqual(1);
+    expect(r.adjustedRSquared.toNumber()).toBeLessThanOrEqual(1);
+  });
+
+  it("treats Decimal and string and number inputs identically", () => {
+    const rows = SYNTHETIC_FACTOR_FIXTURE.factors;
+    const asNumbers = regressFactors({
+      portfolioExcessReturns: SYNTHETIC_FACTOR_FIXTURE.portfolioExcessReturns.map(
+        (v) => new Decimal(v).toNumber(),
+      ),
+      factors: rows,
+      fitIntercept: true,
+    });
+    const asDecimals = regressFactors(SYNTHETIC_FACTOR_FIXTURE);
+    for (const l of asNumbers.loadings) {
+      const d = asDecimals.loadings.find((b) => b.key === l.key)!.beta.toNumber();
+      expect(l.beta.toNumber()).toBeCloseTo(d, 9);
+    }
+  });
 });

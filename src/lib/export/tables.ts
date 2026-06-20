@@ -49,7 +49,8 @@ export function netWorthExport(model: NetWorthDashboardModel): ExportDataset {
   const rows: CsvCell[][] = model.byAssetClass.map((d) => [
     d.assetClass,
     assetClassLabel(d.assetClass),
-    d.value.amount.toNumber(),
+    // Currency stays an exact Decimal string even in CSV — never floating-point.
+    d.value.amount.toFixed(),
     d.weight.toNumber(),
     d.holdingCount,
   ]);
@@ -158,7 +159,8 @@ export function taxTimelineExport(timeline: TaxTimeline): ExportDataset {
     e.severity,
     e.title,
     e.detail,
-    e.amount ? e.amount.amount.toNumber() : null,
+    // Currency stays an exact Decimal string even in CSV — never floating-point.
+    e.amount ? e.amount.amount.toFixed() : null,
     e.windowEnd ?? null,
   ]);
 

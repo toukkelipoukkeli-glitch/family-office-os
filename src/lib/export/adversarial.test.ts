@@ -132,20 +132,25 @@ describe("triggerDownload — resource safety", () => {
     expect(removed).toHaveLength(1);
   });
 
-  it("revokes the object URL even when click() throws", () => {
-    const { deps, revoked } = fakeDeps();
+  it("revokes the URL and detaches the anchor even when click() throws", () => {
+    const { deps, revoked, appended, removed } = fakeDeps();
+    const throwingAnchor = {
+      click: () => {
+        throw new Error("boom");
+      },
+    } as unknown as HTMLAnchorElement;
     const throwing: DownloadDeps = {
       ...deps,
-      createElement: () =>
-        ({
-          click: () => {
-            throw new Error("boom");
-          },
-        }) as unknown as HTMLAnchorElement,
+      createElement: () => throwingAnchor,
     };
     expect(() =>
       triggerDownload({ filename: "x.json", content: "{}" }, throwing),
     ).toThrow(/boom/);
+    // Resource safety on the failure path: the object URL is revoked AND the
+    // transient anchor is removed (append/remove are symmetric), so a throwing
+    // click() cannot leak memory or leave a stray node in the document.
     expect(revoked).toEqual(["blob:fake-url"]);
+    expect(appended).toEqual([throwingAnchor]);
+    expect(removed).toEqual([throwingAnchor]);
   });
 });

@@ -71,17 +71,18 @@ export function triggerDownload(
     type: file.mimeType ?? "text/plain;charset=utf-8",
   });
   const url = deps.createObjectURL(blob);
+  const anchor = deps.createElement("a");
+  anchor.href = url;
+  anchor.download = file.filename;
+  anchor.rel = "noopener";
+  // Some browsers require the element to be in the document to honour a
+  // programmatic click; append, click, then remove. The removal runs in a
+  // `finally` so a throwing `click()` cannot leave the transient node attached.
+  deps.appendChild(anchor);
   try {
-    const anchor = deps.createElement("a");
-    anchor.href = url;
-    anchor.download = file.filename;
-    anchor.rel = "noopener";
-    // Some browsers require the element to be in the document to honour a
-    // programmatic click; append, click, then remove.
-    deps.appendChild(anchor);
     anchor.click();
-    deps.removeChild(anchor);
   } finally {
+    deps.removeChild(anchor);
     deps.revokeObjectURL(url);
   }
 }

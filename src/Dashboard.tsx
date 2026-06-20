@@ -190,6 +190,13 @@ export function Dashboard() {
               Giving
             </a>
             <a
+              href="#/insurance"
+              data-testid="nav-insurance"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Insurance
+            </a>
+            <a
               href="#/vault"
               data-testid="nav-vault"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

@@ -26,6 +26,7 @@ const FeesPage = lazy(() => import("@/fees/FeesPage"));
 const LookThroughPage = lazy(() => import("@/lookthrough/LookThroughPage"));
 const EstatePlannerPage = lazy(() => import("@/estate/EstatePlannerPage"));
 const GivingPage = lazy(() => import("@/giving/GivingPage"));
+const InsurancePage = lazy(() => import("@/insurance/InsurancePage"));
 const CompanyProfilePage = lazy(() => import("@/company/CompanyProfilePage"));
 const PipelinePage = lazy(() => import("@/pipeline/PipelinePage"));
 const PrivateMarketsPage = lazy(
@@ -116,6 +117,7 @@ function routeElement(path: string) {
   if (path === "/insights") return <InsightsPage />;
   if (path === "/estate") return <EstatePlannerPage />;
   if (path === "/giving") return <GivingPage />;
+  if (path === "/insurance") return <InsurancePage />;
   if (path === "/vault") return <VaultPage />;
   if (path === "/pipeline" || path.startsWith("/pipeline/")) {
     return <PipelinePage path={path} />;

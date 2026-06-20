@@ -1,20 +1,13 @@
 {
   "updatedAt": "2026-06-20",
-  "generation": 4,
-  "phase": "gen-3 complete (9/9); gen-4 building",
+  "generation": 5,
+  "phase": "gen-4 complete (7/7); gen-5 building",
   "gen1": { "status": "complete", "merged": "35/35" },
   "gen2": { "status": "complete", "merged": "8/10" },
-  "gen3": {
-    "status": "complete",
-    "merged": "9/9",
-    "units": ["m9-pe-lifecycle", "m9-benchmark", "m9-tax-estimate", "m9-hardening", "m9-ips", "m9-cashflow", "m9-reporting", "m9-vault", "m9-risk-limits"],
-    "note": "Recovered through an ops-e2e robustness fix (PR #54) + a transient ~1h GitHub Actions outage; all 9 merged. main: ~2260 tests, ~55 PR merges, 24 routes."
-  },
-  "gen4": {
-    "status": "building",
-    "units": ["m10-rebalance", "m10-currency", "m10-stress", "m10-philanthropy", "m10-insurance", "m10-home", "m10-ai-insights"],
-    "note": "PM-designed (auto-ideation returned a degenerate stub). Tax-aware rebalancing, currency hedging, historical stress library, philanthropy, insurance tracker, executive home overview, + one isolated fixture-tested Gemini AI-insights panel (graceful fallback; uses the previously-unused GEMINI key)."
-  },
-  "reviewBots": "CodeRabbit reviewing; Greptile at trial cap. Gate = CI + independent adversarial review + visual QA.",
+  "gen3": { "status": "complete", "merged": "9/9" },
+  "gen4": { "status": "complete", "merged": "7/7", "units": ["m10-rebalance", "m10-currency", "m10-stress", "m10-philanthropy", "m10-insurance", "m10-home", "m10-ai-insights"] },
+  "gen5": { "status": "building", "units": ["m11-liquidity-coverage", "m11-goal-funding", "m11-factor-attribution", "m11-tax-timeline", "m11-concentration-risk", "m11-entity-consolidation", "m11-manager-scorecard", "m11-data-quality"] },
+  "stats": "main: ~62 PR merges, ~2509 tests, 31 routes, healthy; live Computer-Use sweep ran in gen-4",
+  "note": "Gen-4 was clean (7/7). Steered gen-5+ ideation toward depth/polish/gaps (a11y, exports, search, perf, unused keys) rather than more niche pages, as the app is now very feature-rich.",
   "blocked": []
 }

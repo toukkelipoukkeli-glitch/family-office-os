@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
@@ -136,6 +137,7 @@ export function AppShell({
 
           <div className="flex items-center gap-4">
             {actions}
+            <CommandPaletteTrigger />
             <ThemeToggle />
             {backLink}
           </div>

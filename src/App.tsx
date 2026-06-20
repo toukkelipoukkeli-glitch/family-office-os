@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 
+import { CommandPalette } from "@/components/CommandPalette";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
 import { matchRoute } from "@/lib/routes";
@@ -45,13 +46,21 @@ function App() {
   const path = useHashRoute();
 
   return (
-    <ErrorBoundary
-      // Reset the boundary's error state whenever the route changes so a user
-      // can navigate away from a crashed page without a full reload.
-      key={path}
-    >
-      <Suspense fallback={<RouteFallback />}>{routeElement(path)}</Suspense>
-    </ErrorBoundary>
+    <>
+      <ErrorBoundary
+        // Reset the boundary's error state whenever the route changes so a user
+        // can navigate away from a crashed page without a full reload.
+        key={path}
+      >
+        <Suspense fallback={<RouteFallback />}>{routeElement(path)}</Suspense>
+      </ErrorBoundary>
+      {/*
+       * The command palette is mounted at the app root, outside the per-route
+       * error boundary, so Cmd/Ctrl-K works on every page and keeps working even
+       * if a page crashes into the boundary.
+       */}
+      <CommandPalette />
+    </>
   );
 }
 

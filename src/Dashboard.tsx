@@ -1,3 +1,4 @@
+import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NetWorthDashboard } from "@/networth/NetWorthDashboard";
 import { seededNetWorth } from "@/lib/networth";
@@ -40,6 +41,7 @@ export function Dashboard() {
                 </a>
               ))}
             </nav>
+            <CommandPaletteTrigger />
             <ThemeToggle />
           </div>
         </div>

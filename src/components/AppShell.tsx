@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 /** Content-column max width. Mirrors the Tailwind widths pages already use. */
@@ -133,14 +134,11 @@ export function AppShell({
         >
           {titleBlock}
 
-          {actions ? (
-            <div className="flex items-center gap-4">
-              {actions}
-              {backLink}
-            </div>
-          ) : (
-            backLink
-          )}
+          <div className="flex items-center gap-4">
+            {actions}
+            <ThemeToggle />
+            {backLink}
+          </div>
         </div>
       </header>
 

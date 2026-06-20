@@ -162,6 +162,13 @@ export function Dashboard() {
               Estate
             </a>
             <a
+              href="#/giving"
+              data-testid="nav-giving"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Giving
+            </a>
+            <a
               href="#/vault"
               data-testid="nav-vault"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

@@ -145,7 +145,14 @@ describe("App", () => {
         });
         // The page rendered without tripping the error boundary.
         expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-        // A heading is present (the shared chrome always renders an <h1>).
+        // Ensure we did NOT silently fall back to the dashboard shell — only
+        // the dashboard renders the "Family Office OS" heading, so its absence
+        // proves the registry resolved this route to its own page. (A routing
+        // regression that always rendered <Dashboard /> would otherwise pass.)
+        expect(
+          screen.queryByRole("heading", { name: "Family Office OS" }),
+        ).not.toBeInTheDocument();
+        // A page heading is present (the shared chrome always renders an <h1>).
         expect(
           screen.getAllByRole("heading").length,
         ).toBeGreaterThan(0);

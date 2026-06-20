@@ -78,7 +78,43 @@ test.describe("route registry + AppShell", () => {
       await expect(page.getByRole("alert")).toHaveCount(0);
       // The shared chrome always renders a single page heading.
       await expect(page.locator("h1").first()).toBeVisible();
+      // Crucially, the route must NOT have fallen back to the dashboard shell:
+      // only the dashboard renders the "Family Office OS" heading, so its
+      // absence proves the registry resolved this href to a real page. Without
+      // this, a regression that always rendered <Dashboard /> would pass.
+      await expect(
+        page.getByRole("heading", { name: "Family Office OS" }),
+      ).toHaveCount(0);
     }
+  });
+
+  test("registry nav is keyboard-operable (focus + typed Enter activation)", async ({
+    page,
+  }) => {
+    // The core workflow for this refactor is navigation via the registry-driven
+    // nav. Exercise it with real keyboard input — focus a nav link and activate
+    // it by pressing Enter — to prove the generated <a> links are operable, not
+    // just clickable. (No page in this routing/chrome refactor has a form field
+    // to fill, so keyboard activation is the realistic typed-input path here.)
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", { name: "Family Office OS" }),
+    ).toBeVisible();
+
+    const feesLink = page.getByTestId("nav-fees");
+    await feesLink.focus();
+    await expect(feesLink).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(page.getByTestId("fees-page")).toBeVisible();
+    const back = page.getByTestId("fees-back");
+    await expect(back).toBeVisible();
+    // Activate the AppShell back link with the keyboard too.
+    await back.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.getByRole("heading", { name: "Family Office OS" }),
+    ).toBeVisible();
   });
 
   test("the pipeline prefix route still drills into a deal (AppShell subtitle)", async ({

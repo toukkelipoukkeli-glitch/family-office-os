@@ -55,8 +55,10 @@ describe("compact output is ICU-build-independent (no trailing .0)", () => {
 
 describe("negative-zero never leaks a bare '-0'", () => {
   it("signed compact money treats -0 as +", () => {
+    // True negative zero (-0) is treated as non-negative, so it renders +$0.
     expect(formatMoneySignedCompact(-0, "USD")).toBe("+$0");
-    // A tiny negative that compacts to zero magnitude must not show '-$0'.
+    // A genuinely negative value that compacts to zero magnitude keeps its
+    // minus sign: it is real (negative) data, not negative zero.
     expect(formatMoneySignedCompact(-0.0001, "USD")).toBe("-$0");
   });
 

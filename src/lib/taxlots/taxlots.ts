@@ -248,29 +248,17 @@ function matchDisposal(
   const lots = openBySymbol.get(disposal.symbol) ?? [];
   const wanted = dec(disposal.quantity);
 
-  let ordered: OpenLot[];
-  if (method === "spec-id") {
-    ordered = resolveSpecId(disposal, lots);
-  } else {
-    ordered = orderLots(lots, method);
-  }
-
   // First pass: figure out how many units come from each lot, so we can
   // allocate proceeds proportionally and exactly.
-  const consumed: { lot: OpenLot; qty: Decimal }[] = [];
-  let need = wanted;
-  for (const lot of ordered) {
-    if (need.lessThanOrEqualTo(0)) break;
-    if (lot.remaining.lessThanOrEqualTo(0)) continue;
-    const take = Decimal.min(need, lot.remaining);
-    consumed.push({ lot, qty: take });
-    need = need.minus(take);
-  }
-  if (need.greaterThan(0)) {
+  const consumed: { lot: OpenLot; qty: Decimal }[] =
+    method === "spec-id"
+      ? resolveSpecId(disposal, lots, wanted)
+      : planByOrder(orderLots(lots, method), wanted);
+
+  const planned = consumed.reduce((a, c) => a.plus(c.qty), new Decimal(0));
+  if (planned.lessThan(wanted)) {
     throw new Error(
-      `Disposal ${disposal.id} sells ${disposal.quantity} ${disposal.symbol} but only ${wanted
-        .minus(need)
-        .toFixed()} units are available`,
+      `Disposal ${disposal.id} sells ${disposal.quantity} ${disposal.symbol} but only ${planned.toFixed()} units are available`,
     );
   }
 
@@ -318,8 +306,39 @@ function matchDisposal(
   };
 }
 
-/** Resolve the explicit `spec-id` lot picks into an ordered open-lot list. */
-function resolveSpecId(disposal: Disposal, lots: OpenLot[]): OpenLot[] {
+/**
+ * Build a consumption plan from a method-ordered lot list, draining each lot in
+ * turn until `wanted` units are taken. Stops early once satisfied; never takes
+ * more than a lot's remaining quantity.
+ */
+function planByOrder(
+  ordered: OpenLot[],
+  wanted: Decimal,
+): { lot: OpenLot; qty: Decimal }[] {
+  const consumed: { lot: OpenLot; qty: Decimal }[] = [];
+  let need = wanted;
+  for (const lot of ordered) {
+    if (need.lessThanOrEqualTo(0)) break;
+    if (lot.remaining.lessThanOrEqualTo(0)) continue;
+    const take = Decimal.min(need, lot.remaining);
+    consumed.push({ lot, qty: take });
+    need = need.minus(take);
+  }
+  return consumed;
+}
+
+/**
+ * Resolve the explicit `spec-id` lot picks into a consumption plan. Each pick's
+ * `quantity` is honored exactly: we draw that many units from the named lot.
+ * Validates that every pick names a known lot of this symbol, that no lot is
+ * over-drawn (including across duplicate picks of the same lot), and that the
+ * picked quantities sum to exactly the disposal quantity.
+ */
+function resolveSpecId(
+  disposal: Disposal,
+  lots: OpenLot[],
+  wanted: Decimal,
+): { lot: OpenLot; qty: Decimal }[] {
   const picks = disposal.picks;
   if (!picks || picks.length === 0) {
     throw new Error(
@@ -327,7 +346,11 @@ function resolveSpecId(disposal: Disposal, lots: OpenLot[]): OpenLot[] {
     );
   }
   const byId = new Map(lots.map((l) => [l.id, l]));
-  const ordered: OpenLot[] = [];
+  // Track how much we've already drawn from each lot so duplicate picks of the
+  // same lot can't collectively over-draw it.
+  const drawn = new Map<string, Decimal>();
+  const consumed: { lot: OpenLot; qty: Decimal }[] = [];
+  let total = new Decimal(0);
   for (const pick of picks) {
     const lot = byId.get(pick.lotId);
     if (!lot) {
@@ -335,9 +358,24 @@ function resolveSpecId(disposal: Disposal, lots: OpenLot[]): OpenLot[] {
         `Disposal ${disposal.id} picks unknown or wrong-symbol lot ${pick.lotId}`,
       );
     }
-    ordered.push(lot);
+    const qty = dec(pick.quantity);
+    const already = drawn.get(lot.id) ?? new Decimal(0);
+    const after = already.plus(qty);
+    if (after.greaterThan(lot.remaining)) {
+      throw new Error(
+        `Disposal ${disposal.id} picks ${after.toFixed()} units from lot ${lot.id} but only ${lot.remaining.toFixed()} are available`,
+      );
+    }
+    drawn.set(lot.id, after);
+    consumed.push({ lot, qty });
+    total = total.plus(qty);
   }
-  return ordered;
+  if (!total.equals(wanted)) {
+    throw new Error(
+      `Disposal ${disposal.id} picks ${total.toFixed()} units but sells ${wanted.toFixed()}`,
+    );
+  }
+  return consumed;
 }
 
 /**

@@ -119,6 +119,54 @@ describe("lot selection methods", () => {
     expect(r.gain.amount.toFixed()).toBe("800");
   });
 
+  it("spec-id honors per-lot pick quantities (does not just drain in order)", () => {
+    // Sell 10: pick 3 from L1 and 7 from L2. The engine must split exactly that
+    // way, NOT drain L1's full 10 units and ignore L2.
+    const r = realizeGains(
+      ledgerWithPicks([
+        { lotId: "L1", quantity: "3" },
+        { lotId: "L2", quantity: "7" },
+      ]),
+      "spec-id",
+    );
+    const slices = r.disposals[0].slices;
+    expect(slices.map((s) => `${s.lotId}:${s.quantity}`)).toEqual(["L1:3", "L2:7"]);
+    // Basis: 3 @ $100 + 7 @ $150 = 300 + 1050 = 1350.
+    expect(r.basis.amount.toFixed()).toBe("1350");
+    expect(r.gain.amount.toFixed()).toBe("650"); // 2000 - 1350
+    // L1 acquired 2022, L2 2023 -> both long-term as of 2024-06-01.
+    expect(r.longTermGain.amount.toFixed()).toBe("650");
+    expect(r.shortTermGain.amount.toFixed()).toBe("0");
+  });
+
+  it("spec-id supports two picks against the same lot without over-drawing", () => {
+    // Sell 8 from L1, expressed as 5 + 3 from the same lot.
+    const ledger: Ledger = {
+      currency: "USD",
+      acquisitions: [L1, L2, L3],
+      disposals: [
+        {
+          id: "S1",
+          symbol: "AAPL",
+          date: "2024-06-01",
+          quantity: "8",
+          proceeds: "1600",
+          picks: [
+            { lotId: "L1", quantity: "5" },
+            { lotId: "L1", quantity: "3" },
+          ],
+        },
+      ],
+    };
+    const r = realizeGains(ledger, "spec-id");
+    const slices = r.disposals[0].slices;
+    expect(slices.map((s) => `${s.lotId}:${s.quantity}`)).toEqual(["L1:5", "L1:3"]);
+    expect(r.basis.amount.toFixed()).toBe("800"); // 8 @ $100
+    // L1 drained to 8 of 10; 2 remain open.
+    const open = openLots(ledger, "spec-id");
+    expect(open.find((l) => l.lotId === "L1")?.quantity).toBe("2");
+  });
+
   it("HIFO minimizes the realized gain vs FIFO/LIFO", () => {
     const fifo = realizeGains(ledgerWithPicks(), "fifo").gain.amount;
     const lifo = realizeGains(ledgerWithPicks(), "lifo").gain.amount;
@@ -237,6 +285,67 @@ describe("error handling", () => {
 
   it("throws when spec-id supplies no picks", () => {
     expect(() => realizeGains(ledgerWithPicks(), "spec-id")).toThrow(/no lot picks/);
+  });
+
+  it("throws when spec-id picks fewer units than the disposal sells", () => {
+    // Sells 10 but only picks 4.
+    expect(() =>
+      realizeGains(ledgerWithPicks([{ lotId: "L1", quantity: "4" }]), "spec-id"),
+    ).toThrow(/picks 4 units but sells 10/);
+  });
+
+  it("throws when spec-id picks more units than the disposal sells", () => {
+    expect(() =>
+      realizeGains(
+        ledgerWithPicks([
+          { lotId: "L1", quantity: "10" },
+          { lotId: "L2", quantity: "5" },
+        ]),
+        "spec-id",
+      ),
+    ).toThrow(/picks 15 units but sells 10/);
+  });
+
+  it("throws when spec-id over-draws a single lot beyond its remaining units", () => {
+    // L1 only has 10 units; pick 11.
+    const ledger: Ledger = {
+      currency: "USD",
+      acquisitions: [L1],
+      disposals: [
+        {
+          id: "S1",
+          symbol: "AAPL",
+          date: "2024-06-01",
+          quantity: "11",
+          proceeds: "2200",
+          picks: [{ lotId: "L1", quantity: "11" }],
+        },
+      ],
+    };
+    expect(() => realizeGains(ledger, "spec-id")).toThrow(/only 10/);
+  });
+
+  it("throws when duplicate spec-id picks collectively over-draw a lot", () => {
+    // L1 has 10; two picks of 6 each = 12 > 10. Must reject, not silently
+    // over-sell the lot.
+    const ledger: Ledger = {
+      currency: "USD",
+      acquisitions: [L1],
+      disposals: [
+        {
+          id: "S1",
+          symbol: "AAPL",
+          date: "2024-06-01",
+          quantity: "12",
+          proceeds: "2400",
+          picks: [
+            { lotId: "L1", quantity: "6" },
+            { lotId: "L1", quantity: "6" },
+          ],
+        },
+      ],
+    };
+    expect(() => realizeGains(ledger, "spec-id")).toThrow(/only 10/);
   });
 });
 

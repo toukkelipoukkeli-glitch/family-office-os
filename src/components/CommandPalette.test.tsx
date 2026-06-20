@@ -215,4 +215,92 @@ describe("CommandPalette", () => {
     expect(input).toHaveFocus();
     expect(screen.getByTestId("outside")).not.toHaveFocus();
   });
+
+  // --- Adversarial / edge-case coverage (independent tester) -----------------
+
+  it("End jumps to the last option and Home back to the first", async () => {
+    const user = userEvent.setup();
+    render(<CommandPalette />);
+    await openAndFocus(user);
+    await user.keyboard("{End}");
+    let options = screen.getAllByRole("option");
+    expect(options[options.length - 1]).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await user.keyboard("{Home}");
+    options = screen.getAllByRole("option");
+    expect(options[0]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("wraps from last back to first with ArrowDown", async () => {
+    const user = userEvent.setup();
+    render(<CommandPalette />);
+    await openAndFocus(user);
+    await user.keyboard("{End}");
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getAllByRole("option")[0]).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  it("runs the toggle-theme quick action without navigating", async () => {
+    const user = userEvent.setup();
+    window.location.hash = "#/risk";
+    render(<CommandPalette />);
+    await pressCmdK(user);
+    await screen.findByTestId("command-palette");
+    await user.click(
+      screen.getByTestId("command-option-action:toggle-theme"),
+    );
+    // Theme toggle must NOT change the route, and must close the palette.
+    expect(window.location.hash).toBe("#/risk");
+    await waitFor(() =>
+      expect(screen.queryByTestId("command-palette")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("restores focus to the previously-focused element on close", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button data-testid="opener">opener</button>
+        <CommandPalette />
+      </>,
+    );
+    const opener = screen.getByTestId("opener");
+    opener.focus();
+    expect(opener).toHaveFocus();
+    await openAndFocus(user);
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
+  it("opens via Cmd-K even when focus is inside another text input", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <input data-testid="other-input" />
+        <CommandPalette />
+      </>,
+    );
+    const other = screen.getByTestId("other-input");
+    other.focus();
+    await user.keyboard("{Meta>}k{/Meta}");
+    expect(await screen.findByTestId("command-palette")).toBeInTheDocument();
+  });
+
+  it("keeps Enter inert when the result set is empty (no crash, stays open)", async () => {
+    const user = userEvent.setup();
+    render(<CommandPalette />);
+    await pressCmdK(user);
+    const input = await screen.findByTestId("command-palette-input");
+    await user.type(input, "zzzxqq");
+    await screen.findByTestId("command-palette-empty");
+    await user.keyboard("{Enter}");
+    // No command to run -> no navigation, palette remains open.
+    expect(window.location.hash).toBe("");
+    expect(screen.getByTestId("command-palette")).toBeInTheDocument();
+  });
 });

@@ -119,4 +119,63 @@ describe("filterCommands", () => {
     filterCommands("risk", commands);
     expect(commands.map((c) => c.id)).toEqual(before);
   });
+
+  // --- Adversarial / edge-case coverage (independent tester) -----------------
+
+  it("ignores surrounding whitespace in the query (trims before scoring)", () => {
+    const padded = filterCommands("  fees  ", commands);
+    const tight = filterCommands("fees", commands);
+    // A query of only-whitespace is treated as empty (full list, registry order).
+    expect(filterCommands("   ", commands)).toHaveLength(commands.length);
+    // Padded vs tight produce the same ranked result set.
+    expect(padded.map((c) => c.id)).toEqual(tight.map((c) => c.id));
+    expect(padded[0]?.label).toBe("Fees");
+  });
+
+  it("ranks exact > prefix > substring > keyword > fuzzy deterministically", () => {
+    // Construct commands that hit each tier for the query "ab".
+    const probe: Command[] = [
+      { id: "fuzzy", label: "a x b", hint: "", kind: "action" }, // subsequence only
+      { id: "keyword", label: "zzz", hint: "", kind: "action", keywords: "ab" },
+      { id: "substr", label: "zabz", hint: "", kind: "action" },
+      { id: "prefix", label: "abz", hint: "", kind: "action" },
+      { id: "exact", label: "ab", hint: "", kind: "action" },
+    ];
+    const ranked = filterCommands("ab", probe).map((c) => c.id);
+    expect(ranked).toEqual(["exact", "prefix", "substr", "keyword", "fuzzy"]);
+  });
+
+  it("breaks score ties by preserving registry order (stable sort)", () => {
+    // Two routes whose labels are equal-length exact-prefix matches of the query
+    // tie on score; the earlier-in-registry one must stay first.
+    const ties: Command[] = [
+      { id: "first", label: "Risk", hint: "", kind: "navigation" },
+      { id: "second", label: "Risk", hint: "", kind: "navigation" },
+    ];
+    expect(filterCommands("ris", ties).map((c) => c.id)).toEqual([
+      "first",
+      "second",
+    ]);
+  });
+
+  it("matches a query case-insensitively regardless of label casing", () => {
+    const res = filterCommands("FEES", commands);
+    expect(res[0]?.label).toBe("Fees");
+  });
+
+  it("commandHref handles a route whose path contains a hyphen", () => {
+    const lookthrough = commands.find((c) => c.label === "Look-through");
+    // Guard: only assert if such a route exists in the registry.
+    if (lookthrough) {
+      expect(commandHref(lookthrough)?.startsWith("#/")).toBe(true);
+    }
+    // The dashboard quick action is NOT a navigation command -> no href.
+    const dash = commands.find((c) => c.id === "action:dashboard");
+    expect(dash && commandHref(dash)).toBeUndefined();
+  });
+
+  it("fuzzyMatch requires every query char (a near-miss fails)", () => {
+    // All but the final char are present in order -> still a non-match.
+    expect(fuzzyMatch("cashx", "Cashflow")).toBe(false);
+  });
 });

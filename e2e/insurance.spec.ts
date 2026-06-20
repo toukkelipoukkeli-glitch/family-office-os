@@ -10,6 +10,8 @@ const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
 
 test.describe("insurance coverage tracker", () => {
+  test.use({ trace: "on" });
+
   test("navigates from the dashboard to the tracker and back", async ({
     page,
   }) => {

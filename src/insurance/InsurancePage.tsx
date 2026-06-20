@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import {
   analyzeInsurance,
+  CRITICAL_COVERAGE_RATIO,
   formatRatio,
   POLICY_KIND_LABELS,
   seededInsuranceBook,
@@ -105,7 +106,7 @@ function CoverageBar({ cat, currency }: { cat: CategorySummary; currency: string
   const clamped = pct === null ? 100 : Math.min(100, Math.max(0, pct));
   const target = WELL_COVERED_RATIO.times(100).toNumber();
   const ok = ratio ? ratio.greaterThanOrEqualTo(WELL_COVERED_RATIO) : true;
-  const critical = ratio ? ratio.lessThan("0.5") : false;
+  const critical = ratio ? ratio.lessThan(CRITICAL_COVERAGE_RATIO) : false;
   const fillColor = !hasExposure
     ? "var(--color-chart-1)"
     : critical

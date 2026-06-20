@@ -4,6 +4,7 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { alphaVantageFixtures } from "../src/lib/equities/fixtures";
+import { resetDefaultFetchGuard } from "../src/lib/equities/fetch-guard";
 import { api } from "./_generated/api";
 import schema from "./schema";
 
@@ -32,6 +33,9 @@ const originalKey = process.env.ALPHAVANTAGE_API_KEY;
 
 beforeEach(() => {
   process.env.ALPHAVANTAGE_API_KEY = "TEST_KEY";
+  // Each action test expects a fresh network call; drop the shared guard's
+  // cache + token bucket so state never leaks between cases.
+  resetDefaultFetchGuard();
 });
 
 afterEach(() => {

@@ -69,7 +69,7 @@ test.describe("route registry + AppShell", () => {
     const hrefs = await links.evaluateAll((els) =>
       els.map((el) => el.getAttribute("href")),
     );
-    expect(hrefs.length).toBe(38);
+    expect(hrefs.length).toBe(39);
 
     for (const href of hrefs) {
       expect(href, "nav link has an href").toBeTruthy();

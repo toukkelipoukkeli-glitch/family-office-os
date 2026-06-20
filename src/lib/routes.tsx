@@ -228,6 +228,16 @@ export const ROUTES: readonly RouteDef[] = [
     component: lazy(() => import("@/fees/FeesPage")),
   },
   {
+    path: "/holdings",
+    label: "Holdings",
+    group: "holdings",
+    navTestId: "nav-holdings",
+    component: lazy(() => import("@/holdings/HoldingsIndexPage")),
+    // The index is built from the tagged holding portfolio, so the global tag
+    // filter narrows it live.
+    filterScope: "applies",
+  },
+  {
     path: "/captable",
     label: "Cap table",
     group: "holdings",

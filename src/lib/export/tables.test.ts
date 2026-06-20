@@ -4,6 +4,7 @@ import { toCsv } from "./csv";
 import { toJson } from "./json";
 import {
   buildExportFile,
+  holdingsExport,
   managersExport,
   netWorthExport,
   reportExport,
@@ -11,10 +12,12 @@ import {
 } from "./tables";
 import { MIME } from "./download";
 
-import { seededNetWorth } from "@/lib/networth";
+import { seededNetWorth, networthRateTable } from "@/lib/networth";
 import { buildScorecardView, MANAGERS, PERIODS_PER_YEAR } from "@/lib/managers";
 import { buildTaxTimeline, seededTimelineInputs } from "@/lib/taxtimeline";
 import { buildBoardReport } from "@/lib/reporting";
+import { buildHoldingsView } from "@/lib/holdings";
+import { seededPortfolio } from "@/fixtures";
 
 const scorecardView = buildScorecardView({
   managers: MANAGERS,
@@ -22,6 +25,9 @@ const scorecardView = buildScorecardView({
 });
 const timeline = buildTaxTimeline(seededTimelineInputs);
 const report = buildBoardReport();
+const holdingsView = buildHoldingsView(seededPortfolio, networthRateTable, {
+  sort: [{ key: "value", direction: "desc" }],
+});
 
 describe("net worth export", () => {
   const ds = netWorthExport(seededNetWorth);
@@ -96,9 +102,47 @@ describe("buildExportFile", () => {
       managersExport(scorecardView),
       taxTimelineExport(timeline),
       reportExport(report),
+      holdingsExport(holdingsView),
     ]) {
       const parsed = JSON.parse(toJson(ds.json));
       expect(parsed).toBeTypeOf("object");
     }
+  });
+});
+
+describe("holdings export", () => {
+  const ds = holdingsExport(holdingsView);
+
+  it("produces byte-stable CSV", () => {
+    expect(toCsv(ds.table)).toMatchSnapshot();
+  });
+
+  it("produces byte-stable JSON", () => {
+    expect(toJson(ds.json)).toMatchSnapshot();
+  });
+
+  it("emits one CSV row per visible holding, in the view's order", () => {
+    expect(ds.table.rows).toHaveLength(holdingsView.rows.length);
+    expect(ds.table.rows[0][0]).toBe(holdingsView.rows[0].name);
+  });
+
+  it("serializes money as exact decimal strings (never floats)", () => {
+    const json = JSON.parse(toJson(ds.json)) as {
+      holdings: { value: string; costBasis: string; gain: string }[];
+    };
+    for (const h of json.holdings) {
+      expect(typeof h.value).toBe("string");
+      expect(typeof h.costBasis).toBe("string");
+      expect(typeof h.gain).toBe("string");
+    }
+  });
+
+  it("is deterministic across repeated calls", () => {
+    expect(buildExportFile(ds, "csv").content).toBe(
+      buildExportFile(holdingsExport(holdingsView), "csv").content,
+    );
+    expect(buildExportFile(ds, "json").content).toBe(
+      buildExportFile(holdingsExport(holdingsView), "json").content,
+    );
   });
 });

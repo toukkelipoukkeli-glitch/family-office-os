@@ -89,6 +89,17 @@ describe("riskcockpit edge: exact-threshold breach semantics", () => {
     expect(justAbove.compliant).toBe(true);
   });
 
+  it("clamps exceedance to 0 on a clean check (positive only when breached)", () => {
+    const r = run(sampleRiskLimits);
+    for (const check of r.checks) {
+      if (check.breached) {
+        expect(check.exceedance).toBeGreaterThan(0);
+      } else {
+        expect(check.exceedance).toBe(0);
+      }
+    }
+  });
+
   it("does NOT breach a liquidity floor exactly equal to the liquid weight", () => {
     const liquidWeight = (9000000 + 4800000 + 2500000 + 150000) / 31792500;
     const r = run({
@@ -208,6 +219,31 @@ describe("riskcockpit edge: malformed-limit validation", () => {
         max: 0.1,
       }),
     ).toThrow(/unknown kind/);
+  });
+
+  it("rejects two concentration caps on the same asset class", () => {
+    expect(() =>
+      validateLimitSet({
+        id: "dup-class",
+        name: "dup-class",
+        limits: [
+          {
+            id: "re-a",
+            kind: "concentration",
+            label: "RE A",
+            assetClass: "real_estate",
+            max: 0.3,
+          },
+          {
+            id: "re-b",
+            kind: "concentration",
+            label: "RE B",
+            assetClass: "real_estate",
+            max: 0.4,
+          },
+        ],
+      }),
+    ).toThrow(/duplicate concentration cap for asset class real_estate/);
   });
 
   it("evaluateRiskCockpit validates the limit set before evaluating", () => {

@@ -22,6 +22,7 @@ import {
   sampleRiskLimits,
   type ConcentrationLine,
   type LimitCheck,
+  type LiquidityTier,
   type RiskCockpitReport,
   type RiskLimitSet,
 } from "@/lib/riskcockpit";
@@ -217,12 +218,19 @@ export function RiskCockpitView({
     [entities, holdings, selectedRoot, limitSet, returns],
   );
 
+  // Color each tier by its stable position in the canonical tier order so the
+  // donut slice and its legend swatch always agree, even when a tier is zero
+  // (filtered out of the donut). Reindexing after the filter would desync the
+  // donut colors from the unfiltered legend below.
+  const tierColor = (tier: LiquidityTier): string =>
+    seriesColor(report.liquidityTiers.findIndex((t) => t.tier === tier));
+
   const tierDonut: DonutDatum[] = report.liquidityTiers
     .filter((t) => t.value.amount.greaterThan(0))
-    .map((t, i) => ({
+    .map((t) => ({
       label: t.label,
       value: t.value.amount.toNumber(),
-      color: seriesColor(i),
+      color: tierColor(t.tier),
     }));
 
   const totalBreaches = report.breaches.length;
@@ -385,7 +393,7 @@ export function RiskCockpitView({
                   className="w-full space-y-1.5"
                   data-testid="risk-liquidity-legend"
                 >
-                  {report.liquidityTiers.map((t, i) => (
+                  {report.liquidityTiers.map((t) => (
                     <li
                       key={t.tier}
                       className="flex items-center justify-between gap-3 text-sm"
@@ -396,7 +404,7 @@ export function RiskCockpitView({
                         <span
                           aria-hidden
                           className="inline-block h-3 w-3 shrink-0 rounded-sm"
-                          style={{ background: seriesColor(i) }}
+                          style={{ background: tierColor(t.tier) }}
                         />
                         <span className="truncate">{t.label}</span>
                       </span>

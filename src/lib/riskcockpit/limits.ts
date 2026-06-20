@@ -148,12 +148,24 @@ export function validateLimit(limit: RiskLimit): RiskLimit {
  */
 export function validateLimitSet(set: RiskLimitSet): RiskLimitSet {
   const seen = new Set<string>();
+  const cappedClasses = new Set<AssetClass>();
   for (const l of set.limits) {
     if (seen.has(l.id)) {
       throw new Error(`limit set ${set.id}: duplicate limit id ${l.id}`);
     }
     seen.add(l.id);
     validateLimit(l);
+    // The cockpit concentration view is single-cap-per-asset-class: it indexes
+    // one cap per class. Reject a second cap on the same class so the report
+    // semantics stay unambiguous rather than silently keeping the last one.
+    if (l.kind === "concentration") {
+      if (cappedClasses.has(l.assetClass)) {
+        throw new Error(
+          `limit set ${set.id}: duplicate concentration cap for asset class ${l.assetClass}`,
+        );
+      }
+      cappedClasses.add(l.assetClass);
+    }
   }
   return set;
 }

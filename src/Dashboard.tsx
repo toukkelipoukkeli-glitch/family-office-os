@@ -15,6 +15,13 @@ export function Dashboard() {
           </h1>
           <nav className="flex items-center gap-4">
             <a
+              href="#/reports"
+              data-testid="nav-reports"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Reports
+            </a>
+            <a
               href="#/charts"
               data-testid="nav-charts"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"
@@ -153,6 +160,13 @@ export function Dashboard() {
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"
             >
               Estate
+            </a>
+            <a
+              href="#/vault"
+              data-testid="nav-vault"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Vault
             </a>
             <a
               href="#/ops"

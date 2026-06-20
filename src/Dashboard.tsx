@@ -15,6 +15,13 @@ export function Dashboard() {
           </h1>
           <nav className="flex items-center gap-4">
             <a
+              href="#/home"
+              data-testid="nav-home"
+              className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Overview
+            </a>
+            <a
               href="#/reports"
               data-testid="nav-reports"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

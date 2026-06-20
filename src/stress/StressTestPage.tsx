@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { WaterfallChart } from "@/scenario/WaterfallChart";
 import { buildStressModel, STRESS_BASE_INPUT, type StressModel } from "@/lib/stress";
+import { useHashQueryParam } from "@/lib/hash-location";
 import {
   formatMoneyCompact,
   formatMoneySignedCompact,
@@ -90,17 +91,14 @@ export function StressTestPage({ model }: StressTestPageProps) {
   const signedCompact = (value: number): string =>
     formatMoneySignedCompact(convert(value), currency);
 
-  // Default selection: the worst episode (first result, worst drawdown).
-  const [selectedId, setSelectedId] = React.useState<string>(
-    () => stress.results[0]?.scenario.id ?? "",
-  );
+  // Default selection: the worst episode (first result, worst drawdown). The
+  // selected episode is a deep-linkable sub-view stored on the route's hash
+  // (`#/stress?e=<id>`), so a chosen episode is shareable and survives reload.
+  const defaultEpisodeId = stress.results[0]?.scenario.id ?? "";
+  const [selectedId, setSelectedId] = useHashQueryParam("e", defaultEpisodeId);
 
-  React.useEffect(() => {
-    if (!stress.results.some((r) => r.scenario.id === selectedId)) {
-      setSelectedId(stress.results[0]?.scenario.id ?? "");
-    }
-  }, [stress, selectedId]);
-
+  // Resolve to a real episode; an unknown id in the URL falls back to the worst
+  // episode so the detail panel never renders against a missing result.
   const selected =
     stress.results.find((r) => r.scenario.id === selectedId) ??
     stress.results[0];
@@ -212,7 +210,7 @@ export function StressTestPage({ model }: StressTestPageProps) {
             <CardContent>
               <ul className="space-y-1.5" data-testid="stress-list">
                 {stress.results.map((r) => {
-                  const active = r.scenario.id === selectedId;
+                  const active = r.scenario.id === selected?.scenario.id;
                   return (
                     <li key={r.scenario.id}>
                       <button

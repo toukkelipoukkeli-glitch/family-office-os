@@ -89,4 +89,35 @@ describe("ScenarioCockpit", () => {
     render(<ScenarioCockpit />);
     expect(screen.getByTestId("cockpit-back")).toHaveAttribute("href", "#/");
   });
+
+  // --- Deep-linkable sub-view state (m13) --------------------------------
+
+  it("selects the scenario named in the hash deep link on mount", () => {
+    window.location.hash = "#/scenarios?s=drought";
+    render(<ScenarioCockpit />);
+    const selected = screen
+      .getAllByTestId("scenario-select")
+      .find((b) => b.getAttribute("data-scenario") === "drought");
+    expect(selected).toHaveAttribute("data-selected", "true");
+    expect(screen.getByTestId("waterfall-title")).toHaveTextContent(/drought/i);
+  });
+
+  it("writes the selected scenario to the hash so it is shareable", async () => {
+    window.location.hash = "#/scenarios";
+    const user = userEvent.setup();
+    render(<ScenarioCockpit />);
+    const droughtBtn = screen
+      .getAllByTestId("scenario-select")
+      .find((b) => b.getAttribute("data-scenario") === "drought");
+    await user.click(droughtBtn!);
+    expect(window.location.hash).toBe("#/scenarios?s=drought");
+  });
+
+  it("falls back to the worst scenario for an unknown deep-link id", () => {
+    window.location.hash = "#/scenarios?s=not-a-real-scenario";
+    render(<ScenarioCockpit />);
+    // The first (worst) tornado bar is selected rather than a missing scenario.
+    const buttons = screen.getAllByTestId("scenario-select");
+    expect(buttons[0]).toHaveAttribute("data-selected", "true");
+  });
 });

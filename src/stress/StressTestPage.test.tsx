@@ -94,4 +94,36 @@ describe("StressTestPage", () => {
     render(<StressTestPage />);
     expect(screen.getByTestId("stress-back")).toHaveAttribute("href", "#/");
   });
+
+  // --- Deep-linkable sub-view state (m13) --------------------------------
+
+  it("selects the episode named in the hash deep link on mount", () => {
+    window.location.hash = "#/stress?e=covid-2020";
+    render(<StressTestPage />);
+    const selected = screen
+      .getAllByTestId("stress-select")
+      .find((b) => b.getAttribute("data-scenario") === "covid-2020");
+    expect(selected).toHaveAttribute("data-selected", "true");
+    expect(screen.getByTestId("stress-detail-title")).toHaveTextContent(
+      /covid/i,
+    );
+  });
+
+  it("writes the selected episode to the hash so it is shareable", async () => {
+    window.location.hash = "#/stress";
+    const user = userEvent.setup();
+    render(<StressTestPage />);
+    const covidBtn = screen
+      .getAllByTestId("stress-select")
+      .find((b) => b.getAttribute("data-scenario") === "covid-2020");
+    await user.click(covidBtn!);
+    expect(window.location.hash).toBe("#/stress?e=covid-2020");
+  });
+
+  it("falls back to the worst episode for an unknown deep-link id", () => {
+    window.location.hash = "#/stress?e=not-a-real-episode";
+    render(<StressTestPage />);
+    const buttons = screen.getAllByTestId("stress-select");
+    expect(buttons[0]).toHaveAttribute("data-selected", "true");
+  });
 });

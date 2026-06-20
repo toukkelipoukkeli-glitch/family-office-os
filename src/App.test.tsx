@@ -120,13 +120,16 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("does not match #/ops with a trailing query suffix", async () => {
-    // currentHashPath keeps the suffix, so the exact "/ops" check fails and we
-    // fall back to the dashboard rather than mis-rendering the cockpit.
+  it("resolves a route even with a deep-link query suffix on the hash", async () => {
+    // Deep-linkable sub-view state lives as a query param on the route's hash
+    // (e.g. `#/scenarios?s=rates-up`). The router matches on the *pathname*
+    // (before any `?`), so a trailing query no longer drops us to the dashboard:
+    // `#/ops?tab=blocked` still mounts the ops cockpit, carrying the sub-view
+    // param for the page to read.
     setHash("#/ops?tab=blocked");
     render(<App />);
     expect(
-      await screen.findByRole("heading", { name: /family office os/i }),
+      await screen.findByRole("heading", { name: /ops cockpit/i }),
     ).toBeInTheDocument();
   });
 

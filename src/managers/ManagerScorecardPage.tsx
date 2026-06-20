@@ -26,6 +26,7 @@ import {
   type ScorecardView,
 } from "@/lib/managers";
 import { managersExport } from "@/lib/export";
+import { useHashQueryParam } from "@/lib/hash-location";
 import { formatMoneyCompact } from "@/lib/format";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
@@ -117,9 +118,18 @@ export function ManagerScorecardPage({
     );
   }
 
-  const [selectedId, setSelectedId] = React.useState<string | undefined>(
-    view?.selectedId,
-  );
+  // The selected manager is a deep-linkable sub-view stored on the route's hash
+  // (`#/managers?m=<id>`), so a chosen manager is shareable and survives reload.
+  // An empty param means "no explicit selection" — the engine then defaults to
+  // the top-ranked manager. In controlled mode (a `view` prop, used by tests)
+  // the URL is ignored so the page renders exactly the supplied view.
+  const [hashId, setHashId] = useHashQueryParam("m", "");
+  const controlled = Boolean(view);
+  const selectedId = controlled
+    ? view?.selectedId
+    : hashId === ""
+      ? undefined
+      : hashId;
 
   const model = React.useMemo<ScorecardView>(() => {
     if (view) return view;
@@ -131,7 +141,6 @@ export function ManagerScorecardPage({
   }, [view, managers, selectedId]);
 
   const { roster, detail } = model;
-  const controlled = Boolean(view);
 
   // Re-express every base-USD AUM figure in the chosen reporting currency at the
   // render boundary (no-op when reporting === base). Scores, returns and growth
@@ -205,7 +214,7 @@ export function ManagerScorecardPage({
                         data-manager={r.id}
                         data-selected={selected}
                         aria-selected={selected}
-                        onClick={() => !controlled && setSelectedId(r.id)}
+                        onClick={() => !controlled && setHashId(r.id)}
                         className={cn(
                           "border-b border-border/60 transition-colors",
                           !controlled && "cursor-pointer hover:bg-muted/50",

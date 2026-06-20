@@ -20,6 +20,7 @@ import {
 } from "@/lib/consolidation";
 import { entityKindLabel } from "@/lib/org";
 import type { Entity } from "@/lib/org";
+import { useHashQueryParam } from "@/lib/hash-location";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
 
@@ -30,6 +31,13 @@ export interface ConsolidationViewProps {
   intercompany?: readonly IntercompanyInvestment[];
   /** Initial root entity id; defaults to the fixture trust. */
   rootId?: string;
+  /**
+   * When true, the selected root entity is stored on the route's hash
+   * (`#/consolidation?entity=<id>`) so it is deep-linkable, shareable and
+   * survives reload. Defaults to false: the view keeps purely local selection
+   * state (used by component tests that render the view in isolation).
+   */
+  deepLink?: boolean;
 }
 
 /** Stat tile. */
@@ -79,9 +87,21 @@ export function ConsolidationView({
   entities = CONSOLIDATION_ENTITIES,
   intercompany = CONSOLIDATION_INTERCOMPANY,
   rootId = CONSOLIDATION_ROOT_ID,
+  deepLink = false,
 }: ConsolidationViewProps) {
-  const [selectedRoot, setSelectedRoot] = React.useState(rootId);
-  React.useEffect(() => setSelectedRoot(rootId), [rootId]);
+  // Two selection sources, chosen by `deepLink`. Both hooks are always called
+  // (rules of hooks); only the active one drives the consolidation. In deep-link
+  // mode the root lives on the hash so it is shareable and reload-proof; the
+  // `rootId` prop seeds the fallback (i.e. the URL when no `entity` is set).
+  const [localRoot, setLocalRoot] = React.useState(rootId);
+  React.useEffect(() => setLocalRoot(rootId), [rootId]);
+  const [hashRoot, setHashRoot] = useHashQueryParam("entity", rootId);
+
+  // Guard against an unknown id in the URL (e.g. a stale/edited link) by falling
+  // back to the prop default, so the selector never points at a missing entity.
+  const known = entities.some((e) => e.id === hashRoot);
+  const selectedRoot = deepLink ? (known ? hashRoot : rootId) : localRoot;
+  const setSelectedRoot = deepLink ? setHashRoot : setLocalRoot;
 
   const report: ConsolidationReport = React.useMemo(
     () => consolidate({ entities, intercompany, rootId: selectedRoot }),
@@ -413,7 +433,7 @@ export function ConsolidationPage() {
           and minority interests removed, so no underlying asset is double-counted.
           Rendered from deterministic fixtures.
         </p>
-        <ConsolidationView />
+        <ConsolidationView deepLink />
       </main>
     </div>
   );

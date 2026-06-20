@@ -20,6 +20,9 @@ import {
   type SingleNameExposure,
 } from "@/lib/concentration";
 
+import { useReportingMoney } from "@/lib/reporting-currency";
+import type { Money } from "@/lib/money";
+
 import { formatMoneyCompact, formatPct } from "./format";
 
 export interface ConcentrationViewProps {
@@ -77,10 +80,12 @@ function NameBar({
   name,
   limit,
   scale,
+  money,
 }: {
   name: SingleNameExposure;
   limit: number;
   scale: number;
+  money: (m: Money) => string;
   }) {
   const breached = !name.residual && name.weight > limit;
   const fillPct = Math.min(100, name.weight * scale * 100);
@@ -127,7 +132,7 @@ function NameBar({
           </span>
           <span className="text-muted-foreground">
             {" "}
-            · {formatMoneyCompact(name.value)}
+            · {money(name.value)}
           </span>
         </span>
       </div>
@@ -195,13 +200,20 @@ export function ConcentrationView({
 
   const breachCount = report.issuers.filter((i) => i.weight > nameLimit).length;
 
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary: convert the exact Money first, then format/scale. Weights
+  // and donut geometry are scale-invariant ratios, so only the labelled units
+  // change. No-op when the reporting currency is the base.
+  const { convertMoney } = useReportingMoney();
+  const money = (m: Money): string => formatMoneyCompact(convertMoney(m));
+
   // Sector donut (top sectors; merge a long tail visually is unnecessary here).
   const sectorColor = (i: number) => seriesColor(i);
   const sectorDonut: DonutDatum[] = report.sectors
     .filter((s) => s.value.amount.greaterThan(0))
     .map((s, i) => ({
       label: s.label,
-      value: s.value.amount.toNumber(),
+      value: convertMoney(s.value).amount.toNumber(),
       color: sectorColor(i),
     }));
 
@@ -263,8 +275,9 @@ export function ConcentrationView({
       {/* Summary stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
+          testid="conc-stat-networth"
           label="Net worth"
-          value={formatMoneyCompact(report.total)}
+          value={money(report.total)}
           sub={report.bookName}
         />
         <Stat
@@ -318,6 +331,7 @@ export function ConcentrationView({
                       name={n}
                       limit={nameLimit}
                       scale={scale}
+                      money={money}
                     />
                   ))}
                 </div>
@@ -355,7 +369,7 @@ export function ConcentrationView({
                     data={sectorDonut}
                     size={180}
                     thickness={0.42}
-                    centerLabel={formatMoneyCompact(report.total)}
+                    centerLabel={money(report.total)}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">No exposure.</p>

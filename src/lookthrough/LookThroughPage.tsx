@@ -24,6 +24,9 @@ import {
 } from "@/lib/lookthrough";
 import type { Entity } from "@/lib/org";
 
+import { useReportingMoney } from "@/lib/reporting-currency";
+import type { Money } from "@/lib/money";
+
 import { formatMoneyCompact, formatPct } from "./format";
 
 export interface LookThroughViewProps {
@@ -38,13 +41,15 @@ function Stat({
   label,
   value,
   sub,
+  testid = "lt-stat",
 }: {
   label: string;
   value: string;
   sub?: string;
+  testid?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border p-4" data-testid="lt-stat">
+    <div className="rounded-lg border border-border p-4" data-testid={testid}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
       {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
@@ -53,7 +58,13 @@ function Stat({
 }
 
 /** Contribution drill-down for the selected asset-class line. */
-function ContributionPanel({ line }: { line: ExposureLine | null }) {
+function ContributionPanel({
+  line,
+  money,
+}: {
+  line: ExposureLine | null;
+  money: (m: Money) => string;
+}) {
   if (!line) {
     return (
       <p
@@ -71,7 +82,7 @@ function ContributionPanel({ line }: { line: ExposureLine | null }) {
           {assetClassLabel(line.assetClass)}
         </h3>
         <p className="text-xs text-muted-foreground">
-          {formatMoneyCompact(line.value)} look-through ·{" "}
+          {money(line.value)} look-through ·{" "}
           {formatPct(line.weight)} of total
         </p>
       </div>
@@ -86,11 +97,11 @@ function ContributionPanel({ line }: { line: ExposureLine | null }) {
             <div className="flex items-center justify-between">
               <span className="truncate font-medium">{c.entityName}</span>
               <span className="tabular-nums font-semibold">
-                {formatMoneyCompact(c.attributed)}
+                {money(c.attributed)}
               </span>
             </div>
             <div className="mt-0.5 flex items-center justify-between text-xs text-muted-foreground tabular-nums">
-              <span>gross {formatMoneyCompact(c.gross)}</span>
+              <span>gross {money(c.gross)}</span>
               <span>× {formatPct(c.effectivePct)} owned</span>
             </div>
           </li>
@@ -134,15 +145,22 @@ export function LookThroughView({
   // Compare the root's own direct book value to its consolidated look-through.
   const ownDirect = directGross(holdings, selectedRoot, report.currency);
 
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary: convert the exact Money first, then format/scale. Weights
+  // and chart geometry are scale-invariant ratios, so only the labelled units
+  // change. No-op when the reporting currency is the base.
+  const { convertMoney } = useReportingMoney();
+  const money = (m: Money): string => formatMoneyCompact(convertMoney(m));
+
   const donutData: DonutDatum[] = report.lines.map((l, i) => ({
     label: assetClassLabel(l.assetClass),
-    value: l.value.amount.toNumber(),
+    value: convertMoney(l.value).amount.toNumber(),
     color: seriesColor(i),
   }));
 
   const barData: BarDatum[] = report.lines.map((l) => ({
     label: assetClassLabel(l.assetClass),
-    value: l.value.amount.toNumber(),
+    value: convertMoney(l.value).amount.toNumber(),
   }));
 
   return (
@@ -170,8 +188,9 @@ export function LookThroughView({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
+          testid="lt-stat-value"
           label="Look-through value"
-          value={formatMoneyCompact(report.total)}
+          value={money(report.total)}
           sub={`owned by ${report.rootName}`}
         />
         <Stat label="Asset classes" value={report.lines.length.toString()} />
@@ -188,7 +207,7 @@ export function LookThroughView({
         />
         <Stat
           label="Direct book value"
-          value={formatMoneyCompact(ownDirect)}
+          value={money(ownDirect)}
           sub="root's own balance sheet"
         />
       </div>
@@ -213,7 +232,7 @@ export function LookThroughView({
                     data={donutData}
                     size={220}
                     thickness={0.42}
-                    centerLabel={formatMoneyCompact(report.total)}
+                    centerLabel={money(report.total)}
                   />
                 ) : (
                   <p
@@ -323,7 +342,7 @@ export function LookThroughView({
                           </span>
                         </td>
                         <td className="py-2 text-right tabular-nums font-medium">
-                          {formatMoneyCompact(l.value)}
+                          {money(l.value)}
                         </td>
                         <td className="py-2 text-right tabular-nums text-muted-foreground">
                           {formatPct(l.weight)}
@@ -339,7 +358,7 @@ export function LookThroughView({
                       className="py-2 text-right tabular-nums"
                       data-testid="lt-table-total"
                     >
-                      {formatMoneyCompact(report.total)}
+                      {money(report.total)}
                     </td>
                     <td className="py-2 text-right tabular-nums">
                       {report.lines.length > 0 ? "100%" : "0%"}
@@ -358,7 +377,7 @@ export function LookThroughView({
             <CardDescription>Entity-by-entity attribution</CardDescription>
           </CardHeader>
           <CardContent>
-            <ContributionPanel line={selectedLine} />
+            <ContributionPanel line={selectedLine} money={money} />
           </CardContent>
         </Card>
       </div>

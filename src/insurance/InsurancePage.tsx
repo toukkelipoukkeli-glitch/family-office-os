@@ -29,10 +29,19 @@ import {
   type PolicyStatus,
 } from "@/lib/insurance";
 import { formatMoney } from "@/lib/format";
+import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
-function money(currency: string, value: number, compactN = true): string {
-  return formatMoney(value, currency, { compact: compactN });
+/** A money formatter bound to a reporting currency. */
+type MoneyFn = (value: number, compactN?: boolean) => string;
+
+/**
+ * Build a money formatter bound to the chosen reporting currency. Re-expresses
+ * each base-USD figure at the render boundary (no-op when reporting === base).
+ */
+function makeMoney(rm: ReportingMoney): MoneyFn {
+  return (value: number, compactN = true): string =>
+    formatMoney(rm.convert(value), rm.currency, { compact: compactN });
 }
 
 const num = (m: { amount: { toNumber(): number } }) => m.amount.toNumber();
@@ -95,7 +104,7 @@ const STATUS_LABELS: Record<PolicyStatus, string> = {
 };
 
 /** A category coverage-vs-exposure row, drawn as a labelled meter. */
-function CoverageBar({ cat, currency }: { cat: CategorySummary; currency: string }) {
+function CoverageBar({ cat, money }: { cat: CategorySummary; money: MoneyFn }) {
   const hasExposure = !cat.exposure.isZero();
   const ratio = cat.coverageRatio;
   const pct = ratio ? ratio.times(100).toNumber() : null;
@@ -116,11 +125,11 @@ function CoverageBar({ cat, currency }: { cat: CategorySummary; currency: string
       <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
         <span className="font-medium">{cat.label}</span>
         <span className="tabular-nums text-muted-foreground">
-          {money(currency, num(cat.activeCoverage))}
+          {money(num(cat.activeCoverage))}
           {hasExposure && (
             <>
               {" / "}
-              {money(currency, num(cat.exposure))}
+              {money(num(cat.exposure))}
             </>
           )}
         </span>
@@ -181,7 +190,10 @@ export function InsurancePage({ book }: InsurancePageProps) {
     () => analyzeInsurance(insuranceBook),
     [insuranceBook],
   );
-  const ccy = analysis.currency;
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary (no-op when reporting === base). Coverage meters are ratios
+  // of same-currency values and are scale-invariant, so only labels change unit.
+  const money = makeMoney(useReportingMoney());
 
   const towerRatio = analysis.liabilityCoverageRatio;
   const towerCovered = towerRatio
@@ -228,23 +240,21 @@ export function InsurancePage({ book }: InsurancePageProps) {
           <Kpi
             testId="kpi-coverage"
             label="Active coverage"
-            value={money(ccy, num(analysis.totalActiveCoverage))}
+            value={money(num(analysis.totalActiveCoverage))}
             hint={`${analysis.activePolicyCount} active policies`}
             icon={<ShieldCheck className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-premium"
             label="Annual premium"
-            value={money(ccy, num(analysis.totalAnnualPremium))}
+            value={money(num(analysis.totalAnnualPremium))}
             hint="across active policies"
           />
           <Kpi
             testId="kpi-tower"
             label="Liability tower"
             value={towerRatio ? formatRatio(towerRatio) : "—"}
-            hint={`${money(ccy, num(analysis.liabilityTowerCoverage))} vs ${money(
-              ccy,
-              num(insuranceBook.exposure.netWorth),
+            hint={`${money(num(analysis.liabilityTowerCoverage))} vs ${money(num(insuranceBook.exposure.netWorth),
             )} net worth`}
             tone={towerCovered ? "up" : "down"}
             icon={<Umbrella className="size-3.5" aria-hidden="true" />}
@@ -279,7 +289,7 @@ export function InsurancePage({ book }: InsurancePageProps) {
           </CardHeader>
           <CardContent className="space-y-5" data-testid="coverage-bars">
             {analysis.categories.map((cat) => (
-              <CoverageBar key={cat.kind} cat={cat} currency={ccy} />
+              <CoverageBar key={cat.kind} cat={cat} money={money} />
             ))}
           </CardContent>
         </Card>
@@ -310,7 +320,7 @@ export function InsurancePage({ book }: InsurancePageProps) {
               ) : (
                 <ul className="space-y-2" data-testid="gap-list">
                   {analysis.gaps.map((gap) => (
-                    <GapRow key={gap.id} gap={gap} currency={ccy} />
+                    <GapRow key={gap.id} gap={gap} money={money} />
                   ))}
                 </ul>
               )}
@@ -365,10 +375,10 @@ export function InsurancePage({ book }: InsurancePageProps) {
                           </p>
                         </td>
                         <td className="py-2 text-right tabular-nums">
-                          {money(ccy, num(p.coverage))}
+                          {money(num(p.coverage))}
                         </td>
                         <td className="py-2 text-right tabular-nums">
-                          {money(ccy, num(p.annualPremium))}
+                          {money(num(p.annualPremium))}
                         </td>
                       </tr>
                     ))}
@@ -383,7 +393,7 @@ export function InsurancePage({ book }: InsurancePageProps) {
   );
 }
 
-function GapRow({ gap, currency }: { gap: CoverageGap; currency: string }) {
+function GapRow({ gap, money }: { gap: CoverageGap; money: MoneyFn }) {
   const meta = SEVERITY_META[gap.severity];
   return (
     <li
@@ -408,7 +418,7 @@ function GapRow({ gap, currency }: { gap: CoverageGap; currency: string }) {
         <p className="mt-0.5 text-xs text-muted-foreground">{gap.detail}</p>
         {gap.shortfall && (
           <p className="mt-0.5 text-xs font-medium text-[var(--color-chart-down)]">
-            {money(currency, num(gap.shortfall))} shortfall
+            {money(num(gap.shortfall))} shortfall
           </p>
         )}
       </div>

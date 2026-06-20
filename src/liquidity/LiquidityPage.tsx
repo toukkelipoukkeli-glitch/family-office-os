@@ -23,17 +23,8 @@ import {
   formatMoneyWhole,
   formatMultiple,
 } from "@/lib/format";
+import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
-
-/** Compact currency, e.g. `$9.2M`, in the model's currency. */
-function compact(value: number, currency: string): string {
-  return formatMoneyCompact(value, currency);
-}
-
-/** Full currency with no fractional cents, e.g. `$9,190,000`. */
-function whole(value: number, currency: string): string {
-  return formatMoneyWhole(value, currency);
-}
 
 /** A coverage ratio as `2.02×`, or `—` when undefined. */
 function coverageLabel(ratio: number | null): string {
@@ -103,16 +94,26 @@ export interface LiquidityPageProps {
  */
 export function LiquidityPage({ model }: LiquidityPageProps) {
   const lq = React.useMemo(() => model ?? buildLiquidityModel(), [model]);
-  const { kpis, months, reserves, currency } = lq;
+  const { kpis, months, reserves } = lq;
 
-  const availableSeries = months.map((m) => m.availableLiquidity);
-  const obligationSeries = months.map((m) => m.obligation);
+  // Re-express every base-currency figure in the chosen reporting currency at
+  // the render boundary (no-op when the reporting currency is the model base).
+  const { currency, convert } = useReportingMoney();
+  /** Compact currency, e.g. `$9.2M`, in the reporting currency. */
+  const compact = (value: number): string =>
+    formatMoneyCompact(convert(value), currency);
+  /** Full currency with no fractional cents, e.g. `$9,190,000`. */
+  const whole = (value: number): string =>
+    formatMoneyWhole(convert(value), currency);
+
+  const availableSeries = months.map((m) => convert(m.availableLiquidity));
+  const obligationSeries = months.map((m) => convert(m.obligation));
   const periodLabels = months.map((m) => monthLabel(m.period));
 
   // Per-tier reserve bar chart: deployable value after the stress haircut.
   const reserveBars = reserves.map((r) => ({
     label: r.label,
-    value: r.deployable,
+    value: convert(r.deployable),
   }));
 
   const hasShortfall = kpis.firstShortfallPeriod !== null;
@@ -184,21 +185,21 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
           <Kpi
             testId="kpi-liquidity"
             label="Deployable"
-            value={compact(kpis.totalLiquidity, currency)}
+            value={compact(kpis.totalLiquidity)}
             hint="after stress haircuts"
             icon={<Droplets className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-obligations"
             label="Obligations"
-            value={compact(kpis.totalObligations, currency)}
+            value={compact(kpis.totalObligations)}
             hint="calls + burn"
             icon={<Banknote className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-calls"
             label="Capital calls"
-            value={compact(kpis.totalCalls, currency)}
+            value={compact(kpis.totalCalls)}
             hint="committed-but-uncalled"
           />
           <Kpi
@@ -224,7 +225,7 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
           <Kpi
             testId="kpi-shortfall"
             label="Shortfall"
-            value={compact(kpis.totalShortfall, currency)}
+            value={compact(kpis.totalShortfall)}
             hint={hasShortfall ? "forced-sale risk" : "none — fully covered"}
             tone={hasShortfall ? "warn" : "up"}
           />
@@ -342,13 +343,13 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
                     >
                       <td className="py-2 pr-3 font-medium">{r.label}</td>
                       <td className="py-2 px-3 text-right tabular-nums">
-                        {whole(r.gross, currency)}
+                        {whole(r.gross)}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
                         {(r.haircut * 100).toFixed(0)}%
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums">
-                        {whole(r.deployable, currency)}
+                        {whole(r.deployable)}
                       </td>
                       <td className="py-2 pl-3 text-right tabular-nums text-muted-foreground">
                         {r.availableFromMonth === 0
@@ -411,10 +412,10 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
                           {monthLabel(m.period)}
                         </td>
                         <td className="py-2 px-3 text-right tabular-nums">
-                          {whole(m.availableLiquidity, currency)}
+                          {whole(m.availableLiquidity)}
                         </td>
                         <td className="py-2 px-3 text-right tabular-nums text-[var(--color-chart-down)]">
-                          {whole(m.obligation, currency)}
+                          {whole(m.obligation)}
                         </td>
                         <td
                           className={cn(
@@ -434,10 +435,10 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
                               : "text-muted-foreground",
                           )}
                         >
-                          {m.shortfall > 0 ? whole(m.shortfall, currency) : "—"}
+                          {m.shortfall > 0 ? whole(m.shortfall) : "—"}
                         </td>
                         <td className="py-2 pl-3 text-right tabular-nums">
-                          {whole(m.closingLiquidity, currency)}
+                          {whole(m.closingLiquidity)}
                         </td>
                       </tr>
                     ))}

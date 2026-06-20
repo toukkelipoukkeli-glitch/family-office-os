@@ -26,10 +26,19 @@ import {
   type GoalFunding,
 } from "@/lib/goals";
 import { formatMoney } from "@/lib/format";
+import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
-function money(currency: string, value: number, compactN = true): string {
-  return formatMoney(value, currency, { compact: compactN });
+/** A money formatter bound to a reporting currency. */
+type MoneyFn = (value: number, compactN?: boolean) => string;
+
+/**
+ * Build a money formatter bound to the chosen reporting currency. Re-expresses
+ * each base-USD figure at the render boundary (no-op when reporting === base).
+ */
+function makeMoney(rm: ReportingMoney): MoneyFn {
+  return (value: number, compactN = true): string =>
+    formatMoney(rm.convert(value), rm.currency, { compact: compactN });
 }
 
 const num = (m: { amount: { toNumber(): number } }) => m.amount.toNumber();
@@ -111,7 +120,10 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
     () => analyzeFundingPlan(fundingPlan),
     [fundingPlan],
   );
-  const ccy = summary.currency;
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary (no-op when reporting === base). Funded-ratio progress bars
+  // are scale-invariant, so only the labelled values change unit.
+  const money = makeMoney(useReportingMoney());
 
   const totalTarget = num(summary.totalTarget);
   const covered = num(summary.dedicatedCovered);
@@ -145,21 +157,21 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
           <Kpi
             testId="kpi-target"
             label="Total target"
-            value={money(ccy, totalTarget)}
+            value={money(totalTarget)}
             hint={`${summary.goals.length} goals`}
             icon={<Target className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-dedicated"
             label="Dedicated (today)"
-            value={money(ccy, num(summary.totalDedicatedNow))}
-            hint={`${money(ccy, num(summary.totalDedicatedAtDue))} grown to due`}
+            value={money(num(summary.totalDedicatedNow))}
+            hint={`${money(num(summary.totalDedicatedAtDue))} grown to due`}
             icon={<Wallet className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-gap"
             label="Funding gap"
-            value={money(ccy, gap)}
+            value={money(gap)}
             hint={`${summary.shortfallCount} of ${summary.goals.length} short`}
             tone={gap > 0 ? "down" : "up"}
             icon={
@@ -195,7 +207,7 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
           <CardHeader>
             <CardTitle>Dedicated vs. shortfall</CardTitle>
             <CardDescription>
-              Of the {money(ccy, totalTarget, false)} required across all goals
+              Of the {money(totalTarget, false)} required across all goals
               (in due-date money), how much is covered by dedicated capital and
               how much is still short. Surpluses are capped at each goal's target
               so they cannot mask another goal's gap.
@@ -211,7 +223,7 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
                 className="flex items-center justify-center bg-[var(--color-chart-up)] text-xs font-medium text-white"
                 style={{ width: `${coveredPct}%` }}
                 data-testid="split-covered"
-                title={`Dedicated ${money(ccy, covered)}`}
+                title={`Dedicated ${money(covered)}`}
               >
                 {coveredPct >= 12 ? "Dedicated" : ""}
               </div>
@@ -220,7 +232,7 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
                   className="flex items-center justify-center bg-[var(--color-chart-down)] text-xs font-medium text-white"
                   style={{ width: `${gapPct}%` }}
                   data-testid="split-shortfall"
-                  title={`Shortfall ${money(ccy, gap)}`}
+                  title={`Shortfall ${money(gap)}`}
                 >
                   {gapPct >= 12 ? "Shortfall" : ""}
                 </div>
@@ -231,14 +243,14 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
                 <span className="size-3 rounded-sm bg-[var(--color-chart-up)]" />
                 Dedicated{" "}
                 <span className="font-medium tabular-nums">
-                  {money(ccy, covered, false)}
+                  {money(covered, false)}
                 </span>
               </span>
               <span className="flex items-center gap-2">
                 <span className="size-3 rounded-sm bg-[var(--color-chart-down)]" />
                 Shortfall{" "}
                 <span className="font-medium tabular-nums">
-                  {money(ccy, gap, false)}
+                  {money(gap, false)}
                 </span>
               </span>
               <span
@@ -276,7 +288,7 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
                 </thead>
                 <tbody>
                   {summary.goals.map((g) => (
-                    <GoalRow key={g.goal.id} f={g} ccy={ccy} />
+                    <GoalRow key={g.goal.id} f={g} money={money} />
                   ))}
                 </tbody>
               </table>
@@ -287,7 +299,7 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
   );
 }
 
-function GoalRow({ f, ccy }: { f: GoalFunding; ccy: string }) {
+function GoalRow({ f, money }: { f: GoalFunding; money: MoneyFn }) {
   const ratioPct = f.fundedRatio.times(100).toNumber();
   const dueLabel =
     f.goal.dueYears === 0
@@ -310,10 +322,10 @@ function GoalRow({ f, ccy }: { f: GoalFunding; ccy: string }) {
         {dueLabel}
       </td>
       <td className="py-3 pr-4 text-right tabular-nums">
-        {money(ccy, num(f.target))}
+        {money(num(f.target))}
       </td>
       <td className="py-3 pr-4 text-right tabular-nums">
-        {money(ccy, num(f.dedicatedAtDue))}
+        {money(num(f.dedicatedAtDue))}
       </td>
       <td
         className={cn(
@@ -321,7 +333,7 @@ function GoalRow({ f, ccy }: { f: GoalFunding; ccy: string }) {
           f.gap.isPositive() && "text-[var(--color-chart-down)]",
         )}
       >
-        {f.gap.isPositive() ? money(ccy, num(f.gap)) : "—"}
+        {f.gap.isPositive() ? money(num(f.gap)) : "—"}
       </td>
       <td className="py-3 pl-4">
         <div className="flex items-center gap-2">

@@ -1,16 +1,16 @@
 {
   "updatedAt": "2026-06-20",
   "generation": 3,
-  "phase": "gen-3 partial (2/9); recovery run building remaining 7",
+  "phase": "gen-3: 4/9 merged + ops-e2e fixed; building final 5",
   "gen1": { "status": "complete", "merged": "35/35" },
-  "gen2": { "status": "complete", "merged": "8/10", "note": "m7-cashflow + m8-reporting deferred to gen-3 (m9-cashflow/m9-reporting)" },
+  "gen2": { "status": "complete", "merged": "8/10" },
   "gen3": {
-    "status": "partial -> recovering",
-    "mergedFirstRun": ["m9-tax-estimate", "m9-hardening"],
-    "incident": "A harness/state/tasks.json edit (commit a92005b) broke a brittle e2e (ops.spec.ts hardcoded 'launching gen-2'), turning main CI red, so 7 gen-3 units correctly refused to merge red and the dep chain collapsed. m9-hardening fixed the test to read the live phase from tasks.json at runtime; main is green again (1959 tests). Lesson: the /ops page + its e2e render live tasks.json — now robust to phase-string changes.",
-    "recovering": ["m9-pe-lifecycle", "m9-benchmark", "m9-ips", "m9-cashflow", "m9-reporting", "m9-vault", "m9-risk-limits"],
-    "recoveryNote": "PRs #49/#51 (pe-lifecycle/benchmark) were correct but conflicted with m9-hardening's App.tsx code-splitting rewrite; closed and rebuilding all 7 fresh against healthy main."
+    "status": "in progress",
+    "merged": ["m9-tax-estimate", "m9-hardening", "m9-pe-lifecycle", "m9-benchmark"],
+    "building": ["m9-ips", "m9-cashflow", "m9-reporting", "m9-vault", "m9-risk-limits"],
+    "rootCauseFix": "The /ops e2e (ops.spec.ts) was coupled to live tasks.json (active-unit row + m7/m8 milestones), so orchestrator state edits kept turning main CI red and blocking unrelated unit PRs. Fixed in PR #54 (b144784): relaxed to invariants (column renders even when empty; only always-present m0..m6 milestones). State edits are now safe.",
+    "note": "pe-lifecycle/benchmark PRs were rebuilt twice (route-wiring conflicts with the m9-hardening code-splitting rewrite); recovered and merged after the ops fix unblocked main."
   },
-  "reviewBots": "CodeRabbit + Greptile at/near trial limits; gate = CI + independent adversarial review + visual QA",
+  "reviewBots": "CodeRabbit still reviewing (passes); Greptile at 50-review trial cap. Gate = CI + independent adversarial review + visual QA.",
   "blocked": []
 }

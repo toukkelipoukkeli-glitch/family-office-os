@@ -155,6 +155,13 @@ export function Dashboard() {
               Look-through
             </a>
             <a
+              href="#/consolidation"
+              data-testid="nav-consolidation"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Consolidation
+            </a>
+            <a
               href="#/risk"
               data-testid="nav-risk"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

@@ -25,6 +25,9 @@ const HarvestPage = lazy(() => import("@/harvest/HarvestPage"));
 const OrgChartPage = lazy(() => import("@/org/OrgChartPage"));
 const FeesPage = lazy(() => import("@/fees/FeesPage"));
 const LookThroughPage = lazy(() => import("@/lookthrough/LookThroughPage"));
+const ConsolidationPage = lazy(
+  () => import("@/consolidation/ConsolidationPage"),
+);
 const EstatePlannerPage = lazy(() => import("@/estate/EstatePlannerPage"));
 const GivingPage = lazy(() => import("@/giving/GivingPage"));
 const InsurancePage = lazy(() => import("@/insurance/InsurancePage"));
@@ -126,6 +129,7 @@ function routeElement(path: string) {
   if (path === "/fees") return <FeesPage />;
   if (path === "/ownership") return <OwnershipGraphPage />;
   if (path === "/lookthrough") return <LookThroughPage />;
+  if (path === "/consolidation") return <ConsolidationPage />;
   if (path === "/risk") return <RiskCockpitPage />;
   if (path === "/concentration") return <ConcentrationPage />;
   if (path === "/privatemarkets") return <PrivateMarketsPage />;

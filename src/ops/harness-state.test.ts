@@ -123,6 +123,15 @@ describe("buildSnapshot — gen-1 status derivation", () => {
       phase: "early",
     };
     expect(countByStatus(buildSnapshot(backlog, none)).backlog).toBe(3);
+
+    // A negated rollup must not be read as complete (anchored-start guard).
+    const negated: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "hardening-v1",
+      phase: "blocked",
+      gens_1_7: "not complete — awaiting a human decision on gen 6",
+    };
+    expect(countByStatus(buildSnapshot(backlog, negated)).backlog).toBe(3);
   });
 
   it("still honours the blocked list under the consolidated rollup", () => {

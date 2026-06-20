@@ -79,10 +79,19 @@ export interface TasksState {
   blocked?: string[];
 }
 
-/** True when the consolidated gens-1..7 rollup reads complete/done/shipped. */
+/**
+ * True when the consolidated gens-1..7 rollup reads complete/done/shipped.
+ *
+ * The rollup is a sentence-style status that always *leads* with its state word
+ * (e.g. `"complete — 73 feature units…"`), so we anchor to the start. Anchoring
+ * also avoids a negated false-positive: a future `"not complete — awaiting…"`
+ * rollup must NOT mark backlog units as merged.
+ */
 function gensConsolidatedComplete(tasks: TasksState): boolean {
   const rollup = tasks.gens_1_7;
-  return typeof rollup === "string" && /\b(complete|done|shipped)\b/i.test(rollup);
+  return (
+    typeof rollup === "string" && /^\s*(complete|done|shipped)\b/i.test(rollup)
+  );
 }
 
 // Cast the bundled JSON to our typed views. The casts are validated by the

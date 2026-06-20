@@ -97,6 +97,11 @@ const RelationshipGraphPage = lazy(() =>
     default: m.RelationshipGraphPage,
   })),
 );
+const ManagerScorecardPage = lazy(() =>
+  import("@/managers/ManagerScorecardPage").then((m) => ({
+    default: m.ManagerScorecardPage,
+  })),
+);
 
 /**
  * A route that always throws on render. It exists only to prove the app-level
@@ -146,6 +151,7 @@ function routeElement(path: string) {
   }
   if (path === "/companies") return <CompanyProfilePage />;
   if (path === "/relationships") return <RelationshipGraphPage />;
+  if (path === "/managers") return <ManagerScorecardPage />;
   return <Dashboard />;
 }
 

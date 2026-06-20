@@ -78,6 +78,13 @@ export function Dashboard() {
               Benchmark
             </a>
             <a
+              href="#/managers"
+              data-testid="nav-managers"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Managers
+            </a>
+            <a
               href="#/alerts"
               data-testid="nav-alerts"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

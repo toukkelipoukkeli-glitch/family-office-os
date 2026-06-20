@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMoney } from "@/lib/format";
+import type { Money } from "@/lib/money";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import {
   analyzeGivingPlan,
@@ -43,10 +44,20 @@ const KIND_LABELS: Record<string, string> = {
 /**
  * Build a money formatter bound to the chosen reporting currency. Re-expresses
  * each base-USD figure at the render boundary (no-op when reporting === base).
+ *
+ * Prefers the exact {@link Money} path: a `Money` is converted in `Decimal`
+ * space and handed to `formatMoney` as a `NumberLike`, so the exact amount is
+ * only reduced to a `number` inside the formatter. Plain numbers (bar-width
+ * inputs already reduced from `Money`) take the number path.
  */
 function makeMoney(rm: ReportingMoney) {
-  return (value: number, compact = true): string =>
-    formatMoney(rm.convert(value), rm.currency, { compact });
+  return (value: number | Money, compact = true): string => {
+    if (typeof value === "number") {
+      return formatMoney(rm.convert(value), rm.currency, { compact });
+    }
+    const converted = rm.convertMoney(value);
+    return formatMoney(converted.amount, converted.currency, { compact });
+  };
 }
 
 interface KpiProps {
@@ -139,7 +150,7 @@ export function GivingPage({ plan }: GivingPageProps) {
         >
           {givingPlan.name} — modelling the tax economics of{" "}
           <span className="font-medium text-foreground">
-            {money(num(analysis.totalGifted))}
+            {money(analysis.totalGifted)}
           </span>{" "}
           of giving across {analysis.yearResults.length} years.
         </p>
@@ -149,14 +160,14 @@ export function GivingPage({ plan }: GivingPageProps) {
           <Kpi
             testId="kpi-gifted"
             label="Total gifted"
-            value={money(num(analysis.totalGifted))}
+            value={money(analysis.totalGifted)}
             hint="fair-market value to charity"
             icon={<GiftIcon className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-cg-avoided"
             label="Capital gains avoided"
-            value={money(num(analysis.totalCapitalGainsAvoided))}
+            value={money(analysis.totalCapitalGainsAvoided)}
             hint="by gifting in kind, not selling"
             tone="up"
             icon={<TrendingDown className="size-3.5" aria-hidden="true" />}
@@ -164,15 +175,15 @@ export function GivingPage({ plan }: GivingPageProps) {
           <Kpi
             testId="kpi-benefit"
             label="Total tax benefit"
-            value={money(num(analysis.totalBenefit))}
-            hint={`${money(num(analysis.totalIncomeTaxSaved))} income tax + CG`}
+            value={money(analysis.totalBenefit)}
+            hint={`${money(analysis.totalIncomeTaxSaved)} income tax + CG`}
             tone="up"
             icon={<PiggyBank className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-net-cost"
             label="After-tax net cost"
-            value={money(num(analysis.netCost))}
+            value={money(analysis.netCost)}
             hint={`${formatPct(efficiency)} of giving offset by tax`}
             icon={<HandCoins className="size-3.5" aria-hidden="true" />}
           />
@@ -190,7 +201,7 @@ export function GivingPage({ plan }: GivingPageProps) {
                 <span className="font-medium text-foreground">
                   {spotlight.gift.label}
                 </span>{" "}
-                ({money(num(spotlight.gift.fairMarketValue))} FMV) in kind
+                ({money(spotlight.gift.fairMarketValue)} FMV) in kind
                 vs. selling it, paying capital-gains tax, then donating the net
                 cash.
               </CardDescription>
@@ -200,29 +211,29 @@ export function GivingPage({ plan }: GivingPageProps) {
                 <Compare
                   testId="inkind-cg"
                   label="Capital gains tax avoided"
-                  value={money(num(spotlight.cmp.capitalGainsIfSold))}
+                  value={money(spotlight.cmp.capitalGainsIfSold)}
                   tone="up"
                 />
                 <Compare
                   testId="inkind-extra-deduction"
                   label="Extra deduction value"
-                  value={money(num(spotlight.cmp.extraIncomeTaxSaved))}
+                  value={money(spotlight.cmp.extraIncomeTaxSaved)}
                   tone="up"
                   hint="larger deduction (full FMV vs net cash)"
                 />
                 <Compare
                   testId="inkind-advantage"
                   label="In-kind advantage"
-                  value={money(num(spotlight.cmp.inKindAdvantage))}
+                  value={money(spotlight.cmp.inKindAdvantage)}
                   tone="up"
                   strong
                 />
               </div>
               <p className="mt-4 text-xs text-muted-foreground">
                 Sell-then-donate route deducts only{" "}
-                {money(num(spotlight.cmp.cashRouteDeduction))} (after-tax
+                {money(spotlight.cmp.cashRouteDeduction)} (after-tax
                 cash); the in-kind route deducts the full{" "}
-                {money(num(spotlight.cmp.inKindDeduction))} and skips the
+                {money(spotlight.cmp.inKindDeduction)} and skips the
                 capital-gains tax entirely.
               </p>
             </CardContent>
@@ -263,10 +274,10 @@ export function GivingPage({ plan }: GivingPageProps) {
                   >
                     <td className="py-2 font-medium tabular-nums">{y.year}</td>
                     <td className="py-2 text-right tabular-nums">
-                      {money(num(y.gifted))}
+                      {money(y.gifted)}
                     </td>
                     <td className="py-2 text-right tabular-nums">
-                      {money(num(y.deductionUsed))}
+                      {money(y.deductionUsed)}
                     </td>
                     <td
                       className={cn(
@@ -276,13 +287,13 @@ export function GivingPage({ plan }: GivingPageProps) {
                           : "text-muted-foreground",
                       )}
                     >
-                      {money(num(y.carriedForward))}
+                      {money(y.carriedForward)}
                     </td>
                     <td className="py-2 text-right tabular-nums text-[var(--color-chart-up)]">
-                      {money(num(y.capitalGainsAvoided))}
+                      {money(y.capitalGainsAvoided)}
                     </td>
                     <td className="py-2 text-right font-semibold tabular-nums text-[var(--color-chart-up)]">
-                      {money(num(y.totalBenefit))}
+                      {money(y.totalBenefit)}
                     </td>
                   </tr>
                 ))}
@@ -294,15 +305,15 @@ export function GivingPage({ plan }: GivingPageProps) {
                 >
                   <td className="py-2">Total</td>
                   <td className="py-2 text-right tabular-nums">
-                    {money(num(analysis.totalGifted))}
+                    {money(analysis.totalGifted)}
                   </td>
                   <td className="py-2" />
                   <td className="py-2" />
                   <td className="py-2 text-right tabular-nums text-[var(--color-chart-up)]">
-                    {money(num(analysis.totalCapitalGainsAvoided))}
+                    {money(analysis.totalCapitalGainsAvoided)}
                   </td>
                   <td className="py-2 text-right tabular-nums text-[var(--color-chart-up)]">
-                    {money(num(analysis.totalBenefit))}
+                    {money(analysis.totalBenefit)}
                   </td>
                 </tr>
               </tfoot>
@@ -342,7 +353,7 @@ export function GivingPage({ plan }: GivingPageProps) {
                         />
                       </div>
                       <span className="w-20 shrink-0 text-right text-xs tabular-nums">
-                        {money(num(y.totalBenefit))}
+                        {money(y.totalBenefit)}
                       </span>
                     </div>
                   );
@@ -386,7 +397,7 @@ export function GivingPage({ plan }: GivingPageProps) {
                         <>
                           {" · "}
                           <span className="text-[var(--color-chart-up)]">
-                            {money(num(g.capitalGainsAvoided))} CG avoided
+                            {money(g.capitalGainsAvoided)} CG avoided
                           </span>
                         </>
                       )}
@@ -394,7 +405,7 @@ export function GivingPage({ plan }: GivingPageProps) {
                   </div>
                   <span className="shrink-0 text-right tabular-nums">
                     <span className="text-sm font-semibold">
-                      {money(num(g.fairMarketValue))}
+                      {money(g.fairMarketValue)}
                     </span>
                   </span>
                 </li>

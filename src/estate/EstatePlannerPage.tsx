@@ -24,6 +24,7 @@ import {
   type LiquidityClass,
 } from "@/lib/estate";
 import { formatMoney } from "@/lib/format";
+import type { Money } from "@/lib/money";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
@@ -40,10 +41,22 @@ const RELATION_LABELS: Record<string, string> = {
 /**
  * Build a money formatter bound to the chosen reporting currency. Re-expresses
  * each base-USD figure at the render boundary (no-op when reporting === base).
+ *
+ * Prefers the exact {@link Money} path: a `Money` is converted in `Decimal`
+ * space and handed to `formatMoney` as a `NumberLike`, so the exact amount is
+ * only reduced to a `number` inside the formatter. Plain numbers (chart-axis
+ * values, ratios already reduced from `Money`) take the number path.
  */
 function makeMoney(rm: ReportingMoney) {
-  return (value: number, compactN = true): string =>
-    formatMoney(rm.convert(value), rm.currency, { compact: compactN });
+  return (value: number | Money, compactN = true): string => {
+    if (typeof value === "number") {
+      return formatMoney(rm.convert(value), rm.currency, { compact: compactN });
+    }
+    const converted = rm.convertMoney(value);
+    return formatMoney(converted.amount, converted.currency, {
+      compact: compactN,
+    });
+  };
 }
 
 interface KpiProps {
@@ -130,23 +143,23 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
           <Kpi
             testId="kpi-gross"
             label="Gross estate"
-            value={money(num(analysis.grossEstate))}
-            hint={`${money(num(analysis.totalDebts))} debts · ${money(
-              num(analysis.adminCost),
+            value={money(analysis.grossEstate)}
+            hint={`${money(analysis.totalDebts)} debts · ${money(
+              analysis.adminCost,
             )} admin`}
             icon={<Landmark className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-taxable"
             label="Taxable estate"
-            value={money(num(analysis.taxableEstate))}
-            hint={`after ${money(num(analysis.exemptionApplied))} exemption`}
+            value={money(analysis.taxableEstate)}
+            hint={`after ${money(analysis.exemptionApplied)} exemption`}
             icon={<Scale className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-tax"
             label="Estate tax due"
-            value={money(num(analysis.estateTax))}
+            value={money(analysis.estateTax)}
             hint={`${(estatePlan.taxRate * 100).toFixed(0)}% marginal rate`}
             tone="down"
             icon={<AlertTriangle className="size-3.5" aria-hidden="true" />}
@@ -158,7 +171,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
             hint={
               analysis.covered
                 ? "settlement fully liquid"
-                : `${money(num(analysis.shortfall))} short`
+                : `${money(analysis.shortfall)} short`
             }
             tone={analysis.covered ? "up" : "down"}
             icon={
@@ -225,7 +238,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                   {!analysis.covered && (
                     <>
                       {" "}
-                      ({money(num(analysis.shortfall))} short)
+                      ({money(analysis.shortfall)} short)
                     </>
                   )}
                   .
@@ -309,10 +322,10 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                         </span>
                       </td>
                       <td className="py-2 text-right tabular-nums">
-                        {money(num(step.grossUsed))}
+                        {money(step.grossUsed)}
                       </td>
                       <td className="py-2 text-right tabular-nums">
-                        {money(num(step.netUsed))}
+                        {money(step.netUsed)}
                       </td>
                     </tr>
                   ))}
@@ -334,41 +347,41 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
             <CardContent>
               <table className="w-full text-sm" data-testid="tax-table">
                 <tbody>
-                  <TaxRow label="Gross estate" value={money(num(analysis.grossEstate))} />
+                  <TaxRow label="Gross estate" value={money(analysis.grossEstate)} />
                   <TaxRow
                     label="Less: debts"
-                    value={`(${money(num(analysis.totalDebts))})`}
+                    value={`(${money(analysis.totalDebts)})`}
                     muted
                   />
                   <TaxRow
                     label="Less: administration"
-                    value={`(${money(num(analysis.adminCost))})`}
+                    value={`(${money(analysis.adminCost)})`}
                     muted
                   />
                   <TaxRow
                     label="Less: marital / charitable"
-                    value={`(${money(num(analysis.exemptBequests))})`}
+                    value={`(${money(analysis.exemptBequests)})`}
                     muted
                   />
                   <TaxRow
                     label="Net estate"
-                    value={money(num(analysis.netEstate))}
+                    value={money(analysis.netEstate)}
                     strong
                   />
                   <TaxRow
                     label="Less: lifetime exemption"
-                    value={`(${money(num(analysis.exemptionApplied))})`}
+                    value={`(${money(analysis.exemptionApplied)})`}
                     muted
                   />
                   <TaxRow
                     label="Taxable estate"
-                    value={money(num(analysis.taxableEstate))}
+                    value={money(analysis.taxableEstate)}
                     strong
                   />
                   <TaxRow
                     testId="tax-row-total"
                     label={`Estate tax @ ${(estatePlan.taxRate * 100).toFixed(0)}%`}
-                    value={money(num(analysis.estateTax))}
+                    value={money(analysis.estateTax)}
                     strong
                     tone="down"
                   />
@@ -404,14 +417,14 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                         {s.tax.isPositive() && (
                           <>
                             {" · "}
-                            tax {money(num(s.tax))}
+                            tax {money(s.tax)}
                           </>
                         )}
                       </p>
                     </div>
                     <span className="shrink-0 text-right tabular-nums">
                       <span className="text-sm font-semibold">
-                        {money(num(s.net))}
+                        {money(s.net)}
                       </span>
                     </span>
                   </li>

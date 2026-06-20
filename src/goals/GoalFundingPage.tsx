@@ -26,19 +26,32 @@ import {
   type GoalFunding,
 } from "@/lib/goals";
 import { formatMoney } from "@/lib/format";
+import type { Money } from "@/lib/money";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
 /** A money formatter bound to a reporting currency. */
-type MoneyFn = (value: number, compactN?: boolean) => string;
+type MoneyFn = (value: number | Money, compactN?: boolean) => string;
 
 /**
  * Build a money formatter bound to the chosen reporting currency. Re-expresses
  * each base-USD figure at the render boundary (no-op when reporting === base).
+ *
+ * Prefers the exact {@link Money} path: a `Money` is converted in `Decimal`
+ * space and handed to `formatMoney` as a `NumberLike`, so the exact amount is
+ * only reduced to a `number` inside the formatter. Plain numbers (bar-width
+ * inputs already reduced from `Money`) take the number path.
  */
 function makeMoney(rm: ReportingMoney): MoneyFn {
-  return (value: number, compactN = true): string =>
-    formatMoney(rm.convert(value), rm.currency, { compact: compactN });
+  return (value: number | Money, compactN = true): string => {
+    if (typeof value === "number") {
+      return formatMoney(rm.convert(value), rm.currency, { compact: compactN });
+    }
+    const converted = rm.convertMoney(value);
+    return formatMoney(converted.amount, converted.currency, {
+      compact: compactN,
+    });
+  };
 }
 
 const num = (m: { amount: { toNumber(): number } }) => m.amount.toNumber();
@@ -164,8 +177,8 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
           <Kpi
             testId="kpi-dedicated"
             label="Dedicated (today)"
-            value={money(num(summary.totalDedicatedNow))}
-            hint={`${money(num(summary.totalDedicatedAtDue))} grown to due`}
+            value={money(summary.totalDedicatedNow)}
+            hint={`${money(summary.totalDedicatedAtDue)} grown to due`}
             icon={<Wallet className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
@@ -322,10 +335,10 @@ function GoalRow({ f, money }: { f: GoalFunding; money: MoneyFn }) {
         {dueLabel}
       </td>
       <td className="py-3 pr-4 text-right tabular-nums">
-        {money(num(f.target))}
+        {money(f.target)}
       </td>
       <td className="py-3 pr-4 text-right tabular-nums">
-        {money(num(f.dedicatedAtDue))}
+        {money(f.dedicatedAtDue)}
       </td>
       <td
         className={cn(
@@ -333,7 +346,7 @@ function GoalRow({ f, money }: { f: GoalFunding; money: MoneyFn }) {
           f.gap.isPositive() && "text-[var(--color-chart-down)]",
         )}
       >
-        {f.gap.isPositive() ? money(num(f.gap)) : "—"}
+        {f.gap.isPositive() ? money(f.gap) : "—"}
       </td>
       <td className="py-3 pl-4">
         <div className="flex items-center gap-2">

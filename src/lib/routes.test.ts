@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { ROUTES, matchRoute, type RouteDef } from "./routes";
+import {
+  ROUTES,
+  filterScopeForPath,
+  matchRoute,
+  type RouteDef,
+} from "./routes";
 
 describe("route registry", () => {
   it("has unique paths", () => {
@@ -194,6 +199,44 @@ describe("route registry", () => {
   it("matchRoute is case-sensitive (original behaviour)", () => {
     expect(matchRoute("/Reports")).toBeUndefined();
     expect(matchRoute("/HOME")).toBeUndefined();
+  });
+
+  // --- Filter scope (m13: tag-filter consistency) ------------------------
+
+  it("the dashboard fallback always applies the tag filter", () => {
+    // The net-worth dashboard is the holding-portfolio view: the filter narrows
+    // it, so `/` (and any unmatched path that falls back to the dashboard)
+    // resolves to "applies".
+    expect(filterScopeForPath("/")).toBe("applies");
+    expect(filterScopeForPath("/does-not-exist")).toBe("applies");
+  });
+
+  it("registered routes default to an inert (n/a) filter scope", () => {
+    // No registered route is wired to narrow by holding tags today, so every one
+    // resolves to "n/a" — the shared control renders visibly inert there rather
+    // than pretending to filter.
+    for (const r of ROUTES) {
+      expect(
+        filterScopeForPath(r.path),
+        `route ${r.path} should be n/a unless it opts in`,
+      ).toBe(r.filterScope ?? "n/a");
+    }
+  });
+
+  it("filterScope is always one of the two known values", () => {
+    for (const r of ROUTES) {
+      if (r.filterScope !== undefined) {
+        expect(["applies", "n/a"]).toContain(r.filterScope);
+      }
+    }
+  });
+
+  it("prefix routes resolve filter scope for their sub-paths too", () => {
+    // `/pipeline/<id>` must resolve the same scope as `/pipeline` (it is the
+    // same page) — the control can't flip between active/inert mid-drilldown.
+    expect(filterScopeForPath("/pipeline/acme-corp")).toBe(
+      filterScopeForPath("/pipeline"),
+    );
   });
 
   it("every nav testid is derivable from its path segment", () => {

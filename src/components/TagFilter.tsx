@@ -2,12 +2,23 @@ import * as React from "react";
 import { Check, Tag, X } from "lucide-react";
 
 import { useOptionalTagFilter } from "@/lib/filter";
+import { FILTER_NA_REASON, filterScopeForPath } from "@/lib/routes";
+import { useHashRoute } from "@/lib/use-hash-route";
 import { cn } from "@/lib/utils";
 
 export interface TagFilterProps {
   className?: string;
   /** `data-testid` for the trigger button (defaults to `tag-filter`). */
   testId?: string;
+  /**
+   * Whether the tag filter applies on the current page. When omitted the
+   * control derives this from the active hash route via
+   * {@link filterScopeForPath}. When `false`, the control renders visibly inert
+   * (disabled, with an explanatory tooltip) instead of pretending to narrow —
+   * this is how the global filter stays *consistent* across pages: present
+   * everywhere, but clearly off where it cannot narrow anything.
+   */
+  applies?: boolean;
 }
 
 /**
@@ -21,11 +32,30 @@ export interface TagFilterProps {
  *
  * Renders nothing when the portfolio has no tags at all (there is nothing to
  * filter by), so untagged data degrades gracefully.
+ *
+ * On pages where the filter does not apply (see {@link filterScopeForPath}) the
+ * control still renders — for visible consistency — but as a disabled trigger
+ * that explains it is inactive here, so the user is never left wondering why
+ * selecting tags changed nothing.
  */
-export function TagFilter({ className, testId = "tag-filter" }: TagFilterProps) {
+export function TagFilter({
+  className,
+  testId = "tag-filter",
+  applies: appliesProp,
+}: TagFilterProps) {
   const filter = useOptionalTagFilter();
+  const path = useHashRoute();
+  // The caller may force the scope (the dashboard always applies); otherwise
+  // derive it from the current route.
+  const applies = appliesProp ?? filterScopeForPath(path) === "applies";
   const [open, setOpen] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
+
+  // Close the popover when the filter stops applying (e.g. navigating to an
+  // n/a page while it was open) so an inert control can't show a live popover.
+  React.useEffect(() => {
+    if (!applies) setOpen(false);
+  }, [applies]);
 
   // Close on outside click / Escape.
   React.useEffect(() => {
@@ -52,6 +82,47 @@ export function TagFilter({ className, testId = "tag-filter" }: TagFilterProps) 
 
   const { available, selected, isFiltering, toggle, clear } = filter;
   const count = selected.size;
+
+  // Scope = does-not-apply: show a disabled, clearly-inert trigger instead of a
+  // working filter. The selection still exists (it persists for pages where it
+  // does apply), but here it is presented as off and non-interactive.
+  if (!applies) {
+    return (
+      <div
+        ref={rootRef}
+        className={cn("relative print:hidden", className)}
+        data-testid={`${testId}-root`}
+        data-filtering={isFiltering}
+        data-applies="false"
+      >
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          data-testid={testId}
+          data-applies="false"
+          aria-label="Tag filter — not available on this page"
+          title={FILTER_NA_REASON}
+          className={cn(
+            "inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-md border px-2.5",
+            "border-dashed border-border text-sm text-muted-foreground/60",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <Tag className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Tags · n/a</span>
+          {/* Compact marker so the inert state is legible on mobile too, where
+              the full label is hidden. */}
+          <span
+            aria-hidden="true"
+            className="text-[11px] font-medium uppercase tracking-wide sm:hidden"
+          >
+            n/a
+          </span>
+        </button>
+      </div>
+    );
+  }
   const label = isFiltering
     ? `Tags · ${count}`
     : "Tags";
@@ -62,10 +133,12 @@ export function TagFilter({ className, testId = "tag-filter" }: TagFilterProps) 
       className={cn("relative print:hidden", className)}
       data-testid={`${testId}-root`}
       data-filtering={isFiltering}
+      data-applies="true"
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        data-applies="true"
         data-testid={testId}
         data-open={open}
         aria-haspopup="true"

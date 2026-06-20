@@ -13,6 +13,7 @@ import LookThroughPage from "@/lookthrough/LookThroughPage";
 import OpsPage from "@/ops/OpsPage";
 import OrgChartPage from "@/org/OrgChartPage";
 import PipelinePage from "@/pipeline/PipelinePage";
+import PrivateMarketsPage from "@/privatemarkets/PrivateMarketsPage";
 import { RelationshipGraphPage } from "@/relationship/RelationshipGraphPage";
 import { ScenarioCockpit } from "@/scenario/ScenarioCockpitPage";
 import TaxLotsPage from "@/taxlots/TaxLotsPage";
@@ -66,6 +67,10 @@ function App() {
 
   if (path === "/lookthrough") {
     return <LookThroughPage />;
+  }
+
+  if (path === "/privatemarkets") {
+    return <PrivateMarketsPage />;
   }
 
   if (path === "/estate") {

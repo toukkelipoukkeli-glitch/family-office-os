@@ -459,4 +459,18 @@ describe("directGross", () => {
     const g = directGross(LOOKTHROUGH_HOLDINGS, "trust", "USD");
     expect(g.amount.toString()).toBe("0");
   });
+
+  it("refuses to sum a holding whose currency differs from the label", () => {
+    const holdings = [
+      EntityHoldings.parse({
+        entityId: "x",
+        holdings: [
+          { assetClass: "cash", value: { amount: "100", currency: "EUR" } },
+        ],
+      }),
+    ];
+    expect(() => directGross(holdings, "x", "USD")).toThrow(
+      /does not match requested/i,
+    );
+  });
 });

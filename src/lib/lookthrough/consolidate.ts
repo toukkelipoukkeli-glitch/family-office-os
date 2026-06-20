@@ -234,7 +234,15 @@ export function directGross(
   for (const eh of holdings) {
     if (eh.entityId !== entityId) continue;
     for (const h of eh.holdings) {
-      total = total.plus(Money.of(h.value.amount, h.value.currency).amount);
+      const m = Money.of(h.value.amount, h.value.currency);
+      // Refuse to sum amounts denominated in a different currency than the
+      // label we will hand back — that would silently misstate the total.
+      if (m.currency !== currency) {
+        throw new Error(
+          `directGross: holding currency ${m.currency} does not match requested ${currency} for entity ${entityId}`,
+        );
+      }
+      total = total.plus(m.amount);
     }
   }
   return Money.of(total, currency);

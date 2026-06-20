@@ -294,8 +294,20 @@ export function LookThroughView({
                         data-testid="lt-table-row"
                         data-asset-class={l.assetClass}
                         data-selected={active ? "true" : "false"}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={active}
+                        aria-label={`Show entities behind ${assetClassLabel(
+                          l.assetClass,
+                        )} exposure`}
                         onClick={() => setSelectedClass(l.assetClass)}
-                        className={`cursor-pointer border-b border-border/60 ${
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedClass(l.assetClass);
+                          }
+                        }}
+                        className={`cursor-pointer border-b border-border/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           active ? "bg-muted" : "hover:bg-muted/50"
                         }`}
                       >
@@ -328,7 +340,9 @@ export function LookThroughView({
                     >
                       {formatMoneyCompact(report.total)}
                     </td>
-                    <td className="py-2 text-right tabular-nums">100%</td>
+                    <td className="py-2 text-right tabular-nums">
+                      {report.lines.length > 0 ? "100%" : "0%"}
+                    </td>
                   </tr>
                 </tfoot>
               </table>

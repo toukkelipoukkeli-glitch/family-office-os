@@ -6,6 +6,7 @@ import {
   allUnits,
   countByStatus,
   milestoneProgress,
+  opsExportRows,
   progressPercent,
   STATUS_ORDER,
   statusLabel,
@@ -213,5 +214,57 @@ describe("count invariants", () => {
     );
     expect(bucketed).toBe(counts.total);
     expect(bucketed).toBe(allUnits(fixture).length);
+  });
+});
+
+describe("opsExportRows", () => {
+  it("emits one row per unit, tagged with its milestone, in snapshot order", () => {
+    const rows = opsExportRows(fixture);
+    expect(rows).toHaveLength(allUnits(fixture).length);
+    expect(rows.map((r) => r.id)).toEqual([
+      "ma-1",
+      "ma-2",
+      "ma-3",
+      "mb-1",
+      "mb-2",
+    ]);
+    expect(rows[0]).toEqual({
+      milestoneId: "ma",
+      milestoneTitle: "Alpha",
+      id: "ma-1",
+      title: "One",
+      status: "merged",
+      oracle: "unit",
+      deps: "",
+      pr: "",
+      note: "",
+    });
+  });
+
+  it("joins deps and collapses optional pr/note to empty strings (no undefined)", () => {
+    const rows = opsExportRows(fixture);
+    const withDeps = rows.find((r) => r.id === "ma-2")!;
+    expect(withDeps.deps).toBe("ma-1");
+    const blocked = rows.find((r) => r.id === "mb-2")!;
+    expect(blocked.note).toBe("stuck");
+    expect(blocked.pr).toBe("");
+    for (const r of rows) {
+      expect(r.pr).not.toBeUndefined();
+      expect(r.note).not.toBeUndefined();
+      expect(typeof r.deps).toBe("string");
+    }
+  });
+
+  it("derives a deterministic, JSON-safe table from the live snapshot", () => {
+    const rows = opsExportRows(opsSnapshot);
+    expect(rows.length).toBeGreaterThan(0);
+    // Stable across repeated derivation (pure).
+    expect(opsExportRows(opsSnapshot)).toEqual(rows);
+    // No nested objects leak into the flat row.
+    for (const r of rows) {
+      for (const v of Object.values(r)) {
+        expect(["string", "number"]).toContain(typeof v);
+      }
+    }
   });
 });

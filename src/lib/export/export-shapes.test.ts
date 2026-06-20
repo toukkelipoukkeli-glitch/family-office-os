@@ -6,6 +6,8 @@ import { toJson } from "./json";
 import { analyzeConcentration, SAMPLE_CONCENTRATION_BOOK } from "@/lib/concentration";
 import { analyzeEstate, seededEstatePlan } from "@/lib/estate";
 import { analyzeGivingPlan, seededGivingPlan } from "@/lib/giving";
+import { opsSnapshot } from "@/ops/ops-data";
+import { opsExportRows } from "@/ops/ops-selectors";
 
 /**
  * Export-data-shape oracle for the money-heavy rollout pages.
@@ -136,5 +138,61 @@ describe("giving export shape", () => {
     const json = toJson(ds.json);
     expect(json).not.toContain("[object Object]");
     expect(toJson(ds.json)).toBe(json);
+  });
+});
+
+describe("ops cockpit export shape", () => {
+  const rows = opsExportRows(opsSnapshot);
+  const columns = [
+    "milestoneId",
+    "milestoneTitle",
+    "id",
+    "title",
+    "status",
+    "oracle",
+    "deps",
+    "pr",
+    "note",
+  ];
+  const ds = tableExport(
+    "ops-cockpit",
+    columns,
+    rows.map((r) => [
+      r.milestoneId,
+      r.milestoneTitle,
+      r.id,
+      r.title,
+      r.status,
+      r.oracle,
+      r.deps,
+      r.pr,
+      r.note,
+    ]),
+    { units: rows },
+  );
+
+  it("has a CSV table whose every row aligns to the 9-column header", () => {
+    expect(ds.table.rows.length).toBeGreaterThan(0);
+    expect(ds.table.columns).toHaveLength(9);
+    for (const row of ds.table.rows) {
+      expect(row).toHaveLength(9);
+    }
+  });
+
+  it("emits no object placeholders and serializes deterministically", () => {
+    const csv = buildExportFile(ds, "csv").content;
+    expect(csv).not.toContain("[object Object]");
+    expect(csv).not.toContain("undefined");
+    const json = toJson(ds.json);
+    expect(json).not.toContain("[object Object]");
+    expect(toJson(ds.json)).toBe(json);
+  });
+
+  it("round-trips the unit roster through JSON without loss", () => {
+    const parsed = JSON.parse(toJson(ds.json)) as {
+      units: { id: string; status: string }[];
+    };
+    expect(parsed.units).toHaveLength(rows.length);
+    expect(parsed.units[0]?.id).toBe(rows[0]?.id);
   });
 });

@@ -31,6 +31,7 @@ import PipelinePage from "@/pipeline/PipelinePage";
 import CompanyProfilePage from "@/company/CompanyProfilePage";
 import RelationshipGraphPage from "@/relationship/RelationshipGraphPage";
 import RiskCockpitPage from "@/risk/RiskCockpitPage";
+import OpsPage from "@/ops/OpsPage";
 
 /**
  * Rollout oracle: every data-heavy page newly covered by the export rollout
@@ -72,6 +73,7 @@ const PAGES: ReadonlyArray<[string, ComponentType, string]> = [
   ["company", CompanyProfilePage, "company-export"],
   ["relationship", RelationshipGraphPage, "relationships-export"],
   ["risk", RiskCockpitPage, "risk-export"],
+  ["ops", OpsPage, "ops-export"],
 ];
 
 describe("export rollout", () => {

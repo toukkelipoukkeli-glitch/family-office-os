@@ -7,17 +7,32 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ExportMenu } from "@/components/ExportMenu";
+import { tableExport } from "@/lib/export";
 import { cn } from "@/lib/utils";
 
 import { opsSnapshot, type OpsUnit, type UnitStatus } from "./ops-data";
 import {
   countByStatus,
   milestoneProgress,
+  opsExportRows,
   progressPercent,
   STATUS_ORDER,
   statusLabel,
   unitsByStatus,
 } from "./ops-selectors";
+
+const OPS_EXPORT_COLUMNS = [
+  "milestoneId",
+  "milestoneTitle",
+  "id",
+  "title",
+  "status",
+  "oracle",
+  "deps",
+  "pr",
+  "note",
+] as const;
 
 const STATUS_STYLES: Record<UnitStatus, string> = {
   backlog: "bg-muted text-muted-foreground",
@@ -88,18 +103,54 @@ export function OpsPage() {
   const counts = countByStatus(opsSnapshot);
   const percent = progressPercent(opsSnapshot);
   const perMilestone = milestoneProgress(opsSnapshot);
+  const exportRows = opsExportRows(opsSnapshot);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <h1 className="text-lg font-semibold tracking-tight">Ops cockpit</h1>
-          <a
-            href="#/"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={tableExport(
+                "ops-cockpit",
+                OPS_EXPORT_COLUMNS,
+                exportRows.map((r) => [
+                  r.milestoneId,
+                  r.milestoneTitle,
+                  r.id,
+                  r.title,
+                  r.status,
+                  r.oracle,
+                  r.deps,
+                  r.pr,
+                  r.note,
+                ]),
+                {
+                  generation: opsSnapshot.generation,
+                  phase: opsSnapshot.phase,
+                  updatedAt: opsSnapshot.updatedAt,
+                  heartbeat: opsSnapshot.heartbeat,
+                  counts,
+                  percent,
+                  milestones: perMilestone.map((m) => ({
+                    id: m.milestone.id,
+                    title: m.milestone.title,
+                    counts: m.counts,
+                    percent: m.percent,
+                  })),
+                  units: exportRows,
+                },
+              )}
+              testId="ops-export"
+            />
+            <a
+              href="#/"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

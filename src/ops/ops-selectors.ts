@@ -103,3 +103,38 @@ export function milestoneProgress(snapshot: OpsSnapshot): MilestoneProgress[] {
     return { milestone, counts, percent };
   });
 }
+
+/** One flat export row per unit, tagged with its milestone (snapshot order). */
+export interface OpsExportRow {
+  milestoneId: string;
+  milestoneTitle: string;
+  id: string;
+  title: string;
+  status: UnitStatus;
+  oracle: string;
+  deps: string;
+  pr: string;
+  note: string;
+}
+
+/**
+ * Flatten the snapshot into one deterministic row per build unit, tagged with
+ * its owning milestone. This is the primary table the /ops cockpit exports:
+ * pure, ordered, and free of `undefined` (optional fields collapse to `""`) so
+ * CSV/JSON serialization stays byte-stable.
+ */
+export function opsExportRows(snapshot: OpsSnapshot): OpsExportRow[] {
+  return snapshot.milestones.flatMap((milestone) =>
+    milestone.units.map((unit) => ({
+      milestoneId: milestone.id,
+      milestoneTitle: milestone.title,
+      id: unit.id,
+      title: unit.title,
+      status: unit.status,
+      oracle: unit.oracle,
+      deps: unit.deps.join(" "),
+      pr: unit.pr ?? "",
+      note: unit.note ?? "",
+    })),
+  );
+}

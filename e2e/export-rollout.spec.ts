@@ -73,6 +73,7 @@ const CASES: readonly PageCase[] = [
   { route: "/#/risk", exportId: "risk-export", csvHeader: "subject,kind,bound,weight", csvName: /^risk-limits-.*\.csv$/ },
   { route: "/#/insights", exportId: "insights-export", csvHeader: "key,label,display,raw", csvName: /^board-report-.*\.csv$/ },
   { route: "/#/home", exportId: "home-export", csvHeader: "id,label,value,detail", csvName: /^overview\.csv$/ },
+  { route: "/#/ops", exportId: "ops-export", csvHeader: "milestoneId,milestoneTitle,id,title,status", csvName: /^ops-cockpit\.csv$/ },
 ];
 
 test.describe("export rollout — every data-heavy page", () => {
@@ -99,7 +100,7 @@ test.describe("export rollout — every data-heavy page", () => {
 
   test("captures desktop evidence (1280x800)", async ({ page }) => {
     await page.setViewportSize(DESKTOP);
-    for (const route of ["/#/fees", "/#/concentration", "/#/risk", "/#/pipeline"]) {
+    for (const route of ["/#/fees", "/#/concentration", "/#/risk", "/#/pipeline", "/#/ops"]) {
       await page.goto(route);
       const id = CASES.find((c) => c.route === route)!.exportId;
       await expect(page.getByTestId(id)).toBeVisible();
@@ -113,7 +114,7 @@ test.describe("export rollout — every data-heavy page", () => {
 
   test("captures mobile evidence (390x844)", async ({ page }) => {
     await page.setViewportSize(MOBILE);
-    for (const route of ["/#/fees", "/#/concentration", "/#/risk", "/#/pipeline"]) {
+    for (const route of ["/#/fees", "/#/concentration", "/#/risk", "/#/pipeline", "/#/ops"]) {
       await page.goto(route);
       const id = CASES.find((c) => c.route === route)!.exportId;
       await expect(page.getByTestId(id)).toBeVisible();

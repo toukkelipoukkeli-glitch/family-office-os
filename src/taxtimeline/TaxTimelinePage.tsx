@@ -27,6 +27,8 @@ import {
   type TimelineSeverity,
 } from "@/lib/taxtimeline";
 import type { Money } from "@/lib/money";
+import { ExportMenu } from "@/components/ExportMenu";
+import { taxTimelineExport } from "@/lib/export";
 import { cn } from "@/lib/utils";
 
 /** Per-category accent colour (reuses the shared chart palette). */
@@ -188,13 +190,19 @@ export function TaxTimelinePage({ inputs }: TaxTimelinePageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Tax timeline
           </h1>
-          <a
-            href="#/"
-            data-testid="timeline-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu
+              dataset={taxTimelineExport(timeline)}
+              testId="taxtimeline-export"
+            />
+            <a
+              href="#/"
+              data-testid="timeline-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

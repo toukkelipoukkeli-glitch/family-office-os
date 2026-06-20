@@ -1,8 +1,10 @@
 import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
+import { ExportMenu } from "@/components/ExportMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NetWorthDashboard } from "@/networth/NetWorthDashboard";
 import { seededNetWorth } from "@/lib/networth";
+import { netWorthExport } from "@/lib/export";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -42,13 +44,29 @@ export function Dashboard() {
                 </a>
               ))}
             </nav>
+            <ExportMenu
+              dataset={netWorthExport(seededNetWorth)}
+              testId="networth-export"
+              className="hidden sm:flex"
+            />
             <CommandPaletteTrigger />
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      <main id={MAIN_CONTENT_ID} className="mx-auto max-w-6xl px-6 py-10">
+      <main
+        id={MAIN_CONTENT_ID}
+        className="mx-auto max-w-6xl space-y-6 px-6 py-10"
+      >
+        {/* On small screens the header export menu is hidden to save room, so
+            surface it inline at the top of the page instead. */}
+        <div className="flex justify-end sm:hidden">
+          <ExportMenu
+            dataset={netWorthExport(seededNetWorth)}
+            testId="networth-export-mobile"
+          />
+        </div>
         <NetWorthDashboard model={seededNetWorth} />
       </main>
     </div>

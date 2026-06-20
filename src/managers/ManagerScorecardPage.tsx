@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BarChart, LineChart } from "@/components/charts";
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   buildScorecardView,
   MANAGERS,
@@ -24,6 +25,7 @@ import {
   type Manager,
   type ScorecardView,
 } from "@/lib/managers";
+import { managersExport } from "@/lib/export";
 import { cn } from "@/lib/utils";
 
 /** Format a decimal fraction as a percentage, optionally signed. */
@@ -137,13 +139,16 @@ export function ManagerScorecardPage({
           <h1 className="text-lg font-semibold tracking-tight">
             Manager &amp; fund scorecard
           </h1>
-          <a
-            href="#/"
-            data-testid="managers-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={managersExport(model)} testId="managers-export" />
+            <a
+              href="#/"
+              data-testid="managers-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

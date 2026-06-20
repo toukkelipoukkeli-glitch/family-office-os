@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { ExportMenu } from "@/components/ExportMenu";
 import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart } from "@/components/charts/line-chart";
 import {
@@ -24,6 +25,7 @@ import {
   exportReportMarkdown,
   type BoardReport,
 } from "@/lib/reporting";
+import { reportExport } from "@/lib/export";
 import { cn } from "@/lib/utils";
 
 /** Full currency with no fractional cents, e.g. `$1,250,000`. */
@@ -102,15 +104,18 @@ export function ReportsPage({ report }: ReportsPageProps) {
         </span>
       }
       actions={
-        <button
-          type="button"
-          data-testid="toggle-export"
-          onClick={() => setShowExport((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted"
-        >
-          <Download className="size-3.5" aria-hidden="true" />
-          {showExport ? "Hide export" : "Export"}
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportMenu dataset={reportExport(data)} testId="reports-export" />
+          <button
+            type="button"
+            data-testid="toggle-export"
+            onClick={() => setShowExport((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted"
+          >
+            <Download className="size-3.5" aria-hidden="true" />
+            {showExport ? "Hide memo" : "Memo"}
+          </button>
+        </div>
       }
       backTestId="reports-back"
       mainClassName="space-y-6"

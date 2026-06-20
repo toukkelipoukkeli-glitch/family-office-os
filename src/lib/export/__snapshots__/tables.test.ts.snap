@@ -1,0 +1,825 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`board report export > produces byte-stable CSV 1`] = `
+"key,label,display,raw
+net-worth,Net worth,$287.8K,287776
+twr,Window TWR,4.9%,0.049075
+excess-return,Excess vs. policy,6.9%,0.068751
+info-ratio,Information ratio,2.15,2.148335
+policy-breaches,IPS breaches,3,3
+fee-rate,Blended fee,1.27%,0.012705
+pe-tvpi,PE TVPI,1.57×,1.567568
+"
+`;
+
+exports[`board report export > produces byte-stable JSON 1`] = `
+"{
+  "asOf": "2026-06-30",
+  "attribution": {
+    "activeReturn": 0.00825,
+    "method": "BF",
+    "segments": [
+      {
+        "allocation": 0.000558,
+        "id": "public-equity",
+        "interaction": 0.0005,
+        "label": "Public equity",
+        "selection": 0.0035,
+        "total": 0.004558
+      },
+      {
+        "allocation": 0.002385,
+        "id": "fixed-income",
+        "interaction": 0.0005,
+        "label": "Fixed income",
+        "selection": -0.00125,
+        "total": 0.001635
+      },
+      {
+        "allocation": 0.001558,
+        "id": "private-equity",
+        "interaction": 0.0005,
+        "label": "Private equity",
+        "selection": 0.0015,
+        "total": 0.003558
+      },
+      {
+        "allocation": 0,
+        "id": "real-assets",
+        "interaction": 0,
+        "label": "Real assets",
+        "selection": -0.0015,
+        "total": -0.0015
+      },
+      {
+        "allocation": 0,
+        "id": "cash",
+        "interaction": 0,
+        "label": "Cash & equivalents",
+        "selection": 0,
+        "total": 0
+      }
+    ],
+    "totalAllocation": 0.0045,
+    "totalEffect": 0.00825,
+    "totalInteraction": 0.0015,
+    "totalSelection": 0.00225
+  },
+  "benchmark": {
+    "alpha": 0.000279,
+    "benchmarkId": "family-policy-55-35-10",
+    "benchmarkLabel": "Family policy (55/35/10)",
+    "benchmarkReturn": 0.088553,
+    "beta": 1.696989,
+    "excessReturn": 0.068751,
+    "informationRatio": 2.148335,
+    "portfolioReturn": 0.157304,
+    "trackingError": 0.029404
+  },
+  "currency": "USD",
+  "fees": {
+    "blendedRate": 0.012705,
+    "dragShareOfProfit": 0.287275,
+    "horizonYears": 20,
+    "terminalDrag": 11568696.71,
+    "totalAnnualCost": 139750,
+    "totalInvested": 11000000
+  },
+  "kpis": [
+    {
+      "display": "$287.8K",
+      "key": "net-worth",
+      "label": "Net worth",
+      "raw": 287776
+    },
+    {
+      "display": "4.9%",
+      "key": "twr",
+      "label": "Window TWR",
+      "raw": 0.049075
+    },
+    {
+      "display": "6.9%",
+      "key": "excess-return",
+      "label": "Excess vs. policy",
+      "raw": 0.068751
+    },
+    {
+      "display": "2.15",
+      "key": "info-ratio",
+      "label": "Information ratio",
+      "raw": 2.148335
+    },
+    {
+      "display": "3",
+      "key": "policy-breaches",
+      "label": "IPS breaches",
+      "raw": 3
+    },
+    {
+      "display": "1.27%",
+      "key": "fee-rate",
+      "label": "Blended fee",
+      "raw": 0.012705
+    },
+    {
+      "display": "1.57×",
+      "key": "pe-tvpi",
+      "label": "PE TVPI",
+      "raw": 1.567568
+    }
+  ],
+  "netWorth": {
+    "baseCurrency": "USD",
+    "byAssetClass": [
+      {
+        "assetClass": "cash",
+        "label": "Cash",
+        "value": 250000,
+        "weight": 0.868731
+      },
+      {
+        "assetClass": "equity",
+        "label": "Equities",
+        "value": 30000,
+        "weight": 0.104248
+      },
+      {
+        "assetClass": "wine",
+        "label": "Fine wine",
+        "value": 7776,
+        "weight": 0.027021
+      }
+    ],
+    "current": 287776,
+    "months": 24,
+    "opening": 274314.15,
+    "series": [
+      {
+        "date": "2024-07-01",
+        "value": 274314.15
+      },
+      {
+        "date": "2024-08-01",
+        "value": 274858.36
+      },
+      {
+        "date": "2024-09-01",
+        "value": 275406.03
+      },
+      {
+        "date": "2024-10-01",
+        "value": 275957.2
+      },
+      {
+        "date": "2024-11-01",
+        "value": 276511.92
+      },
+      {
+        "date": "2024-12-01",
+        "value": 277070.21
+      },
+      {
+        "date": "2025-01-01",
+        "value": 277632.11
+      },
+      {
+        "date": "2025-02-01",
+        "value": 278197.67
+      },
+      {
+        "date": "2025-03-01",
+        "value": 278766.92
+      },
+      {
+        "date": "2025-04-01",
+        "value": 279339.91
+      },
+      {
+        "date": "2025-05-01",
+        "value": 279916.66
+      },
+      {
+        "date": "2025-06-01",
+        "value": 280497.22
+      },
+      {
+        "date": "2025-07-01",
+        "value": 281081.62
+      },
+      {
+        "date": "2025-08-01",
+        "value": 281669.92
+      },
+      {
+        "date": "2025-09-01",
+        "value": 282262.14
+      },
+      {
+        "date": "2025-10-01",
+        "value": 282858.33
+      },
+      {
+        "date": "2025-11-01",
+        "value": 283458.54
+      },
+      {
+        "date": "2025-12-01",
+        "value": 284062.82
+      },
+      {
+        "date": "2026-01-01",
+        "value": 284671.17
+      },
+      {
+        "date": "2026-02-01",
+        "value": 285283.68
+      },
+      {
+        "date": "2026-03-01",
+        "value": 285900.38
+      },
+      {
+        "date": "2026-04-01",
+        "value": 286521.29
+      },
+      {
+        "date": "2026-05-01",
+        "value": 287146.48
+      },
+      {
+        "date": "2026-06-01",
+        "value": 287776
+      }
+    ],
+    "totalReturn": 0.049075
+  },
+  "policy": {
+    "breachCount": 3,
+    "breaches": [
+      {
+        "bound": "max",
+        "exceedanceAmount": 192416,
+        "kind": "positionCap",
+        "limit": 0.2,
+        "severity": "critical",
+        "subject": "USD Cash",
+        "weight": 0.868297
+      },
+      {
+        "bound": "max",
+        "exceedanceAmount": 106040,
+        "kind": "assetClassBand",
+        "limit": 0.5,
+        "severity": "warning",
+        "subject": "Cash",
+        "weight": 0.868297
+      },
+      {
+        "bound": "min",
+        "exceedanceAmount": 13188,
+        "kind": "assetClassBand",
+        "limit": 0.15,
+        "severity": "warning",
+        "subject": "Equities",
+        "weight": 0.104196
+      }
+    ],
+    "compliant": false,
+    "criticalBreaches": 1,
+    "total": 287920,
+    "warningBreaches": 2
+  },
+  "privateMarkets": {
+    "committed": 24000000,
+    "distributed": 19300000,
+    "dpi": 1.043243,
+    "irr": 0.108874,
+    "nav": 9700000,
+    "paidIn": 18500000,
+    "rvpi": 0.524324,
+    "tvpi": 1.567568,
+    "unfunded": 5500000
+  }
+}
+"
+`;
+
+exports[`managers export > produces byte-stable CSV 1`] = `
+"rank,id,name,strategy,vintage,aum,grossTotal,netTotal,excessReturn,informationRatio,feeDragShare,score
+1,meridian-global-equity,Meridian Global Equity,Long-only global equity,2019,1850000000,0.39237918865981014,0.29839058607157326,0.11902324011433896,2.705305314982326,0.23953513668566226,81.6664613759115
+2,cypress-credit,Cypress Credit,Investment-grade credit,2020,640000000,0.13372368876079826,0.10808746911682103,0.035804884756545974,4.3212410883261745,0.19171038341482416,76.29784541293814
+3,halcyon-macro,Halcyon Macro,Global macro,2017,920000000,0.2557849215966724,0.17803044506623633,-0.0013369008909980273,-0.07198649598595618,0.3039838159539408,42.123781067330405
+4,aurora-ventures,Aurora Ventures,Concentrated growth equity,2018,410000000,0.14697517807537924,0.09110983880941552,-0.0882575071478171,-0.5376406988757408,0.38010050402736745,26.759775472840133
+"
+`;
+
+exports[`managers export > produces byte-stable JSON 1`] = `
+"{
+  "detail": {
+    "aum": 1850000000,
+    "benchmarkReturn": 0.17936734595723336,
+    "beta": 1.126193356617354,
+    "excessReturn": 0.11902324011433896,
+    "feeDrag": 0.09398860258823687,
+    "feeDragShare": 0.23953513668566226,
+    "grossTotal": 0.39237918865981014,
+    "hitRate": 0.9166666666666666,
+    "id": "meridian-global-equity",
+    "informationRatio": 2.705305314982326,
+    "name": "Meridian Global Equity",
+    "netTotal": 0.29839058607157326,
+    "score": {
+      "composite": 81.6664613759115,
+      "consistency": 91.66666666666666,
+      "excess": 79.75581002858473,
+      "feeEfficiency": 52.092972662867545,
+      "infoRatio": 100
+    },
+    "strategy": "Long-only global equity",
+    "trackingError": 0.01809754295314406,
+    "vintage": 2019
+  },
+  "roster": [
+    {
+      "aum": 1850000000,
+      "excessReturn": 0.11902324011433896,
+      "feeDragShare": 0.23953513668566226,
+      "grossTotal": 0.39237918865981014,
+      "id": "meridian-global-equity",
+      "informationRatio": 2.705305314982326,
+      "name": "Meridian Global Equity",
+      "netTotal": 0.29839058607157326,
+      "rank": 1,
+      "score": 81.6664613759115,
+      "strategy": "Long-only global equity",
+      "vintage": 2019
+    },
+    {
+      "aum": 640000000,
+      "excessReturn": 0.035804884756545974,
+      "feeDragShare": 0.19171038341482416,
+      "grossTotal": 0.13372368876079826,
+      "id": "cypress-credit",
+      "informationRatio": 4.3212410883261745,
+      "name": "Cypress Credit",
+      "netTotal": 0.10808746911682103,
+      "rank": 2,
+      "score": 76.29784541293814,
+      "strategy": "Investment-grade credit",
+      "vintage": 2020
+    },
+    {
+      "aum": 920000000,
+      "excessReturn": -0.0013369008909980273,
+      "feeDragShare": 0.3039838159539408,
+      "grossTotal": 0.2557849215966724,
+      "id": "halcyon-macro",
+      "informationRatio": -0.07198649598595618,
+      "name": "Halcyon Macro",
+      "netTotal": 0.17803044506623633,
+      "rank": 3,
+      "score": 42.123781067330405,
+      "strategy": "Global macro",
+      "vintage": 2017
+    },
+    {
+      "aum": 410000000,
+      "excessReturn": -0.0882575071478171,
+      "feeDragShare": 0.38010050402736745,
+      "grossTotal": 0.14697517807537924,
+      "id": "aurora-ventures",
+      "informationRatio": -0.5376406988757408,
+      "name": "Aurora Ventures",
+      "netTotal": 0.09110983880941552,
+      "rank": 4,
+      "score": 26.759775472840133,
+      "strategy": "Concentrated growth equity",
+      "vintage": 2018
+    }
+  ],
+  "selectedId": "meridian-global-equity"
+}
+"
+`;
+
+exports[`net worth export > produces byte-stable CSV 1`] = `
+"assetClass,label,value (USD),weight,holdings
+vineyard,Vineyards,2970000,0.4113195699619273,1
+pe,Private equity,1340000,0.18557852651480897,1
+forest,Forest land,691200,0.09572528173659399,1
+car,Classic cars,604800,0.08375962151951974,1
+cash,Cash,345200,0.04780724429321795,2
+art,Art,304800,0.04221219021023416,1
+crypto,Crypto,303750,0.042066774200651656,1
+bond,Bonds,217512,0.030123549596484424,1
+etf,ETFs,189000,0.02617488172484992,1
+watch,Watches,134400,0.018613249226559943,1
+equity,Equities,108625,0.015043632419903823,1
+wine,Fine wine,7776,0.0010769094195366823,1
+lego,LEGO sets,3600,0.0004985691757114271,1
+"
+`;
+
+exports[`net worth export > produces byte-stable JSON 1`] = `
+"{
+  "asOf": "2026-06-01",
+  "baseCurrency": "USD",
+  "byAssetClass": [
+    {
+      "assetClass": "vineyard",
+      "holdingCount": 1,
+      "label": "Vineyards",
+      "value": "2970000",
+      "weight": 0.4113195699619273
+    },
+    {
+      "assetClass": "pe",
+      "holdingCount": 1,
+      "label": "Private equity",
+      "value": "1340000",
+      "weight": 0.18557852651480897
+    },
+    {
+      "assetClass": "forest",
+      "holdingCount": 1,
+      "label": "Forest land",
+      "value": "691200",
+      "weight": 0.09572528173659399
+    },
+    {
+      "assetClass": "car",
+      "holdingCount": 1,
+      "label": "Classic cars",
+      "value": "604800",
+      "weight": 0.08375962151951974
+    },
+    {
+      "assetClass": "cash",
+      "holdingCount": 2,
+      "label": "Cash",
+      "value": "345200",
+      "weight": 0.04780724429321795
+    },
+    {
+      "assetClass": "art",
+      "holdingCount": 1,
+      "label": "Art",
+      "value": "304800",
+      "weight": 0.04221219021023416
+    },
+    {
+      "assetClass": "crypto",
+      "holdingCount": 1,
+      "label": "Crypto",
+      "value": "303750",
+      "weight": 0.042066774200651656
+    },
+    {
+      "assetClass": "bond",
+      "holdingCount": 1,
+      "label": "Bonds",
+      "value": "217512",
+      "weight": 0.030123549596484424
+    },
+    {
+      "assetClass": "etf",
+      "holdingCount": 1,
+      "label": "ETFs",
+      "value": "189000",
+      "weight": 0.02617488172484992
+    },
+    {
+      "assetClass": "watch",
+      "holdingCount": 1,
+      "label": "Watches",
+      "value": "134400",
+      "weight": 0.018613249226559943
+    },
+    {
+      "assetClass": "equity",
+      "holdingCount": 1,
+      "label": "Equities",
+      "value": "108625",
+      "weight": 0.015043632419903823
+    },
+    {
+      "assetClass": "wine",
+      "holdingCount": 1,
+      "label": "Fine wine",
+      "value": "7776",
+      "weight": 0.0010769094195366823
+    },
+    {
+      "assetClass": "lego",
+      "holdingCount": 1,
+      "label": "LEGO sets",
+      "value": "3600",
+      "weight": 0.0004985691757114271
+    }
+  ],
+  "current": "7220663",
+  "opening": "6210348.81",
+  "series": [
+    {
+      "date": "2024-07-01",
+      "value": "6210348.81"
+    },
+    {
+      "date": "2024-08-01",
+      "value": "6249043.32"
+    },
+    {
+      "date": "2024-09-01",
+      "value": "6288161.34"
+    },
+    {
+      "date": "2024-10-01",
+      "value": "6327709.66"
+    },
+    {
+      "date": "2024-11-01",
+      "value": "6367695.14"
+    },
+    {
+      "date": "2024-12-01",
+      "value": "6408124.78"
+    },
+    {
+      "date": "2025-01-01",
+      "value": "6449005.68"
+    },
+    {
+      "date": "2025-02-01",
+      "value": "6490345.16"
+    },
+    {
+      "date": "2025-03-01",
+      "value": "6532150.63"
+    },
+    {
+      "date": "2025-04-01",
+      "value": "6574429.63"
+    },
+    {
+      "date": "2025-05-01",
+      "value": "6617189.9"
+    },
+    {
+      "date": "2025-06-01",
+      "value": "6660439.28"
+    },
+    {
+      "date": "2025-07-01",
+      "value": "6704185.77"
+    },
+    {
+      "date": "2025-08-01",
+      "value": "6748437.58"
+    },
+    {
+      "date": "2025-09-01",
+      "value": "6793203.01"
+    },
+    {
+      "date": "2025-10-01",
+      "value": "6838490.58"
+    },
+    {
+      "date": "2025-11-01",
+      "value": "6884308.87"
+    },
+    {
+      "date": "2025-12-01",
+      "value": "6930666.8"
+    },
+    {
+      "date": "2026-01-01",
+      "value": "6977573.31"
+    },
+    {
+      "date": "2026-02-01",
+      "value": "7025037.65"
+    },
+    {
+      "date": "2026-03-01",
+      "value": "7073069.15"
+    },
+    {
+      "date": "2026-04-01",
+      "value": "7121677.31"
+    },
+    {
+      "date": "2026-05-01",
+      "value": "7170871.96"
+    },
+    {
+      "date": "2026-06-01",
+      "value": "7220663"
+    }
+  ],
+  "totalReturn": 0.16268235825549388
+}
+"
+`;
+
+exports[`tax timeline export > produces byte-stable CSV 1`] = `
+"date,category,severity,title,detail,amount (USD),windowEnd
+2026-01-15,estate,info,Annual estate liquidity review,"Settlement need of $7,646,500 is fully covered by liquid assets.",7646500,
+2026-04-15,estimated-tax,deadline,Q1 estimated tax payment,"Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",62568.68,
+2026-06-15,estimated-tax,deadline,Q2 estimated tax payment,"Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",62568.68,
+2026-09-15,estimated-tax,deadline,Q3 estimated tax payment,"Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",62568.68,
+2026-11-01,harvest,info,Wash-sale blackout — BABA,"Re-buying BABA inside this ±30-day window disallows the $11,400 loss.",11400,2026-12-31
+2026-11-01,harvest,info,Wash-sale blackout — BABA,Re-buying BABA inside this ±30-day window disallows the $160 loss.,160,2026-12-31
+2026-11-01,harvest,info,Wash-sale blackout — META,"Re-buying META inside this ±30-day window disallows the $2,500 loss.",2500,2026-12-31
+2026-11-15,charitable,action,Gift: ACME Corp — long-term appreciated stock,Appreciated-asset gift to daf.,1200000,
+2026-11-15,charitable,action,Gift: Year-end cash gift,Cash gift to public-charity.,50000,
+2026-12-01,harvest,action,Review harvest candidates,"4 underwater lot(s); $21,000 clean loss to bank, $14,060 blocked by wash-sale rules.",21000,
+2026-12-31,estate,deadline,Annual-exclusion gifting deadline,"Make any 2026 annual-exclusion gifts to heirs before year-end to shrink the taxable estate ($4,829,000 projected estate tax).",,
+2026-12-31,charitable,deadline,Complete year-end gifting,"Settle all 2026 charitable gifts to claim $700,500 of tax benefit ($238,000 capital-gains avoided).",1250000,
+2027-01-15,estimated-tax,deadline,Q4 estimated tax payment,"Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",62568.71,
+2027-04-15,filing,deadline,File 2026 tax return,"Reconcile the $250,275 estimated bill against the final return.",,
+"
+`;
+
+exports[`tax timeline export > produces byte-stable JSON 1`] = `
+"{
+  "byCategory": [
+    {
+      "category": "estimated-tax",
+      "count": 4,
+      "total": "250274.75"
+    },
+    {
+      "category": "harvest",
+      "count": 4,
+      "total": "35060"
+    },
+    {
+      "category": "charitable",
+      "count": 3,
+      "total": "2500000"
+    },
+    {
+      "category": "estate",
+      "count": 2,
+      "total": "7646500"
+    },
+    {
+      "category": "filing",
+      "count": 1,
+      "total": "0"
+    }
+  ],
+  "charitableBenefit": "700500",
+  "currency": "USD",
+  "deadlineCount": 7,
+  "estimatedTax": "250274.75",
+  "events": [
+    {
+      "amount": "7646500",
+      "category": "estate",
+      "date": "2026-01-15",
+      "detail": "Settlement need of $7,646,500 is fully covered by liquid assets.",
+      "id": "estate-review",
+      "severity": "info",
+      "title": "Annual estate liquidity review",
+      "windowEnd": null
+    },
+    {
+      "amount": "62568.68",
+      "category": "estimated-tax",
+      "date": "2026-04-15",
+      "detail": "Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",
+      "id": "tax-q1",
+      "severity": "deadline",
+      "title": "Q1 estimated tax payment",
+      "windowEnd": null
+    },
+    {
+      "amount": "62568.68",
+      "category": "estimated-tax",
+      "date": "2026-06-15",
+      "detail": "Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",
+      "id": "tax-q2",
+      "severity": "deadline",
+      "title": "Q2 estimated tax payment",
+      "windowEnd": null
+    },
+    {
+      "amount": "62568.68",
+      "category": "estimated-tax",
+      "date": "2026-09-15",
+      "detail": "Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",
+      "id": "tax-q3",
+      "severity": "deadline",
+      "title": "Q3 estimated tax payment",
+      "windowEnd": null
+    },
+    {
+      "amount": "11400",
+      "category": "harvest",
+      "date": "2026-11-01",
+      "detail": "Re-buying BABA inside this ±30-day window disallows the $11,400 loss.",
+      "id": "harvest-washsale-baba-1",
+      "severity": "info",
+      "title": "Wash-sale blackout — BABA",
+      "windowEnd": "2026-12-31"
+    },
+    {
+      "amount": "160",
+      "category": "harvest",
+      "date": "2026-11-01",
+      "detail": "Re-buying BABA inside this ±30-day window disallows the $160 loss.",
+      "id": "harvest-washsale-baba-2",
+      "severity": "info",
+      "title": "Wash-sale blackout — BABA",
+      "windowEnd": "2026-12-31"
+    },
+    {
+      "amount": "2500",
+      "category": "harvest",
+      "date": "2026-11-01",
+      "detail": "Re-buying META inside this ±30-day window disallows the $2,500 loss.",
+      "id": "harvest-washsale-meta-1",
+      "severity": "info",
+      "title": "Wash-sale blackout — META",
+      "windowEnd": "2026-12-31"
+    },
+    {
+      "amount": "1200000",
+      "category": "charitable",
+      "date": "2026-11-15",
+      "detail": "Appreciated-asset gift to daf.",
+      "id": "gift-g-2026-acme",
+      "severity": "action",
+      "title": "Gift: ACME Corp — long-term appreciated stock",
+      "windowEnd": null
+    },
+    {
+      "amount": "50000",
+      "category": "charitable",
+      "date": "2026-11-15",
+      "detail": "Cash gift to public-charity.",
+      "id": "gift-g-2026-cash",
+      "severity": "action",
+      "title": "Gift: Year-end cash gift",
+      "windowEnd": null
+    },
+    {
+      "amount": "21000",
+      "category": "harvest",
+      "date": "2026-12-01",
+      "detail": "4 underwater lot(s); $21,000 clean loss to bank, $14,060 blocked by wash-sale rules.",
+      "id": "harvest-review",
+      "severity": "action",
+      "title": "Review harvest candidates",
+      "windowEnd": null
+    },
+    {
+      "amount": null,
+      "category": "estate",
+      "date": "2026-12-31",
+      "detail": "Make any 2026 annual-exclusion gifts to heirs before year-end to shrink the taxable estate ($4,829,000 projected estate tax).",
+      "id": "estate-annual-gifting",
+      "severity": "deadline",
+      "title": "Annual-exclusion gifting deadline",
+      "windowEnd": null
+    },
+    {
+      "amount": "1250000",
+      "category": "charitable",
+      "date": "2026-12-31",
+      "detail": "Settle all 2026 charitable gifts to claim $700,500 of tax benefit ($238,000 capital-gains avoided).",
+      "id": "charitable-deadline",
+      "severity": "deadline",
+      "title": "Complete year-end gifting",
+      "windowEnd": null
+    },
+    {
+      "amount": "62568.71",
+      "category": "estimated-tax",
+      "date": "2027-01-15",
+      "detail": "Quarterly instalment of the $250,275 estimated 2026 tax bill (25.7% effective).",
+      "id": "tax-q4",
+      "severity": "deadline",
+      "title": "Q4 estimated tax payment",
+      "windowEnd": null
+    },
+    {
+      "amount": null,
+      "category": "filing",
+      "date": "2027-04-15",
+      "detail": "Reconcile the $250,275 estimated bill against the final return.",
+      "id": "filing-return",
+      "severity": "deadline",
+      "title": "File 2026 tax return",
+      "windowEnd": null
+    }
+  ],
+  "harvestableLoss": "21000",
+  "quarterlyPayment": "62568.68",
+  "year": 2026
+}
+"
+`;

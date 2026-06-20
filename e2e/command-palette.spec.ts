@@ -58,7 +58,11 @@ test.describe("command palette (Cmd/Ctrl-K)", () => {
     await openWithShortcut(page);
     await expect(page.getByTestId("command-palette")).toBeVisible();
 
-    const options = page.getByRole("option");
+    // Scope to the palette: the shell now also mounts a native reporting-currency
+    // <select>, whose <option> elements carry the implicit ARIA "option" role. An
+    // unscoped getByRole("option") would intermittently match those, so anchor the
+    // query inside the command palette where only the command rows live.
+    const options = page.getByTestId("command-palette").getByRole("option");
     await expect(options.first()).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("ArrowDown");
     await expect(options.nth(1)).toHaveAttribute("aria-selected", "true");

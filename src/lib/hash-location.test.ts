@@ -119,6 +119,29 @@ describe("setHashParam", () => {
     setHashParam("s", "a");
     expect(window.location.hash).toBe(spy);
   });
+
+  // Adversarial: a value that contains query-syntax characters (&, =, space)
+  // must be percent-encoded on write and decode back to the exact original on
+  // read, or a shared deep link would silently select the wrong sub-view.
+  it("round-trips a value containing reserved characters (&, =, space)", () => {
+    window.location.hash = "#/scenarios";
+    const tricky = "a&b=c d";
+    setHashParam("s", tricky);
+    // Other params are not spuriously introduced by the encoded ampersand.
+    expect(currentHashParams().get("s")).toBe(tricky);
+    expect(readHashParam("s")).toBe(tricky);
+    expect(window.location.hash).toContain("%26");
+  });
+
+  // Adversarial: clearing the active param must not strip an unrelated param
+  // that another writer parked on the same hash.
+  it("removing one param preserves an unrelated coexisting param", () => {
+    window.location.hash = "#/p?a=1&b=2";
+    setHashParam("a", null);
+    expect(readHashParam("a")).toBeNull();
+    expect(readHashParam("b")).toBe("2");
+    expect(splitHash(window.location.hash).path).toBe("/p");
+  });
 });
 
 describe("useHashQueryParam", () => {

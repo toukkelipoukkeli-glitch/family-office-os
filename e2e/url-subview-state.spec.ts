@@ -156,6 +156,38 @@ test.describe("deep-linkable sub-view state", () => {
     });
   });
 
+  // --- Adversarial: unknown / malformed deep links ------------------------
+
+  test.describe("unknown ids fall back to the default sub-view", () => {
+    test("an unknown scenario id renders the default, not a blank page", async ({
+      page,
+    }) => {
+      await page.goto("/#/scenarios?s=does-not-exist");
+      await expect(page.getByTestId("cockpit-page")).toBeVisible();
+      // Exactly one scenario stays selected (the worst-case default), and the
+      // waterfall points at a real scenario rather than the missing id.
+      await expect(
+        page.locator('[data-testid="scenario-select"][data-selected="true"]'),
+      ).toHaveCount(1);
+      await expect(page.getByTestId("waterfall-chart")).not.toHaveAttribute(
+        "data-scenario",
+        "does-not-exist",
+      );
+    });
+
+    test("an unknown consolidation entity falls back to the default root", async ({
+      page,
+    }) => {
+      await page.goto("/#/consolidation?entity=ghost-entity");
+      await expect(page.getByTestId("consolidation-view")).toBeVisible();
+      // The select resolves to a real entity, never the bogus URL value.
+      await expect(page.getByTestId("cons-root-select")).not.toHaveValue(
+        "ghost-entity",
+      );
+      await expect(page.getByTestId("cons-kpi-consolidated-value")).toBeVisible();
+    });
+  });
+
   // --- Visual QA evidence -------------------------------------------------
 
   test("captures desktop evidence (1280x800)", async ({ page }) => {

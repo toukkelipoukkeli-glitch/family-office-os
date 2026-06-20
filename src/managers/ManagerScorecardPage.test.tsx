@@ -71,4 +71,29 @@ describe("ManagerScorecardPage", () => {
     expect(terms).toHaveTextContent("1.50%");
     expect(terms).toHaveTextContent("15.00%");
   });
+
+  // --- Deep-linkable sub-view state (m13) --------------------------------
+
+  it("selects the manager named in the hash deep link on mount", () => {
+    window.location.hash = "#/managers?m=aurora-ventures";
+    render(<ManagerScorecardPage />);
+    const aurora = screen
+      .getAllByTestId("roster-row")
+      .find((r) => r.getAttribute("data-manager") === "aurora-ventures");
+    expect(aurora).toHaveAttribute("data-selected", "true");
+    expect(screen.getByTestId("detail-header")).toHaveTextContent(
+      "Aurora Ventures",
+    );
+  });
+
+  it("writes the selected manager to the hash so it is shareable", async () => {
+    window.location.hash = "#/managers";
+    const user = userEvent.setup();
+    render(<ManagerScorecardPage />);
+    const aurora = screen
+      .getAllByTestId("roster-row")
+      .find((r) => r.getAttribute("data-manager") === "aurora-ventures")!;
+    await user.click(aurora);
+    expect(window.location.hash).toBe("#/managers?m=aurora-ventures");
+  });
 });

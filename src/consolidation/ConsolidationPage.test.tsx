@@ -82,4 +82,34 @@ describe("ConsolidationView", () => {
       "−$3.7M",
     );
   });
+
+  // --- Deep-linkable sub-view state (m13) --------------------------------
+
+  it("reads the root entity from the hash deep link when deepLink is on", () => {
+    window.location.hash = "#/consolidation?entity=holdco";
+    render(<ConsolidationView deepLink />);
+    expect(screen.getByTestId("cons-root-select")).toHaveValue("holdco");
+    // Consolidating up to the holdco drops the trust's own 1.5M NAV from gross.
+    expect(screen.getByTestId("cons-kpi-gross-value")).toHaveTextContent(
+      "$44.5M",
+    );
+  });
+
+  it("writes the selected root entity to the hash when deepLink is on", async () => {
+    window.location.hash = "#/consolidation";
+    const user = userEvent.setup();
+    render(<ConsolidationView deepLink />);
+    await user.selectOptions(
+      screen.getByTestId("cons-root-select"),
+      "holdco",
+    );
+    expect(window.location.hash).toBe("#/consolidation?entity=holdco");
+  });
+
+  it("ignores the hash and stays prop-controlled when deepLink is off", () => {
+    window.location.hash = "#/consolidation?entity=holdco";
+    render(<ConsolidationView />);
+    // Default root (trust) is used: the URL param is not consulted.
+    expect(screen.getByTestId("cons-root-select")).toHaveValue("trust");
+  });
 });

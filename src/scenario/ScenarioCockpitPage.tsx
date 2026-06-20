@@ -14,6 +14,7 @@ import {
   type CockpitModel,
 } from "@/lib/scenario/cockpit";
 import { getScenario, SCENARIO_RATIONALE } from "@/lib/scenario/named";
+import { useHashQueryParam } from "@/lib/hash-location";
 import {
   formatMoneyCompact,
   formatMoneySignedCompact,
@@ -87,28 +88,29 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
   const signedCompact = (value: number): string =>
     formatMoneySignedCompact(convert(value), currency);
 
-  // Default selection: the worst scenario (first tornado bar).
-  const [selectedId, setSelectedId] = React.useState<string>(
-    () => cockpit.tornado.bars[0]?.scenarioId ?? "",
-  );
+  // Default selection: the worst scenario (first tornado bar). The selection is
+  // a deep-linkable sub-view stored on the route's hash (`#/scenarios?s=<id>`),
+  // so a chosen scenario is shareable and survives reload.
+  const defaultScenarioId = cockpit.tornado.bars[0]?.scenarioId ?? "";
+  const [selectedId, setSelectedId] = useHashQueryParam("s", defaultScenarioId);
 
-  // If the model changes and the current selection no longer exists, fall back
+  // If the URL points at a scenario that does not exist in this model, fall back
   // to the worst scenario so the waterfall never points at a missing id.
+  const known = selectedId in cockpit.waterfalls;
   React.useEffect(() => {
-    if (!(selectedId in cockpit.waterfalls)) {
-      setSelectedId(cockpit.tornado.bars[0]?.scenarioId ?? "");
-    }
-  }, [cockpit, selectedId]);
+    if (!known) setSelectedId(defaultScenarioId);
+  }, [known, defaultScenarioId, setSelectedId]);
+  const effectiveId = known ? selectedId : defaultScenarioId;
 
-  const waterfall = cockpit.waterfalls[selectedId];
+  const waterfall = cockpit.waterfalls[effectiveId];
   const selectedBar = cockpit.tornado.bars.find(
-    (b) => b.scenarioId === selectedId,
+    (b) => b.scenarioId === effectiveId,
   );
   const rationale =
-    selectedId in SCENARIO_RATIONALE ? SCENARIO_RATIONALE[selectedId] : "";
+    effectiveId in SCENARIO_RATIONALE ? SCENARIO_RATIONALE[effectiveId] : "";
   const scenarioName = (() => {
     try {
-      return getScenario(selectedId).name;
+      return getScenario(effectiveId).name;
     } catch {
       return waterfall?.scenarioName ?? "";
     }
@@ -228,7 +230,7 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
               />
               <ul className="mt-3 space-y-1" data-testid="tornado-legend">
                 {cockpit.tornado.bars.map((bar) => {
-                  const active = bar.scenarioId === selectedId;
+                  const active = bar.scenarioId === effectiveId;
                   return (
                     <li key={bar.scenarioId}>
                       <button
@@ -282,7 +284,7 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
               {waterfall ? (
                 <>
                   <WaterfallChart
-                    key={selectedId}
+                    key={effectiveId}
                     model={waterfall}
                     width={720}
                     height={300}

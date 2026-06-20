@@ -285,6 +285,169 @@ describe("consolidateLookThrough — edge cases", () => {
   });
 });
 
+describe("consolidateLookThrough — adversarial edge cases", () => {
+  it("sums two independent ownership paths (diamond) into one effective stake", () => {
+    // r owns m (50%) and n (50%); both own leaf (40% each). Effective
+    // ownership of leaf = 0.5*0.4 + 0.5*0.4 = 0.4. A naive single-path walk
+    // would under-count this.
+    const entities = [
+      Entity.parse({ id: "r", name: "Root", kind: "trust" }),
+      Entity.parse({
+        id: "m",
+        name: "M",
+        kind: "holding",
+        owners: [{ parentId: "r", ownershipPct: 0.5 }],
+      }),
+      Entity.parse({
+        id: "n",
+        name: "N",
+        kind: "holding",
+        owners: [{ parentId: "r", ownershipPct: 0.5 }],
+      }),
+      Entity.parse({
+        id: "leaf",
+        name: "Leaf",
+        kind: "operating",
+        owners: [
+          { parentId: "m", ownershipPct: 0.4 },
+          { parentId: "n", ownershipPct: 0.4 },
+        ],
+      }),
+    ];
+    const holdings = [
+      EntityHoldings.parse({
+        entityId: "leaf",
+        holdings: [
+          { assetClass: "equity", value: { amount: "1000000", currency: "USD" } },
+        ],
+      }),
+    ];
+    const report = consolidateLookThrough(entities, holdings, "r");
+    // 1,000,000 × 0.4 = 400,000.
+    expect(report.total.amount.toString()).toBe("400000");
+    const eq = report.lines.find((l) => l.assetClass === "equity")!;
+    expect(eq.contributions).toHaveLength(1);
+    expect(eq.contributions[0].effectivePct).toBeCloseTo(0.4, 12);
+  });
+
+  it("attributes the root's own holdings at 100% (effective ownership of self)", () => {
+    const entities = [
+      Entity.parse({ id: "r", name: "Root", kind: "trust" }),
+      Entity.parse({
+        id: "a",
+        name: "A",
+        kind: "operating",
+        owners: [{ parentId: "r", ownershipPct: 0.5 }],
+      }),
+    ];
+    const holdings = [
+      EntityHoldings.parse({
+        entityId: "r",
+        holdings: [
+          { assetClass: "cash", value: { amount: "250000", currency: "USD" } },
+        ],
+      }),
+      EntityHoldings.parse({
+        entityId: "a",
+        holdings: [
+          { assetClass: "cash", value: { amount: "250000", currency: "USD" } },
+        ],
+      }),
+    ];
+    const report = consolidateLookThrough(entities, holdings, "r");
+    // root 250,000 × 1.0 + a 250,000 × 0.5 = 375,000.
+    expect(report.total.amount.toString()).toBe("375000");
+    const cash = report.lines.find((l) => l.assetClass === "cash")!;
+    const rootRow = cash.contributions.find((c) => c.entityId === "r")!;
+    expect(rootRow.effectivePct).toBe(1);
+    expect(rootRow.attributed.amount.toString()).toBe("250000");
+  });
+
+  it("keeps a repeating-decimal split exact in Decimal and additive", () => {
+    // 100 owned at 1/3 → 33.333... which floating point cannot represent.
+    // The contribution must still sum exactly back to the line value.
+    const entities = [
+      Entity.parse({ id: "r", name: "Root", kind: "trust" }),
+      Entity.parse({
+        id: "a",
+        name: "A",
+        kind: "operating",
+        owners: [{ parentId: "r", ownershipPct: 1 / 3 }],
+      }),
+    ];
+    const holdings = [
+      EntityHoldings.parse({
+        entityId: "a",
+        holdings: [
+          { assetClass: "equity", value: { amount: "100", currency: "USD" } },
+        ],
+      }),
+    ];
+    const report = consolidateLookThrough(entities, holdings, "r");
+    const eq = report.lines.find((l) => l.assetClass === "equity")!;
+    const sum = eq.contributions.reduce(
+      (acc, c) => acc.plus(c.attributed.amount),
+      eq.value.amount.minus(eq.value.amount),
+    );
+    expect(sum.toString()).toBe(eq.value.amount.toString());
+    expect(report.total.amount.toString()).toBe(eq.value.amount.toString());
+  });
+
+  it("omits a zero-valued holding from contributions entirely", () => {
+    const entities = [
+      Entity.parse({ id: "r", name: "Root", kind: "trust" }),
+      Entity.parse({
+        id: "a",
+        name: "A",
+        kind: "operating",
+        owners: [{ parentId: "r", ownershipPct: 1 }],
+      }),
+    ];
+    const holdings = [
+      EntityHoldings.parse({
+        entityId: "a",
+        holdings: [
+          { assetClass: "equity", value: { amount: "0", currency: "USD" } },
+          { assetClass: "cash", value: { amount: "100", currency: "USD" } },
+        ],
+      }),
+    ];
+    const report = consolidateLookThrough(entities, holdings, "r");
+    expect(report.lines.map((l) => l.assetClass)).toEqual(["cash"]);
+    expect(report.total.amount.toString()).toBe("100");
+  });
+
+  it("does not leak holdings from a sibling the root does not own", () => {
+    // r owns a (100%); b is a sibling root-less branch r has no stake in.
+    const entities = [
+      Entity.parse({ id: "r", name: "Root", kind: "trust" }),
+      Entity.parse({
+        id: "a",
+        name: "A",
+        kind: "operating",
+        owners: [{ parentId: "r", ownershipPct: 1 }],
+      }),
+      Entity.parse({ id: "b", name: "B", kind: "operating" }),
+    ];
+    const holdings = [
+      EntityHoldings.parse({
+        entityId: "a",
+        holdings: [
+          { assetClass: "equity", value: { amount: "100", currency: "USD" } },
+        ],
+      }),
+      EntityHoldings.parse({
+        entityId: "b",
+        holdings: [
+          { assetClass: "equity", value: { amount: "999", currency: "USD" } },
+        ],
+      }),
+    ];
+    const report = consolidateLookThrough(entities, holdings, "r");
+    expect(report.total.amount.toString()).toBe("100");
+  });
+});
+
 describe("directGross", () => {
   it("sums an entity's own balance sheet ignoring ownership", () => {
     const g = directGross(LOOKTHROUGH_HOLDINGS, "aurora-climate", "USD");

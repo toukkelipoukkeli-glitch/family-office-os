@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
+import { TagFilter } from "@/components/TagFilter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
@@ -138,6 +139,10 @@ export function AppShell({
 
           <div className="flex items-center gap-4">
             {actions}
+            {/* The global holding-tag filter is surfaced on every shell page so
+                the active selection is visible and adjustable anywhere, not just
+                on the dashboard. It renders nothing when there are no tags. */}
+            <TagFilter />
             <CommandPaletteTrigger />
             <ThemeToggle />
             {backLink}

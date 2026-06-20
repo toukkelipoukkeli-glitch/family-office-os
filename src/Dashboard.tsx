@@ -1,9 +1,14 @@
+import * as React from "react";
+
 import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
 import { ExportMenu } from "@/components/ExportMenu";
+import { TagFilter } from "@/components/TagFilter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NetWorthDashboard } from "@/networth/NetWorthDashboard";
-import { seededNetWorth } from "@/lib/networth";
+import { buildNetWorthDashboard, networthRateTable } from "@/lib/networth";
+import { useFilteredPortfolio, useTagFilter } from "@/lib/filter";
+import { seededPortfolio } from "@/fixtures";
 import { netWorthExport } from "@/lib/export";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -17,6 +22,18 @@ import { cn } from "@/lib/utils";
  * surfaces it in the nav with the right label and `data-testid`.
  */
 export function Dashboard() {
+  // Narrow the book by the global tag filter. With no tags selected this is the
+  // full seeded portfolio (same reference), so the unfiltered dashboard is
+  // unchanged; selecting tags rebuilds the net-worth model over the subset.
+  const { selected, isFiltering } = useTagFilter();
+  const filteredPortfolio = useFilteredPortfolio(seededPortfolio);
+  const model = React.useMemo(
+    () => buildNetWorthDashboard(filteredPortfolio, networthRateTable),
+    [filteredPortfolio],
+  );
+  const exportDataset = React.useMemo(() => netWorthExport(model), [model]);
+  const matchedCount = filteredPortfolio.holdings.length;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
@@ -44,8 +61,9 @@ export function Dashboard() {
                 </a>
               ))}
             </nav>
+            <TagFilter />
             <ExportMenu
-              dataset={netWorthExport(seededNetWorth)}
+              dataset={exportDataset}
               testId="networth-export"
               className="hidden sm:flex"
             />
@@ -63,11 +81,33 @@ export function Dashboard() {
             surface it inline at the top of the page instead. */}
         <div className="flex justify-end sm:hidden">
           <ExportMenu
-            dataset={netWorthExport(seededNetWorth)}
+            dataset={exportDataset}
             testId="networth-export-mobile"
           />
         </div>
-        <NetWorthDashboard model={seededNetWorth} />
+        {isFiltering && (
+          <div
+            data-testid="tag-filter-summary"
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm"
+          >
+            <span className="text-muted-foreground">
+              Filtered to {matchedCount} holding{matchedCount === 1 ? "" : "s"}{" "}
+              tagged
+            </span>
+            {[...selected]
+              .sort((a, b) => a.localeCompare(b))
+              .map((tag) => (
+                <span
+                  key={tag}
+                  data-testid="tag-filter-summary-chip"
+                  className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+          </div>
+        )}
+        <NetWorthDashboard model={model} />
       </main>
     </div>
   );

@@ -5,6 +5,8 @@ import { useMainContentAnchor } from "@/lib/main-content";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
+import { TagFilterProvider } from "@/lib/filter";
+import { seededPortfolio } from "@/fixtures";
 import { matchRoute } from "@/lib/routes";
 import { useHashRoute } from "@/lib/use-hash-route";
 
@@ -51,7 +53,10 @@ function App() {
   useMainContentAnchor(path);
 
   return (
-    <>
+    // Global holding-tag filter state, seeded from the demo portfolio. Mounted
+    // at the app root so the same selection narrows the portfolio on every page
+    // (pages opt in via `useFilteredPortfolio`) and survives navigation.
+    <TagFilterProvider portfolio={seededPortfolio}>
       {/*
        * Skip-to-content link: the first focusable element so keyboard users can
        * bypass the navigation and jump straight to the page's main region.
@@ -75,7 +80,7 @@ function App() {
        * since SPA route changes don't trigger the browser's own announcement.
        */}
       <RouteAnnouncer path={path} />
-    </>
+    </TagFilterProvider>
   );
 }
 

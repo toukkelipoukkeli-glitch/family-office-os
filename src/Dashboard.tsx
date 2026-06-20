@@ -120,6 +120,13 @@ export function Dashboard() {
               Private markets
             </a>
             <a
+              href="#/cashflow"
+              data-testid="nav-cashflow"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Cashflow
+            </a>
+            <a
               href="#/org"
               data-testid="nav-org"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

@@ -66,6 +66,11 @@ const ScenarioCockpit = lazy(() =>
     default: m.ScenarioCockpit,
   })),
 );
+const StressTestPage = lazy(() =>
+  import("@/stress/StressTestPage").then((m) => ({
+    default: m.StressTestPage,
+  })),
+);
 const RelationshipGraphPage = lazy(() =>
   import("@/relationship/RelationshipGraphPage").then((m) => ({
     default: m.RelationshipGraphPage,
@@ -94,6 +99,7 @@ function routeElement(path: string) {
   if (path === "/org") return <OrgChartPage />;
   if (path === "/charts") return <ChartsGalleryPage />;
   if (path === "/scenarios") return <ScenarioCockpit />;
+  if (path === "/stress") return <StressTestPage />;
   if (path === "/attribution") return <AttributionPage />;
   if (path === "/benchmark") return <BenchmarkPage />;
   if (path === "/fees") return <FeesPage />;

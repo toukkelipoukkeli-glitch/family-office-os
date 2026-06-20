@@ -36,6 +36,13 @@ export function Dashboard() {
               Scenarios
             </a>
             <a
+              href="#/stress"
+              data-testid="nav-stress"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Stress tests
+            </a>
+            <a
               href="#/attribution"
               data-testid="nav-attribution"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

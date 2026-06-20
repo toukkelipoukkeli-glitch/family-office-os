@@ -239,6 +239,13 @@ export function Dashboard() {
               Goals
             </a>
             <a
+              href="#/tax-timeline"
+              data-testid="nav-tax-timeline"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Tax timeline
+            </a>
+            <a
               href="#/insurance"
               data-testid="nav-insurance"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

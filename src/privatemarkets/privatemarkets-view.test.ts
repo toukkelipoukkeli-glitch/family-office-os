@@ -17,6 +17,17 @@ describe("formatters", () => {
     expect(formatMoney(new Decimal("-4000000"), "USD")).toBe("-$4,000,000");
   });
 
+  it("formats very large amounts exactly without float drift", () => {
+    // Beyond Number.MAX_SAFE_INTEGER a Decimal->number round-trip would lose
+    // precision; the BigInt path keeps every digit exact.
+    expect(formatMoney(new Decimal("9007199254740993"), "USD")).toBe(
+      "$9,007,199,254,740,993",
+    );
+    // Fractional cents round half-to-even to whole units, then format exactly.
+    expect(formatMoney(new Decimal("1234567.5"), "USD")).toBe("$1,234,568");
+    expect(formatMoney(new Decimal("1234566.5"), "USD")).toBe("$1,234,566");
+  });
+
   it("formats multiples to two decimals with an x", () => {
     expect(formatMultiple(new Decimal("1.75"))).toBe("1.75x");
     expect(formatMultiple(new Decimal("2.5"))).toBe("2.50x");

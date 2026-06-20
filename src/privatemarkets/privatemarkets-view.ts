@@ -16,11 +16,15 @@ import {
 
 /** Format a whole-currency amount (no minor units) as `$1,234,567`. */
 export function formatMoney(amount: Decimal, currency: string): string {
+  // Round to whole units with exact Decimal arithmetic, then hand the result
+  // to Intl as a BigInt so there is no lossy Decimal -> JS number round-trip
+  // (AGENTS.md: "Money is Decimal. Never floating-point currency.").
+  const whole = BigInt(amount.toDecimalPlaces(0, Decimal.ROUND_HALF_EVEN).toFixed(0));
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(amount.toNumber());
+  }).format(whole);
 }
 
 /** Format a multiple as `1.75x` (two decimals). */
@@ -100,6 +104,7 @@ export interface LifecycleViewModel {
 const VIEW_W = 600;
 const VIEW_H = 160;
 const PAD = 8;
+const ZERO = new Decimal(0);
 
 function buildJCurveChart(
   points: JCurvePoint[],
@@ -129,8 +134,12 @@ function buildJCurveChart(
     .map((c, i) => `${i === 0 ? "M" : "L"}${c.x.toFixed(1)},${c.y.toFixed(1)}`)
     .join(" ");
 
-  const trough = nets.length ? Math.min(...nets) : 0;
-  const final = nets.length ? nets[nets.length - 1] : 0;
+  // Keep the currency labels as exact Decimals (no float round-trip): the
+  // trough is the most-negative cumulative net, the final is the last point.
+  const trough = points.length
+    ? points.reduce((lo, p) => (p.cumulativeNet.lessThan(lo) ? p.cumulativeNet : lo), points[0].cumulativeNet)
+    : ZERO;
+  const final = points.length ? points[points.length - 1].cumulativeNet : ZERO;
 
   return {
     path,
@@ -138,8 +147,8 @@ function buildJCurveChart(
     width: VIEW_W,
     height: VIEW_H,
     points: coords,
-    troughLabel: formatMoney(new Decimal(trough), currency),
-    finalLabel: formatMoney(new Decimal(final), currency),
+    troughLabel: formatMoney(trough, currency),
+    finalLabel: formatMoney(final, currency),
   };
 }
 

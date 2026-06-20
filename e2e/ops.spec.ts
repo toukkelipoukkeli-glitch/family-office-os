@@ -1,4 +1,20 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { expect, test } from "@playwright/test";
+
+/**
+ * Read the live harness phase straight off `tasks.json` at runtime. We read the
+ * file (rather than `import`ing it) so this works under the Playwright/Node
+ * runner without a JSON import attribute, and so the assertion always reflects
+ * the current harness state instead of a baked-in literal.
+ */
+const tasksState = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL("../harness/state/tasks.json", import.meta.url)),
+    "utf8",
+  ),
+) as { phase?: string };
 
 test.describe("/ops cockpit", () => {
   test("renders the ops cockpit at #/ops", async ({ page }) => {
@@ -54,8 +70,12 @@ test.describe("/ops cockpit", () => {
     await page.goto("/#/ops");
 
     // The header surfaces the live generation/phase derived from tasks.json.
-    // gen-1 is complete and gen-2 is launching, so the phase mentions gen-2.
-    await expect(page.getByText(/launching gen-2/i)).toBeVisible();
+    // Assert against the actual phase string in tasks.json rather than a
+    // hard-coded snapshot, so this stays correct as the harness advances
+    // generations (it is the "not a stale fixture" guarantee, after all).
+    const phase = tasksState.phase ?? "";
+    expect(phase.length).toBeGreaterThan(0);
+    await expect(page.getByText(phase, { exact: false }).first()).toBeVisible();
 
     // gen-2 work is in flight: the currently-active unit appears in the
     // in-progress column (the old static snapshot never showed gen-2 at all).

@@ -6,6 +6,7 @@ import {
   parseGlobalQuote,
   quoteToValuation,
 } from "../src/lib/equities/alpha-vantage";
+import { defaultFetchGuard } from "../src/lib/equities/fetch-guard";
 import { action } from "./_generated/server";
 
 /**
@@ -33,13 +34,15 @@ function requireApiKey(): string {
   return key;
 }
 
-/** Fetch + JSON-decode an Alpha Vantage URL. Network errors propagate. */
+/**
+ * Fetch + JSON-decode an Alpha Vantage URL through the shared offline cache +
+ * rate-limit guard. The guard short-circuits to a cached body when one is fresh,
+ * serves a stale body when the limiter denies a call, and otherwise performs the
+ * live fetch. Network and HTTP errors still propagate.
+ */
 async function fetchJson(url: string): Promise<unknown> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Alpha Vantage HTTP ${res.status} ${res.statusText}`);
-  }
-  return (await res.json()) as unknown;
+  const { body } = await defaultFetchGuard().fetch(url);
+  return body;
 }
 
 /**

@@ -11,6 +11,11 @@ import { expect, test } from "@playwright/test";
  *     visual-QA gate.
  */
 
+// Pin trace capture explicitly at the file level (the global config already
+// sets trace: "on", but other UI specs pin it per-file too), since the traces
+// are part of this PR's visual-QA evidence.
+test.use({ trace: "on" });
+
 const EVIDENCE_DIR = "e2e/evidence/m9-hardening";
 
 test.describe("error boundary", () => {

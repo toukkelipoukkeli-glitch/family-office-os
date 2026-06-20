@@ -27,6 +27,19 @@ interface CacheEntry {
   storedAt: number;
 }
 
+/**
+ * Detect an Alpha Vantage throttle response. When the free tier is exhausted it
+ * replies with HTTP 200 and a `Note` (rate limit) or `Information` (premium
+ * endpoint / invalid call) message instead of data. Such a body must never be
+ * cached as if it were a successful quote, or the cache/stale paths would just
+ * replay a parse failure forever instead of recovering on the next live call.
+ */
+function isThrottlePayload(body: unknown): boolean {
+  if (!body || typeof body !== "object") return false;
+  const b = body as Record<string, unknown>;
+  return typeof b.Note === "string" || typeof b.Information === "string";
+}
+
 /** Thrown when a call is denied by the rate limiter and no cache is available. */
 export class RateLimitedError extends Error {
   readonly retryAfterMs: number;
@@ -136,8 +149,9 @@ export class FetchGuard {
    *
    * Order of operations:
    *  1. Fresh cache hit → return it (`cache`), no network, no token spent.
-   *  2. Otherwise try to spend a token; if granted, fetch live, cache, return
-   *     (`network`).
+   *  2. Otherwise try to spend a token; if granted, fetch live. A real body is
+   *     cached and returned (`network`); a throttle payload is NOT cached and
+   *     falls back to the last good body (`stale`) or a {@link RateLimitedError}.
    *  3. If denied but a (stale) cache entry exists → return it (`stale`).
    *  4. If denied and nothing cached → throw {@link RateLimitedError}.
    */
@@ -151,6 +165,19 @@ export class FetchGuard {
     const { granted, retryAfterMs } = this.tryConsume(at);
     if (granted) {
       const body = await this.fetcher(url);
+      if (isThrottlePayload(body)) {
+        // A throttle message is not data. Don't poison the cache with it.
+        // Prefer the last good cached body if we have one; otherwise surface a
+        // typed rate-limit error so the caller can retry rather than trying to
+        // parse a Note/Information envelope.
+        if (cached) {
+          return { body: cached.body, source: "stale" };
+        }
+        throw new RateLimitedError(
+          "Alpha Vantage returned a throttle payload and nothing is cached for this request",
+          Math.max(retryAfterMs, this.minIntervalMs),
+        );
+      }
       this.cache.set(url, { body, storedAt: this.now() });
       return { body, source: "network" };
     }

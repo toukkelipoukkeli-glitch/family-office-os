@@ -175,24 +175,27 @@ describe("FetchGuard", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("serves a fresh cache hit without spending a token (so a later URL still gets through)", async () => {
+  it("serves a fresh cache hit without spending a token", async () => {
     const clock = makeClock();
     const fetcher = vi.fn(async (url: string) => ({ url }));
+    // burst: 2 + no spacing so that ONLY a leaked token (not the spacing rule)
+    // could deny the later "b" call — this actually proves cache hits are free.
     const guard = new FetchGuard({
       now: clock.now,
       fetcher,
-      burst: 1,
-      minIntervalMs: 10_000,
+      burst: 2,
+      minIntervalMs: 0,
       ttlMs: 60_000,
     });
 
-    await guard.fetch("a"); // spends the only token, caches "a" fresh
+    await guard.fetch("a"); // spends 1 of 2 tokens, caches "a" fresh
     // Repeated "a" is a fresh cache hit and must NOT consume the bucket...
     const hit = await guard.fetch("a");
     expect(hit.source).toBe("cache");
-    // ...but with the token already gone, a brand-new URL still rate-limits.
-    await expect(guard.fetch("b")).rejects.toBeInstanceOf(RateLimitedError);
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    // ...so the second token is still available for a brand-new URL.
+    const b = await guard.fetch("b");
+    expect(b.source).toBe("network");
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   it("keeps retryAfter within the configured spacing window", async () => {
@@ -214,6 +217,61 @@ describe("FetchGuard", () => {
       expect(wait).toBeGreaterThan(0);
       expect(wait).toBeLessThanOrEqual(minIntervalMs);
     }
+  });
+
+  it("does not cache an Alpha Vantage throttle payload (Note)", async () => {
+    const clock = makeClock();
+    // First call returns a throttle Note, second returns real data.
+    const bodies: unknown[] = [
+      { Note: "Thank you for using Alpha Vantage! ...rate limit..." },
+      { "Global Quote": { "05. price": "123.45" } },
+    ];
+    let i = 0;
+    const fetcher = vi.fn(async () => bodies[i++]);
+    const guard = new FetchGuard({
+      now: clock.now,
+      fetcher,
+      burst: 10,
+      minIntervalMs: 0,
+      ttlMs: 60_000,
+    });
+
+    // No prior cache → a throttle response with nothing to fall back on errors.
+    await expect(guard.fetch("u")).rejects.toBeInstanceOf(RateLimitedError);
+    // The throttle body must NOT have been cached, so the next call refetches
+    // and gets the real data (source network, not a replayed Note).
+    const good = await guard.fetch("u");
+    expect(good.source).toBe("network");
+    expect(good.body).toEqual({ "Global Quote": { "05. price": "123.45" } });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to the last good body when a later refetch throttles (Information)", async () => {
+    const clock = makeClock();
+    const bodies: unknown[] = [
+      { "Global Quote": { "05. price": "100.00" } }, // good
+      { Information: "premium endpoint" }, // throttle on refetch
+    ];
+    let i = 0;
+    const fetcher = vi.fn(async () => bodies[i++]);
+    const guard = new FetchGuard({
+      now: clock.now,
+      fetcher,
+      burst: 10,
+      minIntervalMs: 0,
+      ttlMs: 1_000,
+    });
+
+    const first = await guard.fetch("u");
+    expect(first.source).toBe("network");
+    clock.advance(2_000); // expire the cache → forces a refetch
+
+    // Refetch returns a throttle payload; rather than poisoning the cache we
+    // serve the last good body as stale.
+    const second = await guard.fetch("u");
+    expect(second.source).toBe("stale");
+    expect(second.body).toEqual({ "Global Quote": { "05. price": "100.00" } });
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   it("treats distinct URLs as independent cache keys", async () => {

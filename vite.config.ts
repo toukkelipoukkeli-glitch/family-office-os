@@ -4,6 +4,9 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  // Default "/" keeps dev, e2e (Playwright baseURL), and normal builds working.
+  // The GitHub Pages deploy job sets VITE_BASE=/family-office-os/ for the subpath.
+  base: process.env.VITE_BASE || "/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

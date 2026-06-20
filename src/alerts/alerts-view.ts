@@ -1,5 +1,6 @@
 import type { AlertEvaluation, AlertReport } from "@/lib/alerts";
 import { formatLimit, formatWeight, SCOPE_LABEL, SEVERITY_LABEL } from "@/lib/alerts";
+import type { CsvCell, CsvTable, ExportDataset } from "@/lib/export";
 import { Money } from "@/lib/money";
 
 /**
@@ -37,6 +38,12 @@ export interface AlertRow {
   breachDetail?: string;
   /** Progress of weight against the threshold, clamped to [0, 1], for a bar. */
   fill: number;
+  /**
+   * The raw engine evaluation behind this row, kept so an export can derive
+   * exact-Decimal weights and base-currency {@link Money} amounts (rather than
+   * re-parsing the formatted display strings).
+   */
+  evaluation: AlertEvaluation;
 }
 
 /** The full prepared view-model for the page. */
@@ -94,6 +101,7 @@ function buildRow(e: AlertEvaluation, currency: string): AlertRow {
     valueLabel,
     breachDetail,
     fill,
+    evaluation: e,
   };
 }
 
@@ -111,4 +119,81 @@ export function buildAlertsViewModel(report: AlertReport): AlertsViewModel {
     totalLabel: report.total.format(),
     baseCurrency: report.baseCurrency,
   };
+}
+
+/**
+ * Build a CSV/JSON export of the alert rows **currently visible** on screen.
+ *
+ * The page passes the *filtered* row list (all rules, or just the breaches),
+ * so the download reproduces exactly what the analyst is looking at — fixing
+ * the prior behaviour where the export ignored the active filter. Weights,
+ * thresholds and exceedances cross the boundary as exact-{@link Decimal} strings;
+ * subject values are base-currency {@link Money} amounts (`amount`/`currency`).
+ * READ-ONLY: it only serializes data already on screen.
+ */
+export function buildAlertsExport(
+  rows: readonly AlertRow[],
+  baseCurrency: string,
+): ExportDataset {
+  const cells = (row: AlertRow): CsvCell[] => {
+    const e = row.evaluation;
+    return [
+      e.rule.id,
+      row.ruleLabel,
+      row.subject,
+      row.scopeLabel,
+      e.direction,
+      row.severityLabel,
+      row.breached,
+      e.weight.toFixed(),
+      e.threshold.toFixed(),
+      e.exceedance.toFixed(),
+      // Money stays an exact decimal string even in CSV — never floating-point.
+      e.value.amount.toFixed(),
+      e.exceedanceAmount.amount.toFixed(),
+    ];
+  };
+
+  const table: CsvTable = {
+    columns: [
+      "ruleId",
+      "rule",
+      "subject",
+      "scope",
+      "direction",
+      "severity",
+      "breached",
+      "weight",
+      "threshold",
+      "exceedance",
+      `value (${baseCurrency})`,
+      `exceedanceAmount (${baseCurrency})`,
+    ],
+    rows: rows.map(cells),
+  };
+
+  const json = {
+    baseCurrency,
+    count: rows.length,
+    alerts: rows.map((row) => {
+      const e = row.evaluation;
+      return {
+        ruleId: e.rule.id,
+        rule: row.ruleLabel,
+        subject: row.subject,
+        scope: e.scope,
+        direction: e.direction,
+        severity: e.severity,
+        breached: e.breached,
+        weight: e.weight.toFixed(),
+        threshold: e.threshold.toFixed(),
+        exceedance: e.exceedance.toFixed(),
+        value: e.value.amount.toFixed(),
+        currency: e.value.currency,
+        exceedanceAmount: e.exceedanceAmount.amount.toFixed(),
+      };
+    }),
+  };
+
+  return { name: "alerts", table, json };
 }

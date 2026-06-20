@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { BarChart } from "@/components/charts/bar-chart";
+import { ExportMenu } from "@/components/ExportMenu";
 import { LineChart } from "@/components/charts/line-chart";
 import {
   Card,
@@ -20,6 +21,7 @@ import {
   buildPrivateMarketsModel,
   type PrivateMarketsModel,
 } from "@/lib/privatemarkets";
+import { privateMarketsExport } from "@/lib/export";
 import {
   formatMoneyCompact,
   formatMoneyWhole,
@@ -90,7 +92,12 @@ export function PrivateMarketsPage({ model }: PrivateMarketsPageProps) {
 
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary (no-op when the reporting currency is the base).
-  const { currency, convert } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { currency, convert } = rm;
+  const exportDataset = React.useMemo(
+    () => privateMarketsExport(pm, rm),
+    [pm, rm],
+  );
   const compact = (value: number): string =>
     formatMoneyCompact(convert(value), currency);
   const whole = (value: number): string =>
@@ -112,13 +119,16 @@ export function PrivateMarketsPage({ model }: PrivateMarketsPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Private-markets commitments
           </h1>
-          <a
-            href="#/"
-            data-testid="privatemarkets-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={exportDataset} testId="privatemarkets-export" />
+            <a
+              href="#/"
+              data-testid="privatemarkets-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

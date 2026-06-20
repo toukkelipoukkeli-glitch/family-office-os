@@ -2,6 +2,7 @@ import * as React from "react";
 import { Coins, Percent, TrendingDown, Wallet } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { ExportMenu } from "@/components/ExportMenu";
 import { BarChart } from "@/components/charts/bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { LineChart } from "@/components/charts/line-chart";
@@ -13,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildFeeModel, type FeeModel } from "@/lib/fees";
+import { feesExport } from "@/lib/export";
 import { formatMoneyCompact, formatMoneyWhole, formatPercent } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
@@ -77,7 +79,9 @@ export function FeesPage({ model }: FeesPageProps) {
 
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary (no-op when the reporting currency is the base).
-  const { currency, convert } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { currency, convert } = rm;
+  const exportDataset = React.useMemo(() => feesExport(fees, rm), [fees, rm]);
   const compact = (value: number): string =>
     formatMoneyCompact(convert(value), currency);
   const whole = (value: number): string =>
@@ -104,6 +108,7 @@ export function FeesPage({ model }: FeesPageProps) {
       backTestId="fees-back"
       mainClassName="space-y-6"
       mainTestId="fees-page"
+      actions={<ExportMenu dataset={exportDataset} testId="fees-export" />}
     >
         {/* KPIs */}
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

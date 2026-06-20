@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   Card,
   CardContent,
@@ -15,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { givingExport } from "@/lib/export";
 import { formatMoney } from "@/lib/format";
 import type { Money } from "@/lib/money";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
@@ -113,7 +115,15 @@ export function GivingPage({ plan }: GivingPageProps) {
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary (no-op when reporting === base). Bar widths are ratios of
   // same-currency values and are scale-invariant, so only labels change unit.
-  const money = makeMoney(useReportingMoney());
+  const rm = useReportingMoney();
+  const money = makeMoney(rm);
+  // The export derives from the same exact-Decimal analysis the page renders and
+  // applies the same reporting-currency conversion, so a download matches the
+  // on-screen figures byte-for-byte, including after a currency switch.
+  const exportDataset = React.useMemo(
+    () => givingExport(analysis, rm),
+    [analysis, rm],
+  );
   const num = (m: { amount: { toNumber(): number } }) => m.amount.toNumber();
 
   // Largest appreciated gift in the plan drives the in-kind-vs-cash spotlight.
@@ -143,6 +153,7 @@ export function GivingPage({ plan }: GivingPageProps) {
       backTestId="giving-back"
       mainClassName="space-y-6"
       mainTestId="giving-page"
+      actions={<ExportMenu dataset={exportDataset} testId="giving-export" />}
     >
         <p
           className="text-sm text-muted-foreground"

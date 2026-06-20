@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { BarChart } from "@/components/charts/bar-chart";
+import { ExportMenu } from "@/components/ExportMenu";
 import { LineChart } from "@/components/charts/line-chart";
 import {
   Card,
@@ -18,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildLiquidityModel, type LiquidityModel } from "@/lib/liquidity";
+import { liquidityExport } from "@/lib/export";
 import {
   formatMoneyCompact,
   formatMoneyWhole,
@@ -98,7 +100,9 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
 
   // Re-express every base-currency figure in the chosen reporting currency at
   // the render boundary (no-op when the reporting currency is the model base).
-  const { currency, convert } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { currency, convert } = rm;
+  const exportDataset = React.useMemo(() => liquidityExport(lq, rm), [lq, rm]);
   /** Compact currency, e.g. `$9.2M`, in the reporting currency. */
   const compact = (value: number): string =>
     formatMoneyCompact(convert(value), currency);
@@ -131,13 +135,16 @@ export function LiquidityPage({ model }: LiquidityPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Liquidity & capital-call coverage
           </h1>
-          <a
-            href="#/"
-            data-testid="liquidity-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={exportDataset} testId="liquidity-export" />
+            <a
+              href="#/"
+              data-testid="liquidity-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

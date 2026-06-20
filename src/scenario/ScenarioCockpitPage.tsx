@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Activity, AlertTriangle, TrendingUp } from "lucide-react";
 
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import {
   COCKPIT_BASE_INPUT,
   type CockpitModel,
 } from "@/lib/scenario/cockpit";
+import { scenarioExport } from "@/lib/export";
 import { getScenario, SCENARIO_RATIONALE } from "@/lib/scenario/named";
 import { useHashQueryParam } from "@/lib/hash-location";
 import {
@@ -82,7 +84,12 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary. Conversion is a uniform scalar, so chart geometry (which
   // is relative) is unchanged; only the labelled values change unit.
-  const { currency, convert } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { currency, convert } = rm;
+  const exportDataset = React.useMemo(
+    () => scenarioExport(cockpit, rm),
+    [cockpit, rm],
+  );
   const compact = (value: number): string =>
     formatMoneyCompact(convert(value), currency);
   const signedCompact = (value: number): string =>
@@ -125,13 +132,16 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Scenario cockpit
           </h1>
-          <a
-            href="#/"
-            data-testid="cockpit-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={exportDataset} testId="scenario-export" />
+            <a
+              href="#/"
+              data-testid="cockpit-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

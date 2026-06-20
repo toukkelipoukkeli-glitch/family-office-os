@@ -37,8 +37,11 @@ export interface OpsMilestone {
 
 /** The full harness snapshot rendered by the /ops page. */
 export interface OpsSnapshot {
-  /** Build generation counter from `tasks.json`. */
-  generation: number;
+  /**
+   * Build generation marker from `tasks.json` — a numeric counter early on, or
+   * a named phase (e.g. `"hardening-v1"`) once the numbered backlog is done.
+   */
+  generation: number | string;
   /** ISO-ish date the snapshot was last updated. */
   updatedAt: string;
   /** Current harness phase, e.g. "feature-build". */

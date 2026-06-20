@@ -7,7 +7,9 @@ import {
   evaluateAlerts,
 } from "@/lib/alerts";
 
-import { buildAlertsViewModel } from "./alerts-view";
+import { toCsv } from "@/lib/export";
+
+import { buildAlertsExport, buildAlertsViewModel } from "./alerts-view";
 
 describe("buildAlertsViewModel", () => {
   const report = evaluateAlerts(
@@ -127,5 +129,60 @@ describe("buildAlertsViewModel", () => {
     );
     expect(clean.allClear).toBe(true);
     expect(clean.totalBreaches).toBe(0);
+  });
+});
+
+describe("buildAlertsExport (filtered visible rows)", () => {
+  const report = evaluateAlerts(
+    alertsPortfolio,
+    defaultAlertRules,
+    alertsRateTable,
+  );
+  const vm = buildAlertsViewModel(report);
+
+  it("exports exactly the rows it is handed (the on-screen filter)", () => {
+    const breachesOnly = buildAlertsExport(vm.breaches, vm.baseCurrency);
+    expect(breachesOnly.table.rows.length).toBe(vm.breaches.length);
+
+    const allRows = buildAlertsExport(vm.rows, vm.baseCurrency);
+    expect(allRows.table.rows.length).toBe(vm.rows.length);
+
+    // The "Breaches" view is strictly smaller than "All rules" for this book.
+    expect(breachesOnly.table.rows.length).toBeLessThan(allRows.table.rows.length);
+    expect(breachesOnly.table.rows.length).toBe(3);
+  });
+
+  it("emits exact-Decimal weights and base-currency Money amounts", () => {
+    const ds = buildAlertsExport(vm.breaches, vm.baseCurrency);
+    const valueCol = ds.table.columns.indexOf("value (USD)");
+    const weightCol = ds.table.columns.indexOf("weight");
+
+    const cash = vm.breaches.find((r) => r.subject === "USD Cash")!;
+    const cashRowIdx = vm.breaches.indexOf(cash);
+    // Exact base-currency Money amount (250,000), never a float.
+    expect(ds.table.rows[cashRowIdx][valueCol]).toBe(
+      cash.evaluation.value.amount.toFixed(),
+    );
+    expect(ds.table.rows[cashRowIdx][valueCol]).toBe("250000");
+    // Exact-Decimal weight string.
+    expect(ds.table.rows[cashRowIdx][weightCol]).toBe(
+      cash.evaluation.weight.toFixed(),
+    );
+    expect(() => toCsv(ds.table)).not.toThrow();
+
+    const json = ds.json as {
+      count: number;
+      alerts: { subject: string; value: string; currency: string }[];
+    };
+    expect(json.count).toBe(vm.breaches.length);
+    const cashJson = json.alerts.find((a) => a.subject === "USD Cash")!;
+    expect(cashJson.value).toBe("250000");
+    expect(cashJson.currency).toBe("USD");
+  });
+
+  it("exports an empty table when no rows are visible", () => {
+    const ds = buildAlertsExport([], "USD");
+    expect(ds.table.rows.length).toBe(0);
+    expect(ds.table.columns).toContain("value (USD)");
   });
 });

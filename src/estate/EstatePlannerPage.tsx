@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   Card,
   CardContent,
@@ -15,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { estateExport } from "@/lib/export";
 import {
   analyzeEstate,
   formatCoverage,
@@ -112,8 +114,15 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
   // render boundary (no-op when the reporting currency is the model base). The
   // Sankey geometry reads from raw base values and is scale-invariant, so only
   // the labelled values change unit.
-  const money = makeMoney(useReportingMoney());
+  const rm = useReportingMoney();
+  const money = makeMoney(rm);
   const num = (m: { amount: { toNumber(): number } }) => m.amount.toNumber();
+  // Export derives from the same exact-Decimal analysis + reporting conversion
+  // the page renders, so the download matches the screen after a currency switch.
+  const exportDataset = React.useMemo(
+    () => estateExport(analysis, rm),
+    [analysis, rm],
+  );
 
   const coveragePct = analysis.coverageRatio.times(100).toNumber();
   const coverageClamped = Math.min(100, Math.max(0, coveragePct));
@@ -129,6 +138,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
       backTestId="estate-back"
       mainClassName="space-y-6"
       mainTestId="estate-page"
+      actions={<ExportMenu dataset={exportDataset} testId="estate-export" />}
     >
         <p className="text-sm text-muted-foreground" data-testid="estate-subtitle">
           {estatePlan.name} — modelling the succession of{" "}

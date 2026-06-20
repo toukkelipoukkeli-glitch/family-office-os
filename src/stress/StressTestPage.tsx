@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Activity, AlertTriangle, CalendarClock, History } from "lucide-react";
 
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   Card,
   CardContent,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { WaterfallChart } from "@/scenario/WaterfallChart";
 import { buildStressModel, STRESS_BASE_INPUT, type StressModel } from "@/lib/stress";
+import { stressExport } from "@/lib/export";
 import { useHashQueryParam } from "@/lib/hash-location";
 import {
   formatMoneyCompact,
@@ -85,7 +87,12 @@ export function StressTestPage({ model }: StressTestPageProps) {
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary. Conversion is a uniform scalar, so the auto-scaled chart
   // geometry is unchanged; only the labelled values change unit.
-  const { currency, convert } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { currency, convert } = rm;
+  const exportDataset = React.useMemo(
+    () => stressExport(stress, rm),
+    [stress, rm],
+  );
   const compact = (value: number): string =>
     formatMoneyCompact(convert(value), currency);
   const signedCompact = (value: number): string =>
@@ -113,13 +120,16 @@ export function StressTestPage({ model }: StressTestPageProps) {
             <History className="size-5" aria-hidden="true" />
             Historical stress tests
           </h1>
-          <a
-            href="#/"
-            data-testid="stress-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={exportDataset} testId="stress-export" />
+            <a
+              href="#/"
+              data-testid="stress-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

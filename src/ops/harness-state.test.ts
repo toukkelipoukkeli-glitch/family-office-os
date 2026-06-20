@@ -90,6 +90,63 @@ describe("buildSnapshot — gen-1 status derivation", () => {
     const blocked = allUnits(snap).filter((u) => u.status === "blocked");
     expect(blocked.map((u) => u.id)).toEqual(["mb-1"]);
   });
+
+  it("marks backlog units merged from the consolidated gens_1_7 rollup (no gen1)", () => {
+    // After the numbered backlog ships, the loop drops the per-generation `gen1`
+    // field and records a single consolidated rollup with a named generation.
+    // Every gen-1 unit must still read merged.
+    const tasks: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "hardening-v1",
+      phase: "DEPLOYED + hardening building",
+      gens_1_7: "complete — 73 feature units across 7 generations + polish layer",
+    };
+    const snap = buildSnapshot(backlog, tasks);
+    expect(snap.generation).toBe("hardening-v1");
+    const counts = countByStatus(snap);
+    expect(counts.merged).toBe(3);
+    expect(counts.backlog).toBe(0);
+  });
+
+  it("does not mark units merged when gens_1_7 is absent or not complete", () => {
+    const stillBuilding: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "hardening-v1",
+      phase: "building",
+      gens_1_7: "in progress — gen 5 of 7",
+    };
+    expect(countByStatus(buildSnapshot(backlog, stillBuilding)).backlog).toBe(3);
+
+    const none: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: 1,
+      phase: "early",
+    };
+    expect(countByStatus(buildSnapshot(backlog, none)).backlog).toBe(3);
+
+    // A negated rollup must not be read as complete (anchored-start guard).
+    const negated: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "hardening-v1",
+      phase: "blocked",
+      gens_1_7: "not complete — awaiting a human decision on gen 6",
+    };
+    expect(countByStatus(buildSnapshot(backlog, negated)).backlog).toBe(3);
+  });
+
+  it("still honours the blocked list under the consolidated rollup", () => {
+    const tasks: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "hardening-v1",
+      phase: "hardening",
+      gens_1_7: "complete — all generations shipped",
+      blocked: ["mb-1"],
+    };
+    const snap = buildSnapshot(backlog, tasks);
+    const byId = Object.fromEntries(allUnits(snap).map((u) => [u.id, u.status]));
+    expect(byId["mb-1"]).toBe("blocked");
+    expect(byId["ma-1"]).toBe("merged");
+  });
 });
 
 describe("buildSnapshot — launching (gen-2) units", () => {

@@ -38,6 +38,7 @@ const PrivateMarketsPage = lazy(
   () => import("@/privatemarkets/PrivateMarketsPage"),
 );
 const CashflowPage = lazy(() => import("@/cashflow/CashflowPage"));
+const LiquidityPage = lazy(() => import("@/liquidity/LiquidityPage"));
 const CurrencyPage = lazy(() => import("@/currency/CurrencyPage"));
 const RiskCockpitPage = lazy(() => import("@/risk/RiskCockpitPage"));
 const ConcentrationPage = lazy(
@@ -140,6 +141,7 @@ function routeElement(path: string) {
   if (path === "/concentration") return <ConcentrationPage />;
   if (path === "/privatemarkets") return <PrivateMarketsPage />;
   if (path === "/cashflow") return <CashflowPage />;
+  if (path === "/liquidity") return <LiquidityPage />;
   if (path === "/currency") return <CurrencyPage />;
   if (path === "/reports") return <ReportsPage />;
   if (path === "/insights") return <InsightsPage />;

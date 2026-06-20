@@ -21,5 +21,12 @@ export {
   type CandlestickDatum,
 } from "./candlestick-chart";
 
+export {
+  ChartFigure,
+  type ChartFigureProps,
+  type ChartTableColumn,
+  type ChartTableRow,
+} from "./chart-figure";
+
 export { CHART_COLORS, seriesColor } from "./palette";
 export * from "./chart-utils";

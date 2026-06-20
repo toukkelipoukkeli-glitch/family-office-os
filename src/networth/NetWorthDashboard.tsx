@@ -2,6 +2,7 @@ import * as React from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 import { AreaChart } from "@/components/charts/area-chart";
+import { ChartFigure } from "@/components/charts/chart-figure";
 import { DonutChart, type DonutDatum } from "@/components/charts/donut-chart";
 import { seriesColor } from "@/components/charts/palette";
 import {
@@ -188,18 +189,32 @@ export function NetWorthDashboard({ model }: NetWorthDashboardProps) {
             />
           </div>
 
-          <div className="w-full overflow-hidden">
-            <AreaChart
-              key={selected ?? "__total__"}
-              data-testid="networth-area"
-              values={seriesValues(activeSeries)}
-              color={activeColor}
-              width={920}
-              height={260}
-              className="h-auto w-full"
-              preserveAspectRatio="none"
-            />
-          </div>
+          <ChartFigure
+            testId="networth-area-figure"
+            caption={`${headingTitle} over time, in ${model.baseCurrency}.`}
+            hideCaption
+            columns={[
+              { header: "Date" },
+              { header: `Value (${model.baseCurrency})`, align: "right" },
+            ]}
+            rows={activeSeries.points.map((p) => [
+              p.date,
+              fullMoney(p.value),
+            ])}
+          >
+            <div className="w-full overflow-hidden">
+              <AreaChart
+                key={selected ?? "__total__"}
+                data-testid="networth-area"
+                values={seriesValues(activeSeries)}
+                color={activeColor}
+                width={920}
+                height={260}
+                className="h-auto w-full"
+                preserveAspectRatio="none"
+              />
+            </div>
+          </ChartFigure>
         </CardContent>
       </Card>
 
@@ -210,13 +225,28 @@ export function NetWorthDashboard({ model }: NetWorthDashboardProps) {
             <CardDescription>By asset class, in {model.baseCurrency}.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <DonutChart
-              data={donutData}
-              size={200}
-              thickness={0.42}
-              centerLabel={compactMoney(model.current)}
-              data-testid="networth-donut"
-            />
+            <ChartFigure
+              testId="networth-donut-figure"
+              caption={`Allocation by asset class, in ${model.baseCurrency}.`}
+              hideCaption
+              tableMode="visually-hidden"
+              columns={[
+                { header: "Asset class" },
+                { header: `Value (${model.baseCurrency})`, align: "right" },
+              ]}
+              rows={model.byAssetClass.map((d) => [
+                assetClassLabel(d.assetClass),
+                fullMoney(d.value),
+              ])}
+            >
+              <DonutChart
+                data={donutData}
+                size={200}
+                thickness={0.42}
+                centerLabel={compactMoney(model.current)}
+                data-testid="networth-donut"
+              />
+            </ChartFigure>
           </CardContent>
         </Card>
 

@@ -1,3 +1,4 @@
+import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import {
   Card,
   CardContent,
@@ -6,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AreaChart } from "./area-chart";
+import { ChartFigure } from "./chart-figure";
 import { BarChart } from "./bar-chart";
 import { CandlestickChart } from "./candlestick-chart";
 import { DonutChart } from "./donut-chart";
@@ -53,56 +55,147 @@ export function ChartsGallery() {
           title="Sparkline"
           description="Inline KPI trend, no axes."
         >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-semibold tabular-nums">+12.4%</span>
-            <Sparkline values={SPARKLINE_VALUES} width={160} height={40} />
-          </div>
+          <ChartFigure
+            testId="fig-sparkline"
+            caption="Inline KPI trend: 10 sampled values."
+            columns={[{ header: "Point" }, { header: "Value", align: "right" }]}
+            rows={SPARKLINE_VALUES.map((v, i) => [`#${i + 1}`, v])}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-semibold tabular-nums">
+                +12.4%
+              </span>
+              <Sparkline values={SPARKLINE_VALUES} width={160} height={40} />
+            </div>
+          </ChartFigure>
         </GalleryCard>
 
         <GalleryCard
           title="Line chart"
           description="Multi-series, shared y-domain."
         >
-          <LineChart series={LINE_SERIES} width={440} height={200} />
+          <ChartFigure
+            testId="fig-line"
+            caption="Indexed performance by series over 7 periods."
+            columns={[
+              { header: "Period" },
+              ...LINE_SERIES.map((s) => ({
+                header: s.label,
+                align: "right" as const,
+              })),
+            ]}
+            rows={LINE_SERIES[0].values.map((_, i) => [
+              `P${i + 1}`,
+              ...LINE_SERIES.map((s) => s.values[i]),
+            ])}
+          >
+            <LineChart series={LINE_SERIES} width={440} height={200} />
+          </ChartFigure>
         </GalleryCard>
 
         <GalleryCard
           title="Area chart"
           description="Single series with gradient fill."
         >
-          <AreaChart values={AREA_VALUES} width={440} height={200} />
+          <ChartFigure
+            testId="fig-area"
+            caption="Single-series area values over 8 periods."
+            columns={[{ header: "Period" }, { header: "Value", align: "right" }]}
+            rows={AREA_VALUES.map((v, i) => [`P${i + 1}`, v])}
+          >
+            <AreaChart values={AREA_VALUES} width={440} height={200} />
+          </ChartFigure>
         </GalleryCard>
 
         <GalleryCard title="Bar chart" description="Allocation by asset class.">
-          <BarChart data={BAR_DATA} width={440} height={200} colorByIndex />
+          <ChartFigure
+            testId="fig-bar"
+            caption="Allocation by asset class (percent)."
+            columns={[
+              { header: "Asset class" },
+              { header: "Weight %", align: "right" },
+            ]}
+            rows={BAR_DATA.map((d) => [d.label, d.value])}
+          >
+            <BarChart data={BAR_DATA} width={440} height={200} colorByIndex />
+          </ChartFigure>
         </GalleryCard>
 
         <GalleryCard
           title="Signed bars"
           description="Monthly P/L with up/down colours."
         >
-          <BarChart data={SIGNED_BAR_DATA} width={440} height={200} signed />
+          <ChartFigure
+            testId="fig-signed-bar"
+            caption="Monthly profit and loss (percent)."
+            columns={[
+              { header: "Month" },
+              { header: "P/L %", align: "right" },
+            ]}
+            rows={SIGNED_BAR_DATA.map((d) => [d.label, d.value])}
+          >
+            <BarChart data={SIGNED_BAR_DATA} width={440} height={200} signed />
+          </ChartFigure>
         </GalleryCard>
 
         <GalleryCard
           title="Donut chart"
           description="Geographic exposure with centre total."
         >
-          <DonutChart data={DONUT_DATA} size={200} centerLabel="100%" />
+          <ChartFigure
+            testId="fig-donut"
+            caption="Geographic exposure by region (percent)."
+            columns={[
+              { header: "Region" },
+              { header: "Share %", align: "right" },
+            ]}
+            rows={DONUT_DATA.map((d) => [d.label, d.value])}
+          >
+            <DonutChart data={DONUT_DATA} size={200} centerLabel="100%" />
+          </ChartFigure>
         </GalleryCard>
 
         <GalleryCard
           title="Treemap"
           description="Top holdings sized by weight."
         >
-          <Treemap data={TREEMAP_DATA} width={440} height={220} />
+          <ChartFigure
+            testId="fig-treemap"
+            caption="Top holdings sized by weight (percent)."
+            columns={[
+              { header: "Holding" },
+              { header: "Weight %", align: "right" },
+            ]}
+            rows={TREEMAP_DATA.map((d) => [d.label, d.value])}
+          >
+            <Treemap data={TREEMAP_DATA} width={440} height={220} />
+          </ChartFigure>
         </GalleryCard>
 
         <GalleryCard
           title="Candlestick chart"
           description="OHLC price action."
         >
-          <CandlestickChart data={CANDLE_DATA} width={440} height={200} />
+          <ChartFigure
+            testId="fig-candle"
+            caption="OHLC price action over 5 sessions."
+            columns={[
+              { header: "Session" },
+              { header: "Open", align: "right" },
+              { header: "High", align: "right" },
+              { header: "Low", align: "right" },
+              { header: "Close", align: "right" },
+            ]}
+            rows={CANDLE_DATA.map((d) => [
+              d.label ?? "",
+              d.open,
+              d.high,
+              d.low,
+              d.close,
+            ])}
+          >
+            <CandlestickChart data={CANDLE_DATA} width={440} height={200} />
+          </ChartFigure>
         </GalleryCard>
       </div>
     </section>
@@ -132,7 +225,7 @@ export function ChartsGalleryPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-12">
+      <main id={MAIN_CONTENT_ID} className="mx-auto max-w-5xl px-6 py-12">
         <p className="mb-8 text-sm text-muted-foreground">
           Reusable themed chart components rendered against deterministic
           fixtures.

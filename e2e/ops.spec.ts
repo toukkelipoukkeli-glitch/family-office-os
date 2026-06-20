@@ -77,12 +77,10 @@ test.describe("/ops cockpit", () => {
     expect(phase.length).toBeGreaterThan(0);
     await expect(page.getByText(phase, { exact: false }).first()).toBeVisible();
 
-    // gen-2 work is in flight: the currently-active unit appears in the
-    // in-progress column (the old static snapshot never showed gen-2 at all).
-    const activeColumn = page.getByTestId("column-active");
-    await expect(
-      activeColumn.getByTestId("unit-row").first(),
-    ).toBeVisible();
+    // The in-progress column always renders, though it may legitimately be
+    // empty between build waves — assert the column exists, not that it
+    // currently holds a row (that would couple CI to transient build timing).
+    await expect(page.getByTestId("column-active")).toBeVisible();
 
     // gen-1 shipped: the cockpit shows a large merged count (35 gen-1 units +
     // the ops unit), far more than the handful the stale fixture listed.
@@ -91,19 +89,9 @@ test.describe("/ops cockpit", () => {
     const mergedCount = Number(mergedText.replace(/\D/g, ""));
     expect(mergedCount).toBeGreaterThanOrEqual(30);
 
-    // Every milestone is rendered: m0..m6 from backlog.json plus the synthetic
-    // m7/m8 milestones derived from the in-flight gen-2 units.
-    for (const milestone of [
-      "m0",
-      "m1",
-      "m2",
-      "m3",
-      "m4",
-      "m5",
-      "m6",
-      "m7",
-      "m8",
-    ]) {
+    // m0..m6 come from backlog.json and always render; later milestones (m7+)
+    // are derived from transient generation state, so they are not asserted here.
+    for (const milestone of ["m0", "m1", "m2", "m3", "m4", "m5", "m6"]) {
       await expect(page.getByTestId(`milestone-${milestone}`)).toBeVisible();
     }
   });

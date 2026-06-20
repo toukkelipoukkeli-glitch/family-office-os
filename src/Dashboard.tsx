@@ -29,6 +29,13 @@ export function Dashboard() {
               Scenarios
             </a>
             <a
+              href="#/attribution"
+              data-testid="nav-attribution"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Attribution
+            </a>
+            <a
               href="#/captable"
               data-testid="nav-captable"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

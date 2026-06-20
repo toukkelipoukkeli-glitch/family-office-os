@@ -1,4 +1,5 @@
 import Dashboard from "@/Dashboard";
+import { AttributionPage } from "@/attribution/AttributionPage";
 import CapTablePage from "@/captable/CapTablePage";
 import CompanyProfilePage from "@/company/CompanyProfilePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
@@ -31,6 +32,10 @@ function App() {
 
   if (path === "/scenarios") {
     return <ScenarioCockpit />;
+  }
+
+  if (path === "/attribution") {
+    return <AttributionPage />;
   }
 
   if (path === "/ownership") {

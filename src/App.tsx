@@ -30,6 +30,7 @@ const ConsolidationPage = lazy(
 );
 const EstatePlannerPage = lazy(() => import("@/estate/EstatePlannerPage"));
 const GivingPage = lazy(() => import("@/giving/GivingPage"));
+const GoalFundingPage = lazy(() => import("@/goals/GoalFundingPage"));
 const InsurancePage = lazy(() => import("@/insurance/InsurancePage"));
 const CompanyProfilePage = lazy(() => import("@/company/CompanyProfilePage"));
 const PipelinePage = lazy(() => import("@/pipeline/PipelinePage"));
@@ -144,6 +145,7 @@ function routeElement(path: string) {
   if (path === "/insights") return <InsightsPage />;
   if (path === "/estate") return <EstatePlannerPage />;
   if (path === "/giving") return <GivingPage />;
+  if (path === "/goals") return <GoalFundingPage />;
   if (path === "/insurance") return <InsurancePage />;
   if (path === "/vault") return <VaultPage />;
   if (path === "/pipeline" || path.startsWith("/pipeline/")) {

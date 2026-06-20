@@ -98,7 +98,9 @@ export function validateRule(rule: AlertRule): AlertRule {
   if (rule.scope === "assetClass" && !rule.target?.assetClass) {
     throw new Error(`rule ${rule.id}: assetClass scope requires target.assetClass`);
   }
-  if (rule.scope === "currency" && !rule.target?.currency) {
+  if (rule.scope === "currency" && !rule.target?.currency?.trim()) {
+    // Reject empty / whitespace-only codes: they normalize to "" in the engine
+    // and would silently match nothing, so fail loudly here instead.
     throw new Error(`rule ${rule.id}: currency scope requires target.currency`);
   }
   return rule;

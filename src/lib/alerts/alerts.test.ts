@@ -64,6 +64,21 @@ describe("validateRule", () => {
     ).toThrow(/currency/);
   });
 
+  it("rejects a whitespace-only currency target", () => {
+    // "   " is truthy but normalizes to "" in the engine, silently matching
+    // nothing. validateRule must reject it loudly.
+    expect(() =>
+      validateRule({
+        id: "x",
+        label: "x",
+        scope: "currency",
+        direction: "max",
+        threshold: "0.1",
+        target: { currency: "   " },
+      }),
+    ).toThrow(/currency/);
+  });
+
   it("passes a well-formed position rule (no target needed)", () => {
     const rule: AlertRule = {
       id: "p",

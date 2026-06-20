@@ -280,6 +280,114 @@ describe("blendPolicyReturns", () => {
   });
 });
 
+describe("adversarial edge cases", () => {
+  it("excessReturn geometrically links — never a naïve sum of active returns", () => {
+    const p = [0.5, -0.5];
+    const b = [0.0, 0.0];
+    // naïve sum of active = 0; geometric = (1.5*0.5 - 1) - 0 = -0.25
+    expect(excessReturn(p, b)).toBeCloseTo(-0.25, 12);
+  });
+
+  it("informationRatio is negative when the portfolio consistently lags", () => {
+    const p = [0.0, 0.01, -0.01];
+    const b = [0.02, 0.03, 0.01]; // active always negative
+    expect(informationRatio(p, b)).toBeLessThan(0);
+  });
+
+  it("alpha honours a non-zero per-period risk-free rate", () => {
+    const b = [0.01, -0.02, 0.03, 0.005];
+    const rf = 0.001;
+    const p = b.map((x) => 2 * x); // beta 2, no intrinsic alpha
+    // alpha = mean(p) - [rf + 2*(mean(b) - rf)]
+    const mp = (0.02 - 0.04 + 0.06 + 0.01) / 4;
+    const mb = (0.01 - 0.02 + 0.03 + 0.005) / 4;
+    expect(alpha(p, b, { riskFreeRate: rf })).toBeCloseTo(
+      mp - (rf + 2 * (mb - rf)),
+      12,
+    );
+  });
+
+  it("trackingError annualization compounds with periodicity correctly", () => {
+    const p = [0.02, 0.04, 0.0, 0.01];
+    const b = [0.01, 0.01, 0.01, 0.01];
+    const perPeriod = trackingError(p, b);
+    expect(trackingError(p, b, { periodsPerYear: 252 })).toBeCloseTo(
+      perPeriod * Math.sqrt(252),
+      12,
+    );
+  });
+
+  it("buy-and-hold blend reproduces the basket's true compounded total return", () => {
+    const eq = [0.1, -0.05, 0.2];
+    const bd = [0.01, 0.02, -0.01];
+    const policy: PolicyBenchmark = {
+      id: "p",
+      label: "P",
+      components: [
+        { id: "e", label: "E", weight: 0.7, returns: eq },
+        { id: "b", label: "B", weight: 0.3, returns: bd },
+      ],
+    };
+    const bah = blendPolicyReturns(policy, { mode: "buy-and-hold" });
+    // Direct basket value: start 0.7 + 0.3 = 1, compound each sleeve.
+    const eqFinal = 0.7 * eq.reduce((g, r) => g * (1 + r), 1);
+    const bdFinal = 0.3 * bd.reduce((g, r) => g * (1 + r), 1);
+    const directTotal = eqFinal + bdFinal - 1;
+    expect(compoundReturn(bah)).toBeCloseTo(directTotal, 12);
+  });
+
+  it("rejects weights off-sum just beyond the 1e-9 tolerance", () => {
+    const bad: PolicyBenchmark = {
+      id: "bad",
+      label: "Bad",
+      components: [
+        { id: "a", label: "A", weight: 0.5 + 1e-8, returns: [0.01, 0.02] },
+        { id: "b", label: "B", weight: 0.5, returns: [0.0, 0.0] },
+      ],
+    };
+    expect(() => blendPolicyReturns(bad)).toThrow(BenchmarkInputError);
+  });
+
+  it("accepts weights summing to 1 within floating-point noise", () => {
+    // 0.1 * 3 + 0.7 = 1 only after binary rounding; must not be rejected.
+    const policy: PolicyBenchmark = {
+      id: "ok",
+      label: "OK",
+      components: [
+        { id: "a", label: "A", weight: 0.1, returns: [0.01] },
+        { id: "b", label: "B", weight: 0.1, returns: [0.02] },
+        { id: "c", label: "C", weight: 0.1, returns: [0.03] },
+        { id: "d", label: "D", weight: 0.7, returns: [0.04] },
+      ],
+    };
+    expect(() => blendPolicyReturns(policy)).not.toThrow();
+  });
+
+  it("buildBenchmarkView rejects a portfolio misaligned with the blended benchmark", () => {
+    expect(() =>
+      buildBenchmarkView({
+        portfolio: [0.01, 0.02], // 2 obs
+        benchmark: POLICY_BENCHMARK, // 12 obs
+      }),
+    ).toThrow(BenchmarkInputError);
+  });
+
+  it("buildBenchmarkView propagates an invalid periodsPerYear", () => {
+    expect(() =>
+      buildBenchmarkView({
+        portfolio: PORTFOLIO_RETURNS,
+        benchmark: POLICY_BENCHMARK,
+        periodsPerYear: -1,
+      }),
+    ).toThrow(BenchmarkInputError);
+  });
+
+  it("a zero excess return still reconciles in the geometric headline", () => {
+    const s = [0.01, 0.02, -0.01];
+    expect(excessReturn(s, s)).toBeCloseTo(0, 12);
+  });
+});
+
 describe("buildBenchmarkView", () => {
   const view = buildBenchmarkView({
     portfolio: PORTFOLIO_RETURNS,

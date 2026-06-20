@@ -27,6 +27,7 @@ import {
   type TimelineSeverity,
 } from "@/lib/taxtimeline";
 import { formatMoneyCompact, formatMoneyWhole } from "@/lib/format";
+import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
 import { ExportMenu } from "@/components/ExportMenu";
 import { taxTimelineExport } from "@/lib/export";
@@ -55,12 +56,24 @@ const SEVERITY_LABEL: Record<TimelineSeverity, string> = {
   info: "Info",
 };
 
-function money(currency: string, value: number): string {
-  return formatMoneyCompact(value, currency);
+/** A pair of money formatters bound to a reporting currency. */
+interface MoneyFns {
+  /** Compact, e.g. `$12.5M`. */
+  money: (value: number) => string;
+  /** Full, no fractional cents, e.g. `$12,500,000`. */
+  moneyFull: (value: number) => string;
 }
 
-function moneyFull(currency: string, value: number): string {
-  return formatMoneyWhole(value, currency);
+/**
+ * Build money formatters bound to the chosen reporting currency. Re-expresses
+ * each base-USD figure at the render boundary (no-op when reporting === base).
+ */
+function makeMoney(rm: ReportingMoney): MoneyFns {
+  return {
+    money: (value: number) => formatMoneyCompact(rm.convert(value), rm.currency),
+    moneyFull: (value: number) =>
+      formatMoneyWhole(rm.convert(value), rm.currency),
+  };
 }
 
 const num = (m: Money) => m.amount.toNumber();
@@ -152,7 +165,10 @@ export function TaxTimelinePage({ inputs }: TaxTimelinePageProps) {
     () => buildTaxTimeline(timelineInputs),
     [timelineInputs],
   );
-  const ccy = timeline.currency;
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary (no-op when reporting === base). The timeline track is
+  // positioned by date, not value, so only the labelled amounts change unit.
+  const { money, moneyFull } = makeMoney(useReportingMoney());
 
   // Category filter: clicking a chip toggles it; null = show everything.
   const [activeCategory, setActiveCategory] =
@@ -220,21 +236,21 @@ export function TaxTimelinePage({ inputs }: TaxTimelinePageProps) {
           <Kpi
             testId="kpi-tax"
             label="Estimated tax"
-            value={money(ccy, num(timeline.estimatedTax))}
-            hint={`${moneyFull(ccy, num(timeline.quarterlyPayment))} per quarter`}
+            value={money(num(timeline.estimatedTax))}
+            hint={`${moneyFull(num(timeline.quarterlyPayment))} per quarter`}
             icon={<Coins className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-harvest"
             label="Harvestable loss"
-            value={money(ccy, num(timeline.harvestableLoss))}
+            value={money(num(timeline.harvestableLoss))}
             hint="clean (wash-sale safe) losses to bank"
             icon={<Scissors className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-charitable"
             label="Charitable benefit"
-            value={money(ccy, num(timeline.charitableBenefit))}
+            value={money(num(timeline.charitableBenefit))}
             hint="tax benefit from this year's gifts"
             icon={<Gift className="size-3.5" aria-hidden="true" />}
           />
@@ -401,7 +417,7 @@ export function TaxTimelinePage({ inputs }: TaxTimelinePageProps) {
           <CardContent>
             <ol className="space-y-2" data-testid="event-list">
               {visibleEvents.map((e) => (
-                <EventRow key={e.id} event={e} currency={ccy} />
+                <EventRow key={e.id} event={e} moneyFull={moneyFull} />
               ))}
               {visibleEvents.length === 0 && (
                 <li
@@ -430,10 +446,10 @@ export function TaxTimelinePage({ inputs }: TaxTimelinePageProps) {
 
 function EventRow({
   event,
-  currency,
+  moneyFull,
 }: {
   event: TimelineEvent;
-  currency: string;
+  moneyFull: (value: number) => string;
 }) {
   return (
     <li
@@ -464,7 +480,7 @@ function EventRow({
           data-testid="event-amount"
           className="shrink-0 text-right text-sm font-semibold tabular-nums"
         >
-          {moneyFull(currency, num(event.amount))}
+          {moneyFull(num(event.amount))}
         </span>
       )}
     </li>

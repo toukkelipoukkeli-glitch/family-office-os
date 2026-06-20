@@ -27,6 +27,7 @@ import {
 } from "@/lib/managers";
 import { managersExport } from "@/lib/export";
 import { formatMoneyCompact } from "@/lib/format";
+import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
 /** Format a decimal fraction as a percentage, optionally signed. */
@@ -41,9 +42,16 @@ function num(value: number, digits = 2): string {
   return value.toFixed(digits);
 }
 
-/** Compact currency, e.g. $1.85B. */
-function money(value: number): string {
-  return formatMoneyCompact(value, "USD", { maximumFractionDigits: 2 });
+/**
+ * Build a compact-currency formatter (e.g. `$1.85B`) bound to the chosen
+ * reporting currency. Re-expresses each base-USD figure at the render boundary
+ * (no-op when reporting === base).
+ */
+function makeMoney(rm: ReportingMoney) {
+  return (value: number): string =>
+    formatMoneyCompact(rm.convert(value), rm.currency, {
+      maximumFractionDigits: 2,
+    });
 }
 
 interface KpiProps {
@@ -124,6 +132,11 @@ export function ManagerScorecardPage({
 
   const { roster, detail } = model;
   const controlled = Boolean(view);
+
+  // Re-express every base-USD AUM figure in the chosen reporting currency at the
+  // render boundary (no-op when reporting === base). Scores, returns and growth
+  // multiples are currency-invariant and pass through unchanged.
+  const money = makeMoney(useReportingMoney());
 
   const excessTone = detail.excessReturn >= 0 ? "up" : "down";
   const irTone = detail.informationRatio >= 0 ? "up" : "down";
@@ -262,8 +275,8 @@ export function ManagerScorecardPage({
               {detail.name}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {detail.strategy} · vintage {detail.vintage} · {money(detail.aum)}{" "}
-              AUM
+              {detail.strategy} · vintage {detail.vintage} ·{" "}
+              <span data-testid="manager-aum">{money(detail.aum)}</span> AUM
             </p>
           </div>
           <div className="text-right">

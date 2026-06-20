@@ -25,19 +25,8 @@ import {
   formatMoneyWhole,
   formatMultiple,
 } from "@/lib/format";
+import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
-
-const CURRENCY = "USD";
-
-/** Compact currency, e.g. `$12.5M`. */
-function compact(value: number): string {
-  return formatMoneyCompact(value, CURRENCY);
-}
-
-/** Full currency with no fractional cents, e.g. `$1,250,000`. */
-function whole(value: number): string {
-  return formatMoneyWhole(value, CURRENCY);
-}
 
 /** Multiple, e.g. `1.72x`. */
 function multiple(value: number): string {
@@ -99,10 +88,18 @@ export function PrivateMarketsPage({ model }: PrivateMarketsPageProps) {
   const pm = React.useMemo(() => model ?? buildPrivateMarketsModel(), [model]);
   const { kpis, commitments, jcurves } = pm;
 
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary (no-op when the reporting currency is the base).
+  const { currency, convert } = useReportingMoney();
+  const compact = (value: number): string =>
+    formatMoneyCompact(convert(value), currency);
+  const whole = (value: number): string =>
+    formatMoneyWhole(convert(value), currency);
+
   // Per-fund deployment bars: total value (distributed + NAV) per fund.
   const barData = commitments.map((c) => ({
     label: c.name,
-    value: c.distributed + c.nav,
+    value: convert(c.distributed + c.nav),
   }));
 
   // Combined J-curve: sum each fund's series by date for the whole sleeve.
@@ -196,12 +193,12 @@ export function PrivateMarketsPage({ model }: PrivateMarketsPageProps) {
                 series={[
                   {
                     label: "Total value (net + NAV)",
-                    values: sleeveJCurve.totalValue,
+                    values: sleeveJCurve.totalValue.map(convert),
                     color: "var(--color-chart-up)",
                   },
                   {
                     label: "Net cashflow",
-                    values: sleeveJCurve.cumulativeNet,
+                    values: sleeveJCurve.cumulativeNet.map(convert),
                     color: "var(--color-chart-1)",
                   },
                 ]}

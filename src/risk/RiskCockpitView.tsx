@@ -27,6 +27,9 @@ import {
   type RiskLimitSet,
 } from "@/lib/riskcockpit";
 
+import { useReportingMoney } from "@/lib/reporting-currency";
+import type { Money } from "@/lib/money";
+
 import { formatMoneyCompact, formatPct } from "./format";
 
 export interface RiskCockpitViewProps {
@@ -62,11 +65,13 @@ function Stat({
   value,
   sub,
   tone,
+  testid = "risk-stat",
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: "danger" | "warn" | "ok";
+  testid?: string;
 }) {
   const toneClass =
     tone === "danger"
@@ -77,7 +82,7 @@ function Stat({
           ? "text-emerald-600 dark:text-emerald-400"
           : "";
   return (
-    <div className="rounded-lg border border-border p-4" data-testid="risk-stat">
+    <div className="rounded-lg border border-border p-4" data-testid={testid}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`mt-1 text-2xl font-semibold tabular-nums ${toneClass}`}>
         {value}
@@ -159,7 +164,13 @@ function ConcentrationBar({ line }: { line: ConcentrationLine }) {
 }
 
 /** One breach row in the breach list. */
-function BreachRow({ check }: { check: LimitCheck }) {
+function BreachRow({
+  check,
+  money,
+}: {
+  check: LimitCheck;
+  money: (m: Money) => string;
+}) {
   const overUnder =
     check.bound === "max"
       ? `${formatPct(check.exceedance)} over the ${formatPct(check.threshold)} cap`
@@ -188,7 +199,7 @@ function BreachRow({ check }: { check: LimitCheck }) {
         className="shrink-0 tabular-nums text-xs text-muted-foreground"
         data-testid="risk-breach-value"
       >
-        {formatMoneyCompact(check.value)}
+        {money(check.value)}
       </span>
     </li>
   );
@@ -225,11 +236,18 @@ export function RiskCockpitView({
   const tierColor = (tier: LiquidityTier): string =>
     seriesColor(report.liquidityTiers.findIndex((t) => t.tier === tier));
 
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary: convert the exact Money first, then format/scale. Donut
+  // geometry is a uniform scalar of the converted values, so only the labelled
+  // units change. No-op when the reporting currency is the base.
+  const { convertMoney } = useReportingMoney();
+  const money = (m: Money): string => formatMoneyCompact(convertMoney(m));
+
   const tierDonut: DonutDatum[] = report.liquidityTiers
     .filter((t) => t.value.amount.greaterThan(0))
     .map((t) => ({
       label: t.label,
-      value: t.value.amount.toNumber(),
+      value: convertMoney(t.value).amount.toNumber(),
       color: tierColor(t.tier),
     }));
 
@@ -291,8 +309,9 @@ export function RiskCockpitView({
       {/* Summary stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
+          testid="risk-stat-networth"
           label="Look-through value"
-          value={formatMoneyCompact(report.total)}
+          value={money(report.total)}
           sub={`owned by ${report.rootName}`}
         />
         <Stat
@@ -384,7 +403,7 @@ export function RiskCockpitView({
                     data={tierDonut}
                     size={180}
                     thickness={0.42}
-                    centerLabel={formatMoneyCompact(report.total)}
+                    centerLabel={money(report.total)}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">No exposure.</p>
@@ -431,6 +450,7 @@ export function RiskCockpitView({
                   {report.breaches.map((b) => (
                     <BreachRow
                       key={`${b.limit.id}-${b.subject}`}
+                      money={money}
                       check={b}
                     />
                   ))}

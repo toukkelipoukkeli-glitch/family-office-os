@@ -16,21 +16,10 @@ import {
   formatPercent,
   formatPercentSigned,
 } from "@/lib/format";
+import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
 import { BeforeAfterChart } from "./BeforeAfterChart";
-
-const CURRENCY = "USD";
-
-/** Compact currency, e.g. `$12.5M`. */
-function compact(value: number): string {
-  return formatMoneyCompact(value, CURRENCY);
-}
-
-/** Signed compact currency, e.g. `-$1.3M`. */
-function signedCompact(value: number): string {
-  return formatMoneySignedCompact(value, CURRENCY);
-}
 
 /** Signed percentage, e.g. `-32.5%`. */
 function signedPercent(value: number): string {
@@ -91,6 +80,15 @@ export function StressTestPage({ model }: StressTestPageProps) {
     () => model ?? buildStressModel(STRESS_BASE_INPUT),
     [model],
   );
+
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary. Conversion is a uniform scalar, so the auto-scaled chart
+  // geometry is unchanged; only the labelled values change unit.
+  const { currency, convert } = useReportingMoney();
+  const compact = (value: number): string =>
+    formatMoneyCompact(convert(value), currency);
+  const signedCompact = (value: number): string =>
+    formatMoneySignedCompact(convert(value), currency);
 
   // Default selection: the worst episode (first result, worst drawdown).
   const [selectedId, setSelectedId] = React.useState<string>(

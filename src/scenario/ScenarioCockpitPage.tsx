@@ -19,23 +19,12 @@ import {
   formatMoneySignedCompact,
   formatPercent,
 } from "@/lib/format";
+import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
 import { FanChart } from "./FanChart";
 import { TornadoChart } from "./TornadoChart";
 import { WaterfallChart } from "./WaterfallChart";
-
-const CURRENCY = "USD";
-
-/** Compact currency, e.g. `$12.5M`. */
-function compact(value: number): string {
-  return formatMoneyCompact(value, CURRENCY);
-}
-
-/** Signed compact currency, e.g. `-$1.3M`. */
-function signedCompact(value: number): string {
-  return formatMoneySignedCompact(value, CURRENCY);
-}
 
 function percent(value: number): string {
   return formatPercent(value);
@@ -88,6 +77,15 @@ export function ScenarioCockpit({ model }: ScenarioCockpitProps) {
     () => model ?? buildCockpitModel(COCKPIT_BASE_INPUT),
     [model],
   );
+
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary. Conversion is a uniform scalar, so chart geometry (which
+  // is relative) is unchanged; only the labelled values change unit.
+  const { currency, convert } = useReportingMoney();
+  const compact = (value: number): string =>
+    formatMoneyCompact(convert(value), currency);
+  const signedCompact = (value: number): string =>
+    formatMoneySignedCompact(convert(value), currency);
 
   // Default selection: the worst scenario (first tornado bar).
   const [selectedId, setSelectedId] = React.useState<string>(

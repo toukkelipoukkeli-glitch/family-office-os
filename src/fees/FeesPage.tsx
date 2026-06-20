@@ -14,19 +14,8 @@ import {
 } from "@/components/ui/card";
 import { buildFeeModel, type FeeModel } from "@/lib/fees";
 import { formatMoneyCompact, formatMoneyWhole, formatPercent } from "@/lib/format";
+import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
-
-const CURRENCY = "USD";
-
-/** Compact currency, e.g. `$12.5M`. */
-function compact(value: number): string {
-  return formatMoneyCompact(value, CURRENCY);
-}
-
-/** Full currency with no fractional cents, e.g. `$1,250,000`. */
-function whole(value: number): string {
-  return formatMoneyWhole(value, CURRENCY);
-}
 
 /** Basis-points-aware percent, e.g. `0.45%` or `12.3%`. */
 function percent(value: number, digits = 2): string {
@@ -86,17 +75,28 @@ export function FeesPage({ model }: FeesPageProps) {
   const fees = React.useMemo(() => model ?? buildFeeModel(), [model]);
   const { kpis, funds, composition, drag, horizonYears } = fees;
 
-  const barData = funds.map((f) => ({ label: f.name, value: f.totalCost }));
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary (no-op when the reporting currency is the base).
+  const { currency, convert } = useReportingMoney();
+  const compact = (value: number): string =>
+    formatMoneyCompact(convert(value), currency);
+  const whole = (value: number): string =>
+    formatMoneyWhole(convert(value), currency);
+
+  const barData = funds.map((f) => ({
+    label: f.name,
+    value: convert(f.totalCost),
+  }));
   const donutData = composition
     .filter((s) => s.value > 0)
     .map((s) => ({
       label: s.label,
-      value: s.value,
+      value: convert(s.value),
       color: COMPOSITION_COLORS[s.key],
     }));
 
-  const grossSeries = drag.map((p) => p.gross);
-  const netSeries = drag.map((p) => p.net);
+  const grossSeries = drag.map((p) => convert(p.gross));
+  const netSeries = drag.map((p) => convert(p.net));
 
   return (
     <AppShell

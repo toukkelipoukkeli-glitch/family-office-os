@@ -11,5 +11,6 @@
  */
 export * from "./reporting-currency";
 export * from "./reporting-context";
+export * from "./reporting-money";
 export * from "./reporting-provider";
 export * from "./storage";

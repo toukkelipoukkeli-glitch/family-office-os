@@ -20,6 +20,8 @@ import {
 } from "@/lib/consolidation";
 import { entityKindLabel } from "@/lib/org";
 import type { Entity } from "@/lib/org";
+import { useReportingMoney } from "@/lib/reporting-currency";
+import type { Money } from "@/lib/money";
 
 import { formatMoneyCompact, formatPct } from "./format";
 
@@ -86,21 +88,29 @@ export function ConsolidationView({
     [entities, intercompany, selectedRoot],
   );
 
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary: convert the exact Money first, then format/scale. The
+  // donut/bar geometry is a uniform scalar of the converted values, so only the
+  // labelled units change. No-op when the reporting currency is the base.
+  const { convertMoney } = useReportingMoney();
+  const money = (m: Money): string => formatMoneyCompact(convertMoney(m));
+  const num = (m: Money): number => convertMoney(m).amount.toNumber();
+
   // Bridge from gross NAV to consolidated net worth: each deduction shown as a
   // distinct bar so the reconciliation reads at a glance.
   const bridge: BarDatum[] = [
-    { label: "Gross NAV", value: report.grossNav.amount.toNumber() },
+    { label: "Gross NAV", value: num(report.grossNav) },
     {
       label: "Eliminations",
-      value: report.intercompanyEliminations.amount.negated().toNumber(),
+      value: -num(report.intercompanyEliminations),
     },
     {
       label: "Minority int.",
-      value: report.minorityInterest.amount.negated().toNumber(),
+      value: -num(report.minorityInterest),
     },
     {
       label: "Consolidated",
-      value: report.consolidatedNetWorth.amount.toNumber(),
+      value: num(report.consolidatedNetWorth),
     },
   ];
 
@@ -109,7 +119,7 @@ export function ConsolidationView({
     .filter((e) => e.ownedNav.amount.gt(0))
     .map((e, i) => ({
       label: e.entityName,
-      value: e.ownedNav.amount.toNumber(),
+      value: num(e.ownedNav),
       color: seriesColor(i),
     }));
 
@@ -141,27 +151,27 @@ export function ConsolidationView({
         <Stat
           testId="cons-kpi-gross"
           label="Gross NAV (sum of all)"
-          value={formatMoneyCompact(report.grossNav)}
+          value={money(report.grossNav)}
           sub={`${report.entities.length} entities`}
         />
         <Stat
           testId="cons-kpi-eliminations"
           label="Intercompany eliminations"
-          value={`−${formatMoneyCompact(report.intercompanyEliminations)}`}
+          value={`−${money(report.intercompanyEliminations)}`}
           sub={`${report.eliminations.length} intra-family stakes`}
           tone="negative"
         />
         <Stat
           testId="cons-kpi-minority"
           label="Minority interest"
-          value={`−${formatMoneyCompact(report.minorityInterest)}`}
+          value={`−${money(report.minorityInterest)}`}
           sub="owned outside the root"
           tone="negative"
         />
         <Stat
           testId="cons-kpi-consolidated"
           label="Consolidated net worth"
-          value={formatMoneyCompact(report.consolidatedNetWorth)}
+          value={money(report.consolidatedNetWorth)}
           sub={`owned by ${report.rootName}`}
           tone="primary"
         />
@@ -201,7 +211,7 @@ export function ConsolidationView({
               <DonutChart
                 data={ownedDonut}
                 size={220}
-                centerLabel={formatMoneyCompact(report.consolidatedNetWorth)}
+                centerLabel={money(report.consolidatedNetWorth)}
                 data-testid="cons-donut"
               />
             ) : (
@@ -256,15 +266,15 @@ export function ConsolidationView({
                       {formatPct(e.effectivePct)}
                     </td>
                     <td className="py-2 pr-4 text-right tabular-nums text-muted-foreground">
-                      {formatMoneyCompact(e.standaloneNav)}
+                      {money(e.standaloneNav)}
                     </td>
                     <td className="py-2 pr-4 text-right tabular-nums font-medium">
-                      {formatMoneyCompact(e.ownedNav)}
+                      {money(e.ownedNav)}
                     </td>
                     <td className="py-2 text-right tabular-nums text-muted-foreground">
                       {e.minorityInterest.isZero()
                         ? "—"
-                        : formatMoneyCompact(e.minorityInterest)}
+                        : money(e.minorityInterest)}
                     </td>
                   </tr>
                 ))}
@@ -278,14 +288,14 @@ export function ConsolidationView({
                     className="py-2 pr-4 text-right tabular-nums"
                     data-testid="cons-entities-gross"
                   >
-                    {formatMoneyCompact(report.grossNav)}
+                    {money(report.grossNav)}
                   </td>
                   <td className="py-2 pr-4 text-right tabular-nums" />
                   <td
                     className="py-2 text-right tabular-nums"
                     data-testid="cons-entities-minority"
                   >
-                    {formatMoneyCompact(report.minorityInterest)}
+                    {money(report.minorityInterest)}
                   </td>
                 </tr>
               </tfoot>
@@ -340,13 +350,13 @@ export function ConsolidationView({
                       </td>
                       <td className="py-2 pr-4">{el.investeeName}</td>
                       <td className="py-2 pr-4 text-right tabular-nums text-muted-foreground">
-                        {formatMoneyCompact(el.carryingValue)}
+                        {money(el.carryingValue)}
                       </td>
                       <td className="py-2 pr-4 text-right tabular-nums text-muted-foreground">
                         {formatPct(el.holderEffectivePct)}
                       </td>
                       <td className="py-2 text-right tabular-nums font-medium text-destructive">
-                        −{formatMoneyCompact(el.eliminated)}
+                        −{money(el.eliminated)}
                       </td>
                     </tr>
                   ))}
@@ -360,7 +370,7 @@ export function ConsolidationView({
                       className="py-2 text-right tabular-nums text-destructive"
                       data-testid="cons-elim-total"
                     >
-                      −{formatMoneyCompact(report.intercompanyEliminations)}
+                      −{money(report.intercompanyEliminations)}
                     </td>
                   </tr>
                 </tfoot>

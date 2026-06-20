@@ -18,17 +18,8 @@ import {
 } from "@/components/ui/card";
 import { buildCashflowModel, type CashflowModel } from "@/lib/cashflow";
 import { formatMoneyCompact, formatMoneyWhole } from "@/lib/format";
+import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
-
-/** Compact currency, e.g. `$4.0M`, in the model's currency. */
-function compact(value: number, currency: string): string {
-  return formatMoneyCompact(value, currency);
-}
-
-/** Full currency with no fractional cents, e.g. `$4,000,000`, in the model's currency. */
-function whole(value: number, currency: string): string {
-  return formatMoneyWhole(value, currency);
-}
 
 /** A readable month label, e.g. `Jul 2024`, from an ISO `YYYY-MM`. */
 function monthLabel(period: string): string {
@@ -91,16 +82,26 @@ export interface CashflowPageProps {
  */
 export function CashflowPage({ model }: CashflowPageProps) {
   const cf = React.useMemo(() => model ?? buildCashflowModel(), [model]);
-  const { kpis, months, categories, currency } = cf;
+  const { kpis, months, categories } = cf;
 
-  const balanceSeries = months.map((m) => m.closingBalance);
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary (no-op when the reporting currency is the model base).
+  const { currency, convert } = useReportingMoney();
+  /** Compact currency, e.g. `$4.0M`, in the reporting currency. */
+  const compact = (value: number): string =>
+    formatMoneyCompact(convert(value), currency);
+  /** Full currency with no fractional cents, e.g. `$4,000,000`. */
+  const whole = (value: number): string =>
+    formatMoneyWhole(convert(value), currency);
+
+  const balanceSeries = months.map((m) => convert(m.closingBalance));
   const periodLabels = months.map((m) => monthLabel(m.period));
 
   // Per-category bar chart: inflows positive, outflows negative, for an
   // at-a-glance picture of the largest cash movers over the horizon.
   const barData = categories.map((c) => ({
     label: c.category,
-    value: c.direction === "inflow" ? c.total : -c.total,
+    value: convert(c.direction === "inflow" ? c.total : -c.total),
   }));
 
   const hasShortfall = kpis.firstShortfallPeriod !== null;
@@ -148,21 +149,21 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-opening"
             label="Opening"
-            value={compact(kpis.openingBalance, currency)}
+            value={compact(kpis.openingBalance)}
             hint="cash on hand today"
             icon={<Wallet className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-ending"
             label="Ending"
-            value={compact(kpis.endingBalance, currency)}
+            value={compact(kpis.endingBalance)}
             hint="end of horizon"
             tone={kpis.endingBalance >= kpis.openingBalance ? "up" : "down"}
           />
           <Kpi
             testId="kpi-min"
             label="Min balance"
-            value={compact(kpis.minBalance, currency)}
+            value={compact(kpis.minBalance)}
             hint={monthLabel(kpis.minBalancePeriod)}
             tone={kpis.minBalance < 0 ? "warn" : "default"}
             icon={<TrendingDown className="size-3.5" aria-hidden="true" />}
@@ -170,7 +171,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-inflows"
             label="Total inflows"
-            value={compact(kpis.totalInflows, currency)}
+            value={compact(kpis.totalInflows)}
             hint="over the horizon"
             tone="up"
             icon={<ArrowUpRight className="size-3.5" aria-hidden="true" />}
@@ -178,7 +179,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-outflows"
             label="Total outflows"
-            value={compact(kpis.totalOutflows, currency)}
+            value={compact(kpis.totalOutflows)}
             hint="over the horizon"
             tone="down"
             icon={<ArrowDownRight className="size-3.5" aria-hidden="true" />}
@@ -186,7 +187,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-net"
             label="Net flow"
-            value={compact(kpis.netFlow, currency)}
+            value={compact(kpis.netFlow)}
             hint="inflows − outflows"
             tone={kpis.netFlow >= 0 ? "up" : "down"}
           />
@@ -237,7 +238,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
                     kpis.minBalance < 0 && "text-[var(--color-chart-down)]",
                   )}
                 >
-                  {compact(kpis.minBalance, currency)}
+                  {compact(kpis.minBalance)}
                 </span>{" "}
                 in {monthLabel(kpis.minBalancePeriod)}
               </span>
@@ -304,13 +305,13 @@ export function CashflowPage({ model }: CashflowPageProps) {
                         {monthLabel(m.period)}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums">
-                        {whole(m.openingBalance, currency)}
+                        {whole(m.openingBalance)}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-[var(--color-chart-up)]">
-                        {m.inflows > 0 ? whole(m.inflows, currency) : "—"}
+                        {m.inflows > 0 ? whole(m.inflows) : "—"}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-[var(--color-chart-down)]">
-                        {m.outflows > 0 ? whole(m.outflows, currency) : "—"}
+                        {m.outflows > 0 ? whole(m.outflows) : "—"}
                       </td>
                       <td
                         className={cn(
@@ -320,7 +321,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
                             : "text-[var(--color-chart-up)]",
                         )}
                       >
-                        {whole(m.netFlow, currency)}
+                        {whole(m.netFlow)}
                       </td>
                       <td
                         className={cn(
@@ -329,7 +330,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
                             "text-[var(--color-chart-down)]",
                         )}
                       >
-                        {whole(m.closingBalance, currency)}
+                        {whole(m.closingBalance)}
                       </td>
                     </tr>
                   ))}

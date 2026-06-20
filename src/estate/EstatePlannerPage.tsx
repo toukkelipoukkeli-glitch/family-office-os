@@ -24,6 +24,8 @@ import {
   type LiquidityClass,
 } from "@/lib/estate";
 import { formatMoney } from "@/lib/format";
+import type { Money } from "@/lib/money";
+import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
 
 import { SuccessionFlow } from "./SuccessionFlow";
@@ -36,8 +38,25 @@ const RELATION_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-function money(currency: string, value: number, compactN = true): string {
-  return formatMoney(value, currency, { compact: compactN });
+/**
+ * Build a money formatter bound to the chosen reporting currency. Re-expresses
+ * each base-USD figure at the render boundary (no-op when reporting === base).
+ *
+ * Prefers the exact {@link Money} path: a `Money` is converted in `Decimal`
+ * space and handed to `formatMoney` as a `NumberLike`, so the exact amount is
+ * only reduced to a `number` inside the formatter. Plain numbers (chart-axis
+ * values, ratios already reduced from `Money`) take the number path.
+ */
+function makeMoney(rm: ReportingMoney) {
+  return (value: number | Money, compactN = true): string => {
+    if (typeof value === "number") {
+      return formatMoney(rm.convert(value), rm.currency, { compact: compactN });
+    }
+    const converted = rm.convertMoney(value);
+    return formatMoney(converted.amount, converted.currency, {
+      compact: compactN,
+    });
+  };
 }
 
 interface KpiProps {
@@ -89,7 +108,11 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
     () => analyzeEstate(estatePlan),
     [estatePlan],
   );
-  const ccy = analysis.currency;
+  // Re-express every base-USD figure in the chosen reporting currency at the
+  // render boundary (no-op when the reporting currency is the model base). The
+  // Sankey geometry reads from raw base values and is scale-invariant, so only
+  // the labelled values change unit.
+  const money = makeMoney(useReportingMoney());
   const num = (m: { amount: { toNumber(): number } }) => m.amount.toNumber();
 
   const coveragePct = analysis.coverageRatio.times(100).toNumber();
@@ -120,24 +143,23 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
           <Kpi
             testId="kpi-gross"
             label="Gross estate"
-            value={money(ccy, num(analysis.grossEstate))}
-            hint={`${money(ccy, num(analysis.totalDebts))} debts · ${money(
-              ccy,
-              num(analysis.adminCost),
+            value={money(analysis.grossEstate)}
+            hint={`${money(analysis.totalDebts)} debts · ${money(
+              analysis.adminCost,
             )} admin`}
             icon={<Landmark className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-taxable"
             label="Taxable estate"
-            value={money(ccy, num(analysis.taxableEstate))}
-            hint={`after ${money(ccy, num(analysis.exemptionApplied))} exemption`}
+            value={money(analysis.taxableEstate)}
+            hint={`after ${money(analysis.exemptionApplied)} exemption`}
             icon={<Scale className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-tax"
             label="Estate tax due"
-            value={money(ccy, num(analysis.estateTax))}
+            value={money(analysis.estateTax)}
             hint={`${(estatePlan.taxRate * 100).toFixed(0)}% marginal rate`}
             tone="down"
             icon={<AlertTriangle className="size-3.5" aria-hidden="true" />}
@@ -149,7 +171,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
             hint={
               analysis.covered
                 ? "settlement fully liquid"
-                : `${money(ccy, num(analysis.shortfall))} short`
+                : `${money(analysis.shortfall)} short`
             }
             tone={analysis.covered ? "up" : "down"}
             icon={
@@ -167,7 +189,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
           <CardHeader>
             <CardTitle className="text-base">Liquidity at death</CardTitle>
             <CardDescription>
-              Can the estate settle {money(ccy, need)} of tax, debt and
+              Can the estate settle {money(need)} of tax, debt and
               administration out of liquid assets — without a forced sale of the
               operating company, forest or art?
             </CardDescription>
@@ -201,8 +223,8 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                     : "Liquidity shortfall — settlement would force an illiquid sale."}
                 </p>
                 <p className="mt-0.5 text-muted-foreground">
-                  {money(ccy, liquid)} of post-haircut liquid assets vs{" "}
-                  {money(ccy, need)} needed —{" "}
+                  {money(liquid)} of post-haircut liquid assets vs{" "}
+                  {money(need)} needed —{" "}
                   <span
                     className={cn(
                       "font-medium",
@@ -216,7 +238,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                   {!analysis.covered && (
                     <>
                       {" "}
-                      ({money(ccy, num(analysis.shortfall))} short)
+                      ({money(analysis.shortfall)} short)
                     </>
                   )}
                   .
@@ -300,10 +322,10 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                         </span>
                       </td>
                       <td className="py-2 text-right tabular-nums">
-                        {money(ccy, num(step.grossUsed))}
+                        {money(step.grossUsed)}
                       </td>
                       <td className="py-2 text-right tabular-nums">
-                        {money(ccy, num(step.netUsed))}
+                        {money(step.netUsed)}
                       </td>
                     </tr>
                   ))}
@@ -325,41 +347,41 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
             <CardContent>
               <table className="w-full text-sm" data-testid="tax-table">
                 <tbody>
-                  <TaxRow label="Gross estate" value={money(ccy, num(analysis.grossEstate))} />
+                  <TaxRow label="Gross estate" value={money(analysis.grossEstate)} />
                   <TaxRow
                     label="Less: debts"
-                    value={`(${money(ccy, num(analysis.totalDebts))})`}
+                    value={`(${money(analysis.totalDebts)})`}
                     muted
                   />
                   <TaxRow
                     label="Less: administration"
-                    value={`(${money(ccy, num(analysis.adminCost))})`}
+                    value={`(${money(analysis.adminCost)})`}
                     muted
                   />
                   <TaxRow
                     label="Less: marital / charitable"
-                    value={`(${money(ccy, num(analysis.exemptBequests))})`}
+                    value={`(${money(analysis.exemptBequests)})`}
                     muted
                   />
                   <TaxRow
                     label="Net estate"
-                    value={money(ccy, num(analysis.netEstate))}
+                    value={money(analysis.netEstate)}
                     strong
                   />
                   <TaxRow
                     label="Less: lifetime exemption"
-                    value={`(${money(ccy, num(analysis.exemptionApplied))})`}
+                    value={`(${money(analysis.exemptionApplied)})`}
                     muted
                   />
                   <TaxRow
                     label="Taxable estate"
-                    value={money(ccy, num(analysis.taxableEstate))}
+                    value={money(analysis.taxableEstate)}
                     strong
                   />
                   <TaxRow
                     testId="tax-row-total"
                     label={`Estate tax @ ${(estatePlan.taxRate * 100).toFixed(0)}%`}
-                    value={money(ccy, num(analysis.estateTax))}
+                    value={money(analysis.estateTax)}
                     strong
                     tone="down"
                   />
@@ -395,14 +417,14 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                         {s.tax.isPositive() && (
                           <>
                             {" · "}
-                            tax {money(ccy, num(s.tax))}
+                            tax {money(s.tax)}
                           </>
                         )}
                       </p>
                     </div>
                     <span className="shrink-0 text-right tabular-nums">
                       <span className="text-sm font-semibold">
-                        {money(ccy, num(s.net))}
+                        {money(s.net)}
                       </span>
                     </span>
                   </li>
@@ -428,7 +450,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
                 links={analysis.flowLinks}
                 width={900}
                 height={460}
-                formatValue={(v) => money(ccy, v)}
+                formatValue={(v) => money(v)}
                 className="h-auto w-full min-w-[680px]"
                 preserveAspectRatio="xMidYMid meet"
               />

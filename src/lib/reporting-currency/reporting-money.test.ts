@@ -79,3 +79,35 @@ describe("convertMoneyFromBase", () => {
     expect(out.amount.equals(new Decimal(500_000))).toBe(true);
   });
 });
+
+describe("conversion paths agree (adversarial)", () => {
+  // The Money path (convertMoneyFromBase → exact Decimal then reduce) and the
+  // number path (convertFromBase) are used interchangeably across pages —
+  // ConsolidationView uses Money, GivingPage uses numbers. They must produce the
+  // same magnitude for the same base figure, or the same KPI would read
+  // differently on two pages.
+  for (const code of ["EUR", "GBP", "CHF", "USD"]) {
+    it(`number and Money paths match for ${code}`, () => {
+      const base = 1_234_567.89;
+      const viaNumber = convertFromBase(base, code);
+      const viaMoney = convertMoneyFromBase(
+        Money.of(base, "USD"),
+        code,
+      ).amount.toNumber();
+      expect(viaNumber).toBe(viaMoney);
+    });
+  }
+
+  it("a normalized-away code (jpy) is a true no-op on both paths", () => {
+    expect(convertFromBase(777.7, "jpy")).toBe(777.7);
+    expect(
+      convertMoneyFromBase(Money.of(777.7, "USD"), "jpy").amount.toNumber(),
+    ).toBe(777.7);
+  });
+
+  it("preserves sign through conversion (negative deductions stay negative)", () => {
+    // Consolidation eliminations / minority interest are shown as negatives;
+    // re-expression must not flip the sign.
+    expect(convertFromBase(-2_160_000, "EUR")).toBe(-2_000_000);
+  });
+});

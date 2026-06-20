@@ -40,4 +40,23 @@ describe("tag-filter storage", () => {
     window.localStorage.setItem(KEY, JSON.stringify(["ok", 1, "", null, "two"]));
     expect(readStoredSelection()).toEqual(["ok", "two"]);
   });
+
+  it("degrades to empty (no throw) when accessing localStorage itself throws", () => {
+    // Some privacy-restricted contexts throw on the `window.localStorage`
+    // property access, before any get/set call. Both helpers must catch that.
+    const original = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new DOMException("denied", "SecurityError");
+      },
+    });
+    try {
+      expect(() => readStoredSelection()).not.toThrow();
+      expect(readStoredSelection()).toEqual([]);
+      expect(() => writeStoredSelection(["core"])).not.toThrow();
+    } finally {
+      if (original) Object.defineProperty(window, "localStorage", original);
+    }
+  });
 });

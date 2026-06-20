@@ -28,6 +28,7 @@ function Probe({ source = seededPortfolio }: { source?: Portfolio }) {
         onClick={() => setSelection(["core", "ghost-not-real"])}
       />
       <button data-testid="toggle-core" onClick={() => toggle("core")} />
+      <button data-testid="toggle-ghost" onClick={() => toggle("ghost-not-real")} />
       <button data-testid="clear" onClick={clear} />
     </div>
   );
@@ -111,6 +112,23 @@ describe("TagFilterProvider (adversarial)", () => {
       </TagFilterProvider>,
     );
     expect(availableTags(onlyCore)).toEqual(["core"]);
+  });
+
+  it("toggle ignores a tag absent from the source portfolio", async () => {
+    const user = userEvent.setup();
+    render(
+      <TagFilterProvider portfolio={seededPortfolio}>
+        <Probe />
+      </TagFilterProvider>,
+    );
+    await user.click(screen.getByTestId("toggle-ghost"));
+    // No-op: an unknown tag must not pin the selection (which would hide the
+    // whole book) and must not appear in the selected set.
+    expect(screen.getByTestId("filtering")).toHaveTextContent("false");
+    expect(screen.getByTestId("selected")).toHaveTextContent("");
+    expect(screen.getByTestId("count")).toHaveTextContent(
+      String(seededPortfolio.holdings.length),
+    );
   });
 
   it("toggle is reversible and clears back to the whole book", async () => {

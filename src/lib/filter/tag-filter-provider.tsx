@@ -41,14 +41,23 @@ export function TagFilterProvider({
     writeStoredSelection(selected);
   }, [selected]);
 
-  const toggle = React.useCallback((tag: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) next.delete(tag);
-      else next.add(tag);
-      return next;
-    });
-  }, []);
+  const toggle = React.useCallback(
+    (tag: string) => {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (next.has(tag)) {
+          next.delete(tag);
+        } else if (available.includes(tag)) {
+          // Enforce the selected ⊆ available invariant: only tags the source
+          // portfolio actually has can be turned on. Toggling an unknown tag is
+          // a no-op rather than pinning a tag that would hide the whole book.
+          next.add(tag);
+        }
+        return next;
+      });
+    },
+    [available],
+  );
 
   const setSelection = React.useCallback(
     (tags: Iterable<string>) => {

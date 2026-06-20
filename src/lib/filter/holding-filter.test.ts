@@ -119,6 +119,20 @@ describe("filterPortfolioByTags", () => {
   });
 });
 
+describe("tagCounts (adversarial)", () => {
+  it("counts holdings, not raw occurrences, for a tag repeated on one holding", () => {
+    // The Holding schema allows the same tag twice on one holding; that holding
+    // must still count once for "holdings per tag".
+    const dup: Portfolio = {
+      ...seededPortfolio,
+      holdings: seededPortfolio.holdings.map((h, i) =>
+        i === 0 ? { ...h, tags: ["dupe", "dupe"] } : { ...h, tags: [] },
+      ),
+    };
+    expect(tagCounts(dup).get("dupe")).toBe(1);
+  });
+});
+
 describe("availableTags (adversarial)", () => {
   it("dedupes a tag that appears twice on a single holding", () => {
     // The Holding schema does not enforce per-holding tag uniqueness, so a

@@ -9,11 +9,26 @@
 
 const STORAGE_KEY = "fo-os:tag-filter";
 
+/**
+ * Resolve `window.localStorage` defensively. The property access itself can
+ * throw synchronously in privacy-restricted contexts (e.g. blocked storage), so
+ * it must be wrapped — not just the `getItem`/`setItem` calls.
+ */
+function getLocalStorageSafe(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Read the persisted selection. Returns `[]` when unset/unavailable/corrupt. */
 export function readStoredSelection(): string[] {
-  if (typeof window === "undefined" || !window.localStorage) return [];
+  const storage = getLocalStorageSafe();
+  if (!storage) return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -28,9 +43,10 @@ export function readStoredSelection(): string[] {
 
 /** Persist the selection. No-ops when storage is unavailable. */
 export function writeStoredSelection(selection: Iterable<string>): void {
-  if (typeof window === "undefined" || !window.localStorage) return;
+  const storage = getLocalStorageSafe();
+  if (!storage) return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify([...selection]));
+    storage.setItem(STORAGE_KEY, JSON.stringify([...selection]));
   } catch {
     // Quota or privacy mode — the filter just won't persist.
   }

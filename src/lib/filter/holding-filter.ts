@@ -36,11 +36,18 @@ export function availableTags(portfolio: Portfolio): string[] {
   );
 }
 
-/** Count of holdings carrying a given tag, for the filter UI's per-tag badges. */
+/**
+ * Count of holdings carrying a given tag, for the filter UI's per-tag badges.
+ *
+ * This counts *holdings*, not raw tag occurrences: the Holding schema does not
+ * enforce per-holding tag uniqueness, so a holding may list the same tag twice.
+ * Such a holding still contributes exactly one to that tag's count (it is one
+ * holding), matching the documented "holdings per tag" semantics.
+ */
 export function tagCounts(portfolio: Portfolio): Map<string, number> {
   const counts = new Map<string, number>();
   for (const holding of portfolio.holdings) {
-    for (const tag of holding.tags) {
+    for (const tag of new Set(holding.tags)) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
     }
   }

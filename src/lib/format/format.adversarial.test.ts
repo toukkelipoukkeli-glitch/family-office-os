@@ -24,6 +24,35 @@ import {
  * boundary, and the sign-derivation branches.
  */
 
+describe("compact output is ICU-build-independent (no trailing .0)", () => {
+  // Some ICU builds (Linux/CI) keep a trailing `.0` for `maximumFractionDigits:1`
+  // while others (macOS) strip it, which made rendered money strings differ by
+  // platform. `trailingZeroDisplay: "stripIfInteger"` must normalize all builds
+  // to the stripped form, so these literals hold everywhere.
+  it("strips the trailing zero on integral compact magnitudes", () => {
+    expect(formatMoneyCompact(840_000, "USD")).toBe("$840K");
+    expect(formatMoneyCompact(4_000_000, "USD")).toBe("$4M");
+    expect(formatMoneyCompact(0, "USD")).toBe("$0");
+    expect(formatMoneySignedCompact(4_000_000, "USD")).toBe("+$4M");
+    expect(formatMoneySignedCompact(0, "USD")).toBe("+$0");
+    expect(formatCompact(12_000)).toBe("12K");
+    expect(formatCompact(842)).toBe("842");
+  });
+
+  it("keeps a real fractional digit when present", () => {
+    expect(formatMoneyCompact(12_500_000, "USD")).toBe("$12.5M");
+    expect(formatMoneyCompact(9_190_000, "USD")).toBe("$9.2M");
+    expect(formatCompact(12_500)).toBe("12.5K");
+  });
+
+  it("no compact helper ever emits a bare '.0' suffix", () => {
+    for (const v of [0, 1_000, 840_000, 4_000_000, 1_000_000_000]) {
+      expect(formatMoneyCompact(v, "USD")).not.toMatch(/\.0[KMBT]?$/);
+      expect(formatCompact(v)).not.toMatch(/\.0[KMBT]?$/);
+    }
+  });
+});
+
 describe("negative-zero never leaks a bare '-0'", () => {
   it("signed compact money treats -0 as +", () => {
     expect(formatMoneySignedCompact(-0, "USD")).toBe("+$0");

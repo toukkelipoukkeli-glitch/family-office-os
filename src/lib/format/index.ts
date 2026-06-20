@@ -14,6 +14,18 @@
  * READ-ONLY product: these helpers only *display* money, they never move it.
  */
 
+// `trailingZeroDisplay` is part of the ES2023 Intl spec and supported by every
+// runtime we target, but the bundled TS DOM lib predates it. Augment the option
+// type so we can use it type-safely (instead of an `as any` cast).
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Intl {
+    interface NumberFormatOptions {
+      trailingZeroDisplay?: "auto" | "stripIfInteger";
+    }
+  }
+}
+
 /** Default locale for all display formatting. */
 export const DEFAULT_LOCALE = "en-US";
 
@@ -65,6 +77,11 @@ export function formatMoneyCompact(
     currency,
     notation: "compact",
     maximumFractionDigits,
+    // Strip a trailing `.0` (`$840.0K` -> `$840K`) so output is identical on
+    // every ICU build. Without this, `maximumFractionDigits` alone keeps the
+    // trailing zero on some platforms (Linux/CI) but not others (macOS dev),
+    // which made rendered money strings non-deterministic across environments.
+    trailingZeroDisplay: "stripIfInteger",
     ...rest,
   }).format(toNum(value));
 }
@@ -218,6 +235,9 @@ export function formatCompact(
   return new Intl.NumberFormat(locale, {
     notation: "compact",
     maximumFractionDigits,
+    // Strip a trailing `.0` so `12.5K`/`842` render identically on every ICU
+    // build (see formatMoneyCompact for why this is needed for determinism).
+    trailingZeroDisplay: "stripIfInteger",
   }).format(toNum(value));
 }
 

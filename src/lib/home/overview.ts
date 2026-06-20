@@ -220,15 +220,23 @@ export function buildOverview(input: OverviewInput = {}): OverviewModel {
     module: "Benchmark",
   };
 
-  // 3) Volatility + max drawdown (risk).
+  // 3) Volatility + max drawdown (risk). The tile's status is driven by the
+  // risk cockpit's own limit breaches — the same breaches folded into
+  // `openBreaches` and the page banner below — so a non-zero risk breach can
+  // never read as `ok` while the banner counts it.
   const volPct = formatPct(risk.metrics.volatility);
   const ddPct = formatPct(risk.metrics.maxDrawdown.maxDrawdown);
+  const riskStatus = statusFromCounts(risk.counts);
+  const riskBreachDetail =
+    risk.breaches.length === 0
+      ? `max drawdown ${ddPct} · Sharpe ${risk.metrics.sharpe.toFixed(2)}`
+      : `${risk.breaches.length} limit ${risk.breaches.length === 1 ? "breach" : "breaches"} · max drawdown ${ddPct}`;
   const volatilityKpi: OverviewKpi = {
     id: "volatility",
     label: "Volatility / drawdown",
     value: `${volPct} ann.`,
-    detail: `max drawdown ${ddPct} · Sharpe ${risk.metrics.sharpe.toFixed(2)}`,
-    status: "ok",
+    detail: riskBreachDetail,
+    status: riskStatus,
     href: "#/risk",
     module: "Risk",
   };

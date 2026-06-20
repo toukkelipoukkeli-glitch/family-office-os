@@ -143,11 +143,14 @@ describe("buildOverview (seeded)", () => {
     expect(alerts.href).toBe("#/alerts");
   });
 
-  it("reports annualized volatility, max drawdown and Sharpe in one tile", () => {
+  it("reports annualized volatility and the risk-limit breach status in one tile", () => {
     const vol = model.kpis.find((k) => k.id === "volatility")!;
     expect(vol.value).toBe("6.79% ann.");
+    // Seeded risk cockpit breaches 4 limits (1 critical) -> the tile is
+    // critical and surfaces the breach count alongside the drawdown.
+    expect(vol.status).toBe("critical");
+    expect(vol.detail).toContain("4 limit breaches");
     expect(vol.detail).toContain("max drawdown 5.25%");
-    expect(vol.detail).toContain("Sharpe 1.29");
     expect(vol.href).toBe("#/risk");
   });
 

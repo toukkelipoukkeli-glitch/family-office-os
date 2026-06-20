@@ -9,9 +9,12 @@ const EVIDENCE_DIR = join(here, "evidence", "m10-insurance");
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
 
-test.describe("insurance coverage tracker", () => {
-  test.use({ trace: "on" });
+// Trace is captured for every test as visual-QA evidence (also set globally in
+// playwright.config.ts). Pinned at file scope here — `test.use` cannot live
+// inside a describe group.
+test.use({ trace: "on" });
 
+test.describe("insurance coverage tracker", () => {
   test("navigates from the dashboard to the tracker and back", async ({
     page,
   }) => {

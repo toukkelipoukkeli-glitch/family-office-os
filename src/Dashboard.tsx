@@ -43,6 +43,13 @@ export function Dashboard() {
               Cap table
             </a>
             <a
+              href="#/taxlots"
+              data-testid="nav-taxlots"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Tax lots
+            </a>
+            <a
               href="#/ownership"
               data-testid="nav-ownership"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

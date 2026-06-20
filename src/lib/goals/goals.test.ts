@@ -117,6 +117,49 @@ describe("analyzeGoal", () => {
     expect(f.fundedRatio.equals(1)).toBe(true);
     expect(f.funded).toBe(true);
   });
+
+  it("reports ratio 0 and a full gap for a goal with no dedicated assets", () => {
+    const f = analyzeGoal(
+      goal({ id: "g", target: usd("750000"), dueYears: 4, dedicated: [] }),
+      "USD",
+    );
+    expect(f.dedicatedNow.isZero()).toBe(true);
+    expect(f.dedicatedAtDue.isZero()).toBe(true);
+    expect(f.fundedRatio.isZero()).toBe(true);
+    expect(f.gap.equals(usd("750000"))).toBe(true);
+    expect(f.funded).toBe(false);
+  });
+
+  it("erodes a reserve held at a negative real growth rate", () => {
+    // 1,000,000 * 0.9^3 = 729,000 in real terms after three years.
+    const g = goal({
+      id: "g",
+      target: usd("1000000"),
+      dueYears: 3,
+      dedicated: [
+        { id: "a", name: "Eroding reserve", value: usd("1000000"), growthRate: -0.1 },
+      ],
+    });
+    const f = analyzeGoal(g, "USD");
+    expect(f.dedicatedAtDue.round().equals(usd("729000"))).toBe(true);
+    expect(f.funded).toBe(false);
+    expect(f.gap.round().equals(usd("271000"))).toBe(true);
+  });
+
+  it("sums multiple dedicated pools each grown at its own rate", () => {
+    const g = goal({
+      id: "g",
+      target: usd("3000000"),
+      dueYears: 2,
+      dedicated: [
+        { id: "a", name: "A", value: usd("1000000"), growthRate: 0.1 }, // -> 1,210,000
+        { id: "b", name: "B", value: usd("1000000") }, // flat -> 1,000,000
+      ],
+    });
+    const f = analyzeGoal(g, "USD");
+    expect(f.dedicatedNow.equals(usd("2000000"))).toBe(true);
+    expect(f.dedicatedAtDue.round().equals(usd("2210000"))).toBe(true);
+  });
 });
 
 describe("analyzeFundingPlan — seeded Ursin plan (oracle)", () => {
@@ -259,5 +302,86 @@ describe("validation", () => {
         goals: [goal({ id: "g", target: usd("-1") })],
       }),
     ).toThrow(/target must be >= 0/);
+  });
+
+  it("rejects a structurally invalid plan currency", () => {
+    expect(() =>
+      analyzeFundingPlan({ ...base, currency: "US" }),
+    ).toThrow(/Invalid plan currency/);
+  });
+
+  it("rejects a non-finite due date", () => {
+    expect(() =>
+      analyzeFundingPlan({
+        ...base,
+        goals: [goal({ id: "g", dueYears: Number.POSITIVE_INFINITY })],
+      }),
+    ).toThrow(/dueYears/);
+  });
+
+  it("rejects a non-finite priority", () => {
+    expect(() =>
+      analyzeFundingPlan({
+        ...base,
+        goals: [goal({ id: "g", priority: Number.NaN })],
+      }),
+    ).toThrow(/priority must be finite/);
+  });
+
+  it("rejects duplicate dedicated asset ids within a goal", () => {
+    expect(() =>
+      analyzeFundingPlan({
+        ...base,
+        goals: [
+          goal({
+            id: "g",
+            dedicated: [
+              { id: "dup", name: "x", value: usd("1") },
+              { id: "dup", name: "y", value: usd("1") },
+            ],
+          }),
+        ],
+      }),
+    ).toThrow(/duplicate dedicated asset id/);
+  });
+
+  it("rejects a negative dedicated asset value", () => {
+    expect(() =>
+      analyzeFundingPlan({
+        ...base,
+        goals: [
+          goal({
+            id: "g",
+            dedicated: [{ id: "a", name: "x", value: usd("-1") }],
+          }),
+        ],
+      }),
+    ).toThrow(/value must be >= 0/);
+  });
+});
+
+describe("ordering tiebreaks", () => {
+  it("breaks equal priority and due date by goal id for stability", () => {
+    const plan: FundingPlan = {
+      id: "p",
+      name: "P",
+      currency: "USD",
+      goals: [
+        goal({ id: "z-goal", priority: 1, dueYears: 5 }),
+        goal({ id: "a-goal", priority: 1, dueYears: 5 }),
+      ],
+    };
+    const summary = analyzeFundingPlan(plan);
+    expect(summary.goals.map((g) => g.goal.id)).toEqual(["a-goal", "z-goal"]);
+  });
+
+  it("normalizes a lowercase plan currency on the summary", () => {
+    const plan: FundingPlan = {
+      id: "p",
+      name: "P",
+      currency: "usd",
+      goals: [goal({ id: "g" })],
+    };
+    expect(analyzeFundingPlan(plan).currency).toBe("USD");
   });
 });

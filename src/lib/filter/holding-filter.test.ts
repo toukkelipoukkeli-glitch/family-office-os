@@ -119,6 +119,55 @@ describe("filterPortfolioByTags", () => {
   });
 });
 
+describe("availableTags (adversarial)", () => {
+  it("dedupes a tag that appears twice on a single holding", () => {
+    // The Holding schema does not enforce per-holding tag uniqueness, so a
+    // holding can legitimately carry the same tag twice. availableTags must
+    // still list it once.
+    const dup: Portfolio = {
+      ...seededPortfolio,
+      holdings: seededPortfolio.holdings.map((h, i) =>
+        i === 0 ? { ...h, tags: ["dupe", "dupe", "other"] } : { ...h, tags: [] },
+      ),
+    };
+    const tags = availableTags(dup);
+    expect(tags.filter((t) => t === "dupe")).toHaveLength(1);
+    expect(tags).toEqual(["dupe", "other"]);
+  });
+});
+
+describe("filterPortfolioByTags (adversarial)", () => {
+  it("drops a tag duplicated on one holding to a single membership", () => {
+    // A holding carrying the same selected tag twice still appears exactly once
+    // in the filtered subset (no duplicate holdings leak through).
+    const dup: Portfolio = {
+      ...seededPortfolio,
+      holdings: seededPortfolio.holdings.map((h, i) =>
+        i === 0 ? { ...h, tags: ["dupe", "dupe"] } : h,
+      ),
+    };
+    const filtered = filterPortfolioByTags(dup, new Set(["dupe"]));
+    expect(filtered.holdings).toHaveLength(1);
+    expect(filtered.holdings[0]?.id).toBe(seededPortfolio.holdings[0]?.id);
+  });
+
+  it("returns a fresh portfolio (not the source ref) for a non-empty selection", () => {
+    const filtered = filterPortfolioByTags(seededPortfolio, new Set(["core"]));
+    expect(filtered).not.toBe(seededPortfolio);
+    expect(filtered.holdings).not.toBe(seededPortfolio.holdings);
+  });
+
+  it("yields an empty book when no holding carries the selected tag", () => {
+    const filtered = filterPortfolioByTags(
+      seededPortfolio,
+      new Set(["definitely-not-a-real-tag"]),
+    );
+    expect(filtered.holdings).toEqual([]);
+    // Still non-destructive: source is untouched.
+    expect(seededPortfolio.holdings.length).toBeGreaterThan(0);
+  });
+});
+
 describe("reconcileSelection", () => {
   it("drops tags absent from the portfolio and sorts the rest", () => {
     const kept = reconcileSelection(seededPortfolio, [

@@ -39,6 +39,11 @@ const AttributionPage = lazy(() =>
     default: m.AttributionPage,
   })),
 );
+const BenchmarkPage = lazy(() =>
+  import("@/benchmark/BenchmarkPage").then((m) => ({
+    default: m.BenchmarkPage,
+  })),
+);
 const ChartsGalleryPage = lazy(() =>
   import("@/components/charts/charts-gallery").then((m) => ({
     default: m.ChartsGalleryPage,
@@ -82,6 +87,7 @@ function routeElement(path: string) {
   if (path === "/charts") return <ChartsGalleryPage />;
   if (path === "/scenarios") return <ScenarioCockpit />;
   if (path === "/attribution") return <AttributionPage />;
+  if (path === "/benchmark") return <BenchmarkPage />;
   if (path === "/fees") return <FeesPage />;
   if (path === "/ownership") return <OwnershipGraphPage />;
   if (path === "/lookthrough") return <LookThroughPage />;

@@ -63,6 +63,22 @@ describe("ErrorBoundary", () => {
     expect((onError.mock.calls[0][0] as Error).message).toBe("kaboom");
   });
 
+  it("swallows a throwing onError handler and still shows the fallback", () => {
+    const onError = vi.fn(() => {
+      throw new Error("telemetry blew up");
+    });
+    // Must not propagate: a faulty handler should never re-blank the app.
+    expect(() =>
+      render(
+        <ErrorBoundary onError={onError}>
+          <Bomb boom={true} />
+        </ErrorBoundary>,
+      ),
+    ).not.toThrow();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("error-boundary-fallback")).toBeInTheDocument();
+  });
+
   it("recovers when the user retries and the child no longer throws", async () => {
     const user = userEvent.setup();
 

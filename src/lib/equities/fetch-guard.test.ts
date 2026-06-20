@@ -155,6 +155,87 @@ describe("FetchGuard", () => {
       expect((err as RateLimitedError).retryAfterMs).toBeGreaterThan(0);
     }
   });
+  it("propagates a fetcher failure without caching it (no phantom stale body)", async () => {
+    const clock = makeClock();
+    const fetcher = vi.fn(async () => {
+      throw new Error("network down");
+    });
+    const guard = new FetchGuard({
+      now: clock.now,
+      fetcher,
+      burst: 1,
+      minIntervalMs: 10_000,
+    });
+
+    // The token is spent and the failure propagates — nothing is cached.
+    await expect(guard.fetch("a")).rejects.toThrow("network down");
+    // A later request for the same URL must NOT serve a stale body from a
+    // failed fetch; with no token left and no cache it rate-limits instead.
+    await expect(guard.fetch("a")).rejects.toBeInstanceOf(RateLimitedError);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("serves a fresh cache hit without spending a token (so a later URL still gets through)", async () => {
+    const clock = makeClock();
+    const fetcher = vi.fn(async (url: string) => ({ url }));
+    const guard = new FetchGuard({
+      now: clock.now,
+      fetcher,
+      burst: 1,
+      minIntervalMs: 10_000,
+      ttlMs: 60_000,
+    });
+
+    await guard.fetch("a"); // spends the only token, caches "a" fresh
+    // Repeated "a" is a fresh cache hit and must NOT consume the bucket...
+    const hit = await guard.fetch("a");
+    expect(hit.source).toBe("cache");
+    // ...but with the token already gone, a brand-new URL still rate-limits.
+    await expect(guard.fetch("b")).rejects.toBeInstanceOf(RateLimitedError);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps retryAfter within the configured spacing window", async () => {
+    const clock = makeClock();
+    const minIntervalMs = 9_000;
+    const guard = new FetchGuard({
+      now: clock.now,
+      fetcher: async () => ({}),
+      burst: 1,
+      minIntervalMs,
+    });
+    await guard.fetch("a");
+    try {
+      await guard.fetch("b");
+      throw new Error("expected RateLimitedError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(RateLimitedError);
+      const wait = (err as RateLimitedError).retryAfterMs;
+      expect(wait).toBeGreaterThan(0);
+      expect(wait).toBeLessThanOrEqual(minIntervalMs);
+    }
+  });
+
+  it("treats distinct URLs as independent cache keys", async () => {
+    const clock = makeClock();
+    const fetcher = vi.fn(async (url: string) => ({ url }));
+    const guard = new FetchGuard({
+      now: clock.now,
+      fetcher,
+      burst: 10,
+      minIntervalMs: 0, // no spacing constraint for this test
+      ttlMs: 60_000,
+    });
+
+    const a = await guard.fetch("https://x/q?s=IBM");
+    const b = await guard.fetch("https://x/q?s=MSFT");
+    expect(a.body).toEqual({ url: "https://x/q?s=IBM" });
+    expect(b.body).toEqual({ url: "https://x/q?s=MSFT" });
+    // Each is independently cached.
+    expect((await guard.fetch("https://x/q?s=IBM")).source).toBe("cache");
+    expect((await guard.fetch("https://x/q?s=MSFT")).source).toBe("cache");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("defaultFetchGuard singleton", () => {

@@ -22,6 +22,13 @@ export function Dashboard() {
               Reports
             </a>
             <a
+              href="#/insights"
+              data-testid="nav-insights"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              AI insights
+            </a>
+            <a
               href="#/charts"
               data-testid="nav-charts"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

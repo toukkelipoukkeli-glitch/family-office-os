@@ -35,6 +35,7 @@ const CurrencyPage = lazy(() => import("@/currency/CurrencyPage"));
 const RiskCockpitPage = lazy(() => import("@/risk/RiskCockpitPage"));
 const VaultPage = lazy(() => import("@/vault/VaultPage"));
 const ReportsPage = lazy(() => import("@/reports/ReportsPage"));
+const InsightsPage = lazy(() => import("@/insights/InsightsPage"));
 
 const AlertsPage = lazy(() =>
   import("@/alerts/AlertsPage").then((m) => ({ default: m.AlertsPage })),
@@ -111,6 +112,7 @@ function routeElement(path: string) {
   if (path === "/cashflow") return <CashflowPage />;
   if (path === "/currency") return <CurrencyPage />;
   if (path === "/reports") return <ReportsPage />;
+  if (path === "/insights") return <InsightsPage />;
   if (path === "/estate") return <EstatePlannerPage />;
   if (path === "/vault") return <VaultPage />;
   if (path === "/pipeline" || path.startsWith("/pipeline/")) {

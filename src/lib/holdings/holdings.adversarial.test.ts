@@ -189,12 +189,12 @@ describe("gainPct === undefined sorts to the sink in both directions", () => {
     expect(out.map((r) => r.id)).toEqual(["hi", "lo", "none"]);
   });
 
-  it("ascending: undefined-pct row is still effectively the floor", () => {
+  it("ascending: undefined-pct row stays at the bottom (not lifted to the top)", () => {
     const out = sortHoldingRows(rows, [{ key: "gainPct", direction: "asc" }]);
-    // asc puts the smallest first; the undefined row maps to -Infinity so it
-    // leads in asc — the point is it is deterministic and grouped, never NaN.
-    expect(out[0].id).toBe("none");
-    expect(out.map((r) => r.id)).toEqual(["none", "lo", "hi"]);
+    // The missing-pct row is pinned last in BOTH directions; asc orders the real
+    // values smallest-first ahead of it.
+    expect(out.map((r) => r.id)).toEqual(["lo", "hi", "none"]);
+    expect(out[out.length - 1].id).toBe("none");
   });
 });
 

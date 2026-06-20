@@ -318,8 +318,20 @@ const CONFIDENCE_RANK: Record<ConfidenceLevel, number> = {
   low: 1,
 };
 
+/**
+ * Sentinel returned by {@link sortValue} for a row that has no comparable value
+ * on the active key (today: a `gainPct` of `undefined`). {@link compareScalar}
+ * recognizes it and always orders it after a real value, *before* the asc/desc
+ * flip is applied — so such rows stay at the bottom in both directions instead
+ * of jumping to the top on an ascending sort.
+ */
+const MISSING_LAST = Symbol("holdings.missing");
+
 /** Comparable scalar for a row on a given sort key. */
-function sortValue(row: HoldingRow, key: HoldingSortKey): number | string {
+function sortValue(
+  row: HoldingRow,
+  key: HoldingSortKey,
+): number | string | typeof MISSING_LAST {
   switch (key) {
     case "name":
       return row.name.toLowerCase();
@@ -334,9 +346,11 @@ function sortValue(row: HoldingRow, key: HoldingSortKey): number | string {
     case "gain":
       return row.gain;
     case "gainPct":
-      // Rows with no percentage sort to the bottom (most-negative) regardless of
-      // direction; the stable id tiebreak keeps them grouped deterministically.
-      return row.gainPct ?? Number.NEGATIVE_INFINITY;
+      // A missing percentage has no comparable position on the scale. It is kept
+      // out of the numeric ordering here and handled as an always-last sentinel
+      // in {@link sortHoldingRows} (see `MISSING_LAST`), so such rows sink to the
+      // bottom in *both* directions rather than flipping to the top on `asc`.
+      return row.gainPct ?? MISSING_LAST;
     case "weight":
       return row.weight;
     case "confidence":
@@ -344,14 +358,37 @@ function sortValue(row: HoldingRow, key: HoldingSortKey): number | string {
   }
 }
 
-/** Compare two scalars of the same kind. Strings compare lexicographically. */
-function compareScalar(a: number | string, b: number | string): number {
+type SortScalar = number | string | typeof MISSING_LAST;
+
+/**
+ * Compare two scalars of the same kind. Strings compare lexicographically.
+ *
+ * The {@link MISSING_LAST} sentinel is direction-independent: it is reported via
+ * {@link missingBias} so the caller can keep missing rows at the bottom *after*
+ * the asc/desc flip, never inside the ordinary comparison.
+ */
+function compareScalar(a: SortScalar, b: SortScalar): number {
   if (typeof a === "string" && typeof b === "string") {
     return a < b ? -1 : a > b ? 1 : 0;
   }
   const na = a as number;
   const nb = b as number;
   return na < nb ? -1 : na > nb ? 1 : 0;
+}
+
+/**
+ * Direction-independent ordering for the {@link MISSING_LAST} sentinel: a real
+ * value always precedes a missing one, and two missing values tie (the id
+ * tiebreak then groups them deterministically). Returns `undefined` when neither
+ * side is missing, so the caller falls through to {@link compareScalar}.
+ */
+function missingBias(a: SortScalar, b: SortScalar): number | undefined {
+  const am = a === MISSING_LAST;
+  const bm = b === MISSING_LAST;
+  if (am && bm) return 0;
+  if (am) return 1; // a missing → a sorts after b
+  if (bm) return -1; // b missing → a sorts before b
+  return undefined;
 }
 
 /**
@@ -367,7 +404,16 @@ export function sortHoldingRows(
   if (sorts.length === 0) return out;
   out.sort((ra, rb) => {
     for (const { key, direction } of sorts) {
-      const cmp = compareScalar(sortValue(ra, key), sortValue(rb, key));
+      const va = sortValue(ra, key);
+      const vb = sortValue(rb, key);
+      // Missing values are pinned to the bottom independent of direction, so the
+      // asc/desc flip never lifts a "—" row above real data.
+      const bias = missingBias(va, vb);
+      if (bias !== undefined) {
+        if (bias !== 0) return bias;
+        continue; // both missing on this key → fall through to the next key / id
+      }
+      const cmp = compareScalar(va, vb);
       if (cmp !== 0) return direction === "asc" ? cmp : -cmp;
     }
     // Deterministic tiebreak so the order is total and stable across engines.

@@ -31,6 +31,14 @@ describe("HoldingsIndexPage", () => {
     expect(rows[0]).toHaveAttribute("data-holding", "hold-vineyard-tuscany");
   });
 
+  it("falls back to the default sort when the URL sort param is malformed", () => {
+    // A junk deep-link must not render the table in raw, unsorted order.
+    window.location.hash = "#/holdings?sort=not-a-real-column";
+    render(<HoldingsIndexPage />);
+    const rows = screen.getAllByTestId("holdings-row");
+    expect(rows[0]).toHaveAttribute("data-holding", "hold-vineyard-tuscany");
+  });
+
   it("filters the table by free-text search", async () => {
     const user = userEvent.setup();
     render(<HoldingsIndexPage />);

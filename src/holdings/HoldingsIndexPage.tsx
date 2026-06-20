@@ -122,7 +122,13 @@ export function HoldingsIndexPage() {
   // kept as local UI state.
   const [search, setSearch] = useHashQueryParam("q", "");
   const [sortRaw, setSortRaw] = useHashQueryParam("sort", encodeSort(DEFAULT_SORT));
-  const sorts = React.useMemo(() => decodeSort(sortRaw), [sortRaw]);
+  const sorts = React.useMemo(() => {
+    // A malformed/empty `sort` deep-link decodes to no sort keys; fall back to
+    // the default primary sort so the table is never rendered in raw, unsorted
+    // order (the user can still re-sort by clicking a header).
+    const parsed = decodeSort(sortRaw);
+    return parsed.length > 0 ? parsed : DEFAULT_SORT;
+  }, [sortRaw]);
 
   const [assetClasses, setAssetClasses] = React.useState<ReadonlySet<AssetClass>>(
     new Set(),

@@ -296,11 +296,16 @@ describe("sortHoldingRows", () => {
     }
   });
 
-  it("sorts rows without a gain percentage to the bottom", () => {
-    const out = sortHoldingRows(rows, [{ key: "gainPct", direction: "desc" }]);
-    const noPct = out.filter((r) => r.gainPct === undefined);
-    const last = out.slice(out.length - noPct.length);
-    expect(last.every((r) => r.gainPct === undefined)).toBe(true);
+  it("sorts rows without a gain percentage to the bottom — in both directions", () => {
+    for (const direction of ["asc", "desc"] as const) {
+      const out = sortHoldingRows(rows, [{ key: "gainPct", direction }]);
+      const noPct = out.filter((r) => r.gainPct === undefined);
+      expect(noPct.length).toBeGreaterThan(0);
+      const last = out.slice(out.length - noPct.length);
+      // Missing-pct rows are pinned last regardless of direction (they must not
+      // flip to the top on an ascending sort).
+      expect(last.every((r) => r.gainPct === undefined)).toBe(true);
+    }
   });
 
   it("returns input order (copy) for an empty sort spec", () => {

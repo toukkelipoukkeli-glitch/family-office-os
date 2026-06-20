@@ -212,4 +212,104 @@ describe("AiInsightsAdapter — graceful degradation", () => {
       status: "unavailable",
     });
   });
+
+  it("degrades with missing-key when fetch throws a non-Error value", async () => {
+    const fetchImpl: FetchLike = vi.fn(async () => {
+      throw "raw string failure";
+    });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const result = await adapter.narrate(seededBoardReport);
+    expect(result.status).toBe("unavailable");
+    if (result.status === "unavailable") {
+      expect(result.reason).toBe("network-error");
+      expect(result.detail).toBe("Unknown network error.");
+    }
+  });
+
+  it("keeps the status-line detail when the error body is not JSON", async () => {
+    const fetchImpl: FetchLike = vi.fn(async () => ({
+      ok: false,
+      status: 503,
+      statusText: "Service Unavailable",
+      json: async () => {
+        throw new Error("not json");
+      },
+    }));
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const result = await adapter.narrate(seededBoardReport);
+    expect(result.status).toBe("unavailable");
+    if (result.status === "unavailable") {
+      expect(result.reason).toBe("http-error");
+      expect(result.detail).toContain("503");
+      expect(result.detail).toContain("Service Unavailable");
+    }
+  });
+});
+
+describe("AiInsightsAdapter — key resolution & request shape", () => {
+  it("treats a whitespace-only key as missing (no fetch)", async () => {
+    const fetchImpl = vi.fn();
+    const adapter = new AiInsightsAdapter({
+      apiKey: "   ",
+      fetchImpl: fetchImpl as unknown as FetchLike,
+    });
+    expect(adapter.isConfigured).toBe(false);
+    const result = await adapter.narrate(seededBoardReport);
+    expect(result.status).toBe("unavailable");
+    if (result.status === "unavailable") {
+      expect(result.reason).toBe("missing-key");
+    }
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("normalizes a trailing-slash baseUrl and interpolates the model", async () => {
+    const { fetchImpl, calls } = fetchReturning(successResponse);
+    const adapter = new AiInsightsAdapter({
+      apiKey: KEY,
+      fetchImpl,
+      baseUrl: "https://example.test/v1beta///",
+      model: "gemini-test-model",
+    });
+    await adapter.narrate(seededBoardReport);
+    expect(calls[0].url).toBe(
+      "https://example.test/v1beta/models/gemini-test-model:generateContent" +
+        `?key=${KEY}`,
+    );
+    // No doubled slash from the trailing-slash baseUrl.
+    expect(calls[0].url).not.toContain("v1beta//models");
+  });
+
+  it("does not place the API key in the request body", async () => {
+    const { fetchImpl, calls } = fetchReturning(successResponse);
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    await adapter.narrate(seededBoardReport);
+    const body = (calls[0].init as { body?: string }).body ?? "";
+    expect(body).not.toContain(KEY);
+    // The body carries the prompt, not credentials.
+    expect(body).toContain("plain-English");
+  });
+
+  it("passes an abort signal when a timeout is configured", async () => {
+    const { fetchImpl, calls } = fetchReturning(successResponse);
+    const adapter = new AiInsightsAdapter({
+      apiKey: KEY,
+      fetchImpl,
+      requestTimeoutMs: 5_000,
+    });
+    await adapter.narrate(seededBoardReport);
+    const signal = (calls[0].init as { signal?: AbortSignal }).signal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("omits the abort signal when the timeout is disabled (0)", async () => {
+    const { fetchImpl, calls } = fetchReturning(successResponse);
+    const adapter = new AiInsightsAdapter({
+      apiKey: KEY,
+      fetchImpl,
+      requestTimeoutMs: 0,
+    });
+    await adapter.narrate(seededBoardReport);
+    const signal = (calls[0].init as { signal?: AbortSignal }).signal;
+    expect(signal).toBeUndefined();
+  });
 });

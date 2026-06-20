@@ -27,20 +27,21 @@ export function formatMoneyCompact(money: Money): string {
   for (let i = 0; i < tiers.length; i++) {
     const t = tiers[i];
     if (!abs.gte(t.div)) continue;
-    const mantissa = n.div(t.div);
-    if (mantissa.abs().toDP(t.dp).gte(1000) && i > 0) {
+    const mantissa = abs.div(t.div);
+    if (mantissa.toDP(t.dp).gte(1000) && i > 0) {
       const up = tiers[i - 1];
-      compact = `${n.div(up.div).toFixed(up.dp)}${up.suffix}`;
+      compact = `${abs.div(up.div).toFixed(up.dp)}${up.suffix}`;
     } else {
       compact = `${mantissa.toFixed(t.dp)}${t.suffix}`;
     }
     break;
   }
-  if (compact === undefined) compact = n.toFixed(0);
+  if (compact === undefined) compact = abs.toFixed(0);
   compact = compact
     .replace(/\.00([BMK])$/, "$1")
     .replace(/(\.\d)0([BMK])$/, "$1$2")
     .replace(/\.0([BMK])$/, "$1");
   const symbol = money.currency === "USD" ? "$" : `${money.currency} `;
-  return `${symbol}${compact}`;
+  const sign = n.isNegative() ? "-" : "";
+  return `${sign}${symbol}${compact}`;
 }

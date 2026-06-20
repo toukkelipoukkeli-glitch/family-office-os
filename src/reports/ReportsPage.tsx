@@ -9,6 +9,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { AppShell } from "@/components/AppShell";
 import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart } from "@/components/charts/line-chart";
 import {
@@ -90,45 +91,31 @@ export function ReportsPage({ report }: ReportsPageProps) {
   }));
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-lg font-semibold tracking-tight">
-              Board report
-            </h1>
-            <span
-              className="text-sm text-muted-foreground tabular-nums"
-              data-testid="report-as-of"
-            >
-              as of {data.asOf}
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              data-testid="toggle-export"
-              onClick={() => setShowExport((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted"
-            >
-              <Download className="size-3.5" aria-hidden="true" />
-              {showExport ? "Hide export" : "Export"}
-            </button>
-            <a
-              href="#/"
-              data-testid="reports-back"
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-            >
-              Back to dashboard
-            </a>
-          </div>
-        </div>
-      </header>
-
-      <main
-        className="mx-auto max-w-6xl space-y-6 px-6 py-10"
-        data-testid="reports-page"
-      >
+    <AppShell
+      title="Board report"
+      titleAside={
+        <span
+          className="text-sm text-muted-foreground tabular-nums"
+          data-testid="report-as-of"
+        >
+          as of {data.asOf}
+        </span>
+      }
+      actions={
+        <button
+          type="button"
+          data-testid="toggle-export"
+          onClick={() => setShowExport((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-muted"
+        >
+          <Download className="size-3.5" aria-hidden="true" />
+          {showExport ? "Hide export" : "Export"}
+        </button>
+      }
+      backTestId="reports-back"
+      mainClassName="space-y-6"
+      mainTestId="reports-page"
+    >
         {/* Headline KPI strip */}
         <section
           className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7"
@@ -486,8 +473,7 @@ export function ReportsPage({ report }: ReportsPageProps) {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

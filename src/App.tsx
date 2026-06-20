@@ -2,110 +2,21 @@ import { lazy, Suspense } from "react";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
+import { matchRoute } from "@/lib/routes";
 import { useHashRoute } from "@/lib/use-hash-route";
 
 /**
- * Route-level code-splitting.
+ * Route-level code-splitting, driven by the typed route registry.
  *
- * Every page is loaded through `React.lazy`, so each route ships as its own JS
- * chunk fetched on demand instead of being bundled into one >500 kB file. The
+ * Routes live in {@link ROUTES} (see `@/lib/routes`); both this resolver and the
+ * dashboard navigation are generated from that single source of truth. Every
+ * page is loaded through `React.lazy`, so each route ships as its own JS chunk
+ * fetched on demand instead of being bundled into one >500 kB file. The
  * `<Suspense>` boundary renders {@link RouteFallback} while a chunk loads, and
  * the outer `<ErrorBoundary>` ensures a render error in any single page degrades
  * to an inline error card rather than blanking the whole app.
- *
- * `React.lazy` requires a module with a `default` export, so named-export pages
- * are adapted inline to `{ default: ... }`.
  */
 const Dashboard = lazy(() => import("@/Dashboard"));
-const HomePage = lazy(() => import("@/home/HomePage"));
-const OpsPage = lazy(() => import("@/ops/OpsPage"));
-const CapTablePage = lazy(() => import("@/captable/CapTablePage"));
-const TaxLotsPage = lazy(() => import("@/taxlots/TaxLotsPage"));
-const HarvestPage = lazy(() => import("@/harvest/HarvestPage"));
-const OrgChartPage = lazy(() => import("@/org/OrgChartPage"));
-const FeesPage = lazy(() => import("@/fees/FeesPage"));
-const LookThroughPage = lazy(() => import("@/lookthrough/LookThroughPage"));
-const ConsolidationPage = lazy(
-  () => import("@/consolidation/ConsolidationPage"),
-);
-const EstatePlannerPage = lazy(() => import("@/estate/EstatePlannerPage"));
-const GivingPage = lazy(() => import("@/giving/GivingPage"));
-const GoalFundingPage = lazy(() => import("@/goals/GoalFundingPage"));
-const TaxTimelinePage = lazy(() => import("@/taxtimeline/TaxTimelinePage"));
-const InsurancePage = lazy(() => import("@/insurance/InsurancePage"));
-const CompanyProfilePage = lazy(() => import("@/company/CompanyProfilePage"));
-const PipelinePage = lazy(() => import("@/pipeline/PipelinePage"));
-const PrivateMarketsPage = lazy(
-  () => import("@/privatemarkets/PrivateMarketsPage"),
-);
-const CashflowPage = lazy(() => import("@/cashflow/CashflowPage"));
-const LiquidityPage = lazy(() => import("@/liquidity/LiquidityPage"));
-const DataQualityPage = lazy(() => import("@/dataquality/DataQualityPage"));
-const CurrencyPage = lazy(() => import("@/currency/CurrencyPage"));
-const RiskCockpitPage = lazy(() => import("@/risk/RiskCockpitPage"));
-const ConcentrationPage = lazy(
-  () => import("@/concentration/ConcentrationPage"),
-);
-const VaultPage = lazy(() => import("@/vault/VaultPage"));
-const ReportsPage = lazy(() => import("@/reports/ReportsPage"));
-const InsightsPage = lazy(() => import("@/insights/InsightsPage"));
-const RebalancePage = lazy(() =>
-  import("@/rebalance/RebalancePage").then((m) => ({
-    default: m.RebalancePage,
-  })),
-);
-
-const AlertsPage = lazy(() =>
-  import("@/alerts/AlertsPage").then((m) => ({ default: m.AlertsPage })),
-);
-const IpsPage = lazy(() =>
-  import("@/ips/IpsPage").then((m) => ({ default: m.IpsPage })),
-);
-const AttributionPage = lazy(() =>
-  import("@/attribution/AttributionPage").then((m) => ({
-    default: m.AttributionPage,
-  })),
-);
-const BenchmarkPage = lazy(() =>
-  import("@/benchmark/BenchmarkPage").then((m) => ({
-    default: m.BenchmarkPage,
-  })),
-);
-const FactorAttributionPage = lazy(() =>
-  import("@/factors/FactorAttributionPage").then((m) => ({
-    default: m.FactorAttributionPage,
-  })),
-);
-const ChartsGalleryPage = lazy(() =>
-  import("@/components/charts/charts-gallery").then((m) => ({
-    default: m.ChartsGalleryPage,
-  })),
-);
-const OwnershipGraphPage = lazy(() =>
-  import("@/components/ownership/ownership-graph-page").then((m) => ({
-    default: m.OwnershipGraphPage,
-  })),
-);
-const ScenarioCockpit = lazy(() =>
-  import("@/scenario/ScenarioCockpitPage").then((m) => ({
-    default: m.ScenarioCockpit,
-  })),
-);
-const StressTestPage = lazy(() =>
-  import("@/stress/StressTestPage").then((m) => ({
-    default: m.StressTestPage,
-  })),
-);
-const RelationshipGraphPage = lazy(() =>
-  import("@/relationship/RelationshipGraphPage").then((m) => ({
-    default: m.RelationshipGraphPage,
-  })),
-);
-const ManagerScorecardPage = lazy(() =>
-  import("@/managers/ManagerScorecardPage").then((m) => ({
-    default: m.ManagerScorecardPage,
-  })),
-);
 
 /**
  * A route that always throws on render. It exists only to prove the app-level
@@ -120,47 +31,14 @@ function CrashTestRoute(): never {
 /** Resolve the current hash path to a page element. */
 function routeElement(path: string) {
   if (path === "/crash-test") return <CrashTestRoute />;
-  if (path === "/home") return <HomePage />;
-  if (path === "/ops") return <OpsPage />;
-  if (path === "/captable") return <CapTablePage />;
-  if (path === "/taxlots") return <TaxLotsPage />;
-  if (path === "/harvest") return <HarvestPage />;
-  if (path === "/alerts") return <AlertsPage />;
-  if (path === "/ips") return <IpsPage />;
-  if (path === "/rebalance") return <RebalancePage />;
-  if (path === "/org") return <OrgChartPage />;
-  if (path === "/charts") return <ChartsGalleryPage />;
-  if (path === "/scenarios") return <ScenarioCockpit />;
-  if (path === "/stress") return <StressTestPage />;
-  if (path === "/attribution") return <AttributionPage />;
-  if (path === "/factors") return <FactorAttributionPage />;
-  if (path === "/benchmark") return <BenchmarkPage />;
-  if (path === "/fees") return <FeesPage />;
-  if (path === "/ownership") return <OwnershipGraphPage />;
-  if (path === "/lookthrough") return <LookThroughPage />;
-  if (path === "/consolidation") return <ConsolidationPage />;
-  if (path === "/risk") return <RiskCockpitPage />;
-  if (path === "/concentration") return <ConcentrationPage />;
-  if (path === "/privatemarkets") return <PrivateMarketsPage />;
-  if (path === "/cashflow") return <CashflowPage />;
-  if (path === "/liquidity") return <LiquidityPage />;
-  if (path === "/data-quality") return <DataQualityPage />;
-  if (path === "/currency") return <CurrencyPage />;
-  if (path === "/reports") return <ReportsPage />;
-  if (path === "/insights") return <InsightsPage />;
-  if (path === "/estate") return <EstatePlannerPage />;
-  if (path === "/giving") return <GivingPage />;
-  if (path === "/goals") return <GoalFundingPage />;
-  if (path === "/tax-timeline") return <TaxTimelinePage />;
-  if (path === "/insurance") return <InsurancePage />;
-  if (path === "/vault") return <VaultPage />;
-  if (path === "/pipeline" || path.startsWith("/pipeline/")) {
-    return <PipelinePage path={path} />;
-  }
-  if (path === "/companies") return <CompanyProfilePage />;
-  if (path === "/relationships") return <RelationshipGraphPage />;
-  if (path === "/managers") return <ManagerScorecardPage />;
-  return <Dashboard />;
+
+  const route = matchRoute(path);
+  if (!route) return <Dashboard />;
+
+  // Forward the current path to prefix-matched routes (e.g. the pipeline board
+  // drilling into `/pipeline/<id>`); exact routes take no props.
+  const Page = route.component;
+  return route.matchPrefix ? <Page path={path} /> : <Page />;
 }
 
 function App() {

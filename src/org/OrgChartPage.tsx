@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Building2, Network } from "lucide-react";
 
+import { AppShell } from "@/components/AppShell";
 import {
   Card,
   CardContent,
@@ -95,24 +96,17 @@ export function OrgChartPage() {
   const nav = selected ? formatNav(selected.nav) : null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Network className="size-5" aria-hidden="true" />
-            Org hierarchy
-          </h1>
-          <a
-            href="#/"
-            data-testid="org-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl space-y-6 px-6 py-10">
+    <AppShell
+      title={
+        <>
+          <Network className="size-5" aria-hidden="true" />
+          Org hierarchy
+        </>
+      }
+      titleClassName="flex items-center gap-2"
+      backTestId="org-back"
+      mainClassName="space-y-6"
+    >
         <Card>
           <CardHeader>
             <CardTitle>Legal-entity structure</CardTitle>
@@ -216,8 +210,7 @@ export function OrgChartPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

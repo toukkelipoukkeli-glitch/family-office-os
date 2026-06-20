@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, ScrollText, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { AppShell } from "@/components/AppShell";
 import {
   Card,
   CardContent,
@@ -27,26 +28,13 @@ export function IpsPage() {
   const visibleRows = filter === "breaches" ? vm.breaches : vm.rows;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-          <h1 className="text-lg font-semibold tracking-tight">
-            IPS compliance
-          </h1>
-          <a
-            href="#/"
-            data-testid="ips-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
-        </div>
-      </header>
-
-      <main
-        className="mx-auto max-w-5xl space-y-6 px-6 py-10"
-        data-testid="ips-page"
-      >
+    <AppShell
+      title="IPS compliance"
+      width="5xl"
+      backTestId="ips-back"
+      mainClassName="space-y-6"
+      mainTestId="ips-page"
+    >
         <section className="grid gap-4 sm:grid-cols-3" data-testid="ips-summary">
           <SummaryCard
             testid="summary-critical"
@@ -144,8 +132,7 @@ export function IpsPage() {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

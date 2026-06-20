@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { AppShell } from "@/components/AppShell";
 import { BarChart, type BarDatum } from "@/components/charts/bar-chart";
 import { DonutChart, type DonutDatum } from "@/components/charts/donut-chart";
 import { seriesColor } from "@/components/charts/palette";
@@ -372,23 +373,7 @@ export function LookThroughView({
  */
 export function LookThroughPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
-          <h1 className="text-lg font-semibold tracking-tight">
-            Cross-entity look-through
-          </h1>
-          <a
-            href="#/"
-            data-testid="lookthrough-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-6 py-10">
+    <AppShell title="Cross-entity look-through" width="5xl" backTestId="lookthrough-back">
         <p className="mb-8 text-sm text-muted-foreground">
           Consolidate the family structure and roll up each entity's holdings by
           the effective ownership stake — the family's true underlying exposure,
@@ -396,8 +381,7 @@ export function LookThroughPage() {
           deterministic fixtures.
         </p>
         <LookThroughView />
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

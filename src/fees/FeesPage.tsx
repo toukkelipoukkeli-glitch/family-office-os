@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Coins, Percent, TrendingDown, Wallet } from "lucide-react";
 
+import { AppShell } from "@/components/AppShell";
 import { BarChart } from "@/components/charts/bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { LineChart } from "@/components/charts/line-chart";
@@ -106,26 +107,12 @@ export function FeesPage({ model }: FeesPageProps) {
   const netSeries = drag.map((p) => p.net);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <h1 className="text-lg font-semibold tracking-tight">
-            Fees &amp; total cost of ownership
-          </h1>
-          <a
-            href="#/"
-            data-testid="fees-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
-        </div>
-      </header>
-
-      <main
-        className="mx-auto max-w-6xl space-y-6 px-6 py-10"
-        data-testid="fees-page"
-      >
+    <AppShell
+      title={<>Fees &amp; total cost of ownership</>}
+      backTestId="fees-back"
+      mainClassName="space-y-6"
+      mainTestId="fees-page"
+    >
         {/* KPIs */}
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Kpi
@@ -349,8 +336,7 @@ export function FeesPage({ model }: FeesPageProps) {
             </div>
           </CardContent>
         </Card>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

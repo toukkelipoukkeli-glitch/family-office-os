@@ -89,6 +89,55 @@ describe("buildCommands", () => {
     const recents = commands.filter((c) => c.id.startsWith("recent:"));
     expect(recents.map((c) => c.id)).toEqual(["recent:/fees"]);
   });
+
+  // --- Adversarial / edge-case coverage (independent tester) -----------------
+
+  it("normalizes a lowercase / padded currentCurrency before matching (current)", () => {
+    // The shell could hand us an un-normalized value; "(current)" must still
+    // attach to exactly the matching currency and nothing else.
+    const commands = buildCommands({ currentCurrency: "  eur " });
+    const eur = commands.find((c) => c.id === "currency:EUR");
+    const usd = commands.find((c) => c.id === "currency:USD");
+    expect(eur?.label).toContain("(current)");
+    expect(usd?.label).not.toContain("(current)");
+  });
+
+  it("marks no currency current for an unknown currentCurrency", () => {
+    const commands = buildCommands({ currentCurrency: "JPY" });
+    const marked = commands.filter(
+      (c) => c.kind === "currency" && c.label.includes("(current)"),
+    );
+    expect(marked).toHaveLength(0);
+  });
+
+  it("emits globally unique command ids across every section", () => {
+    // Recents, actions, currencies, routes and deep links must never collide on
+    // id (it is the React key and the e2e data-testid suffix).
+    const commands = buildCommands({ recentPaths: ["/fees", "/risk"] });
+    const ids = commands.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("every navigation command exposes a usable hash href; non-nav ones do not", () => {
+    const commands = buildCommands({ recentPaths: ["/fees"] });
+    for (const c of commands) {
+      const href = commandHref(c);
+      if (c.kind === "navigation") {
+        expect(href).toBeDefined();
+        expect(href!.startsWith("#/")).toBe(true);
+      } else {
+        expect(href).toBeUndefined();
+      }
+    }
+  });
+
+  it("a recent route still also appears as its normal route command (no removal)", () => {
+    // Floating a page to the top must not delete its registry entry, so the
+    // page is reachable both as 'Recent' and in its group.
+    const commands = buildCommands({ recentPaths: ["/fees"] });
+    expect(commands.some((c) => c.id === "recent:/fees")).toBe(true);
+    expect(commands.some((c) => c.id === "route:/fees")).toBe(true);
+  });
 });
 
 describe("commandHref", () => {

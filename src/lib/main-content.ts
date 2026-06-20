@@ -24,22 +24,32 @@ export function resolveMainContent(): HTMLElement | null {
  * route `path` changes (after the new page has mounted).
  *
  * Pages are code-split behind Suspense, so the new `<main>` may not be in the
- * DOM on the first effect tick; this retries on a bounded number of animation
- * frames until it appears, keeping the work offline-safe and finite.
+ * DOM on the first effect tick. We tag it immediately if present; otherwise we
+ * watch the DOM with a `MutationObserver` until it mounts — so an arbitrarily
+ * slow chunk load still gets anchored, without polling forever. The observer is
+ * disconnected as soon as the `<main>` is tagged or the route changes.
  */
 export function useMainContentAnchor(path: string) {
   useEffect(() => {
-    let raf = 0;
-    let attempts = 0;
-    const tag = () => {
+    const tag = (): boolean => {
       const main = document.querySelector("main");
       if (main) {
         if (!main.id) main.id = MAIN_CONTENT_ID;
-        return;
+        return true;
       }
-      if (attempts++ < 30) raf = requestAnimationFrame(tag);
+      return false;
     };
-    tag();
-    return () => cancelAnimationFrame(raf);
+
+    // Fast path: the page's <main> is already in the DOM.
+    if (tag()) return;
+
+    // Slow path: a code-split route hasn't mounted its <main> yet. Watch for it.
+    // `MutationObserver` is a no-op in non-DOM environments; guard defensively.
+    if (typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(() => {
+      if (tag()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [path]);
 }

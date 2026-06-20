@@ -183,6 +183,25 @@ describe("ChartFigure", () => {
     expect(within(dataRow).getByRole("cell", { name: "99" })).toBeTruthy();
   });
 
+  it("gives the toggle a per-chart accessible name so SR quick-nav can tell them apart", () => {
+    render(
+      <ChartFigure
+        testId="fig"
+        caption="Allocation by asset class."
+        columns={COLUMNS}
+        rows={ROWS}
+      >
+        <Chart />
+      </ChartFigure>,
+    );
+    // Accessible name is derived from the caption + state, not just "Show data table".
+    expect(
+      screen.getByRole("button", {
+        name: "Show data table, Allocation by asset class.",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("each toggle instance controls its own table (unique ids, no collision)", () => {
     render(
       <>

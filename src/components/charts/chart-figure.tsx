@@ -38,6 +38,14 @@ export interface ChartFigureProps {
   tableMode?: "toggle" | "visually-hidden";
   /** Visually hide the caption (chart already has a visible title elsewhere). */
   hideCaption?: boolean;
+  /**
+   * Short label identifying *which* chart this table belongs to, used to give the
+   * toggle button a unique accessible name (e.g. "Show data table, Allocation").
+   * Without it, every "Show data table" button on a page with multiple charts is
+   * indistinguishable in a screen-reader's button/quick-nav list. Defaults to the
+   * `caption` when that is a plain string.
+   */
+  tableLabel?: string;
   /** `data-testid` for the wrapping `<figure>`. */
   testId?: string;
   /** Extra classes for the `<figure>`. */
@@ -63,6 +71,7 @@ export function ChartFigure({
   children,
   tableMode = "toggle",
   hideCaption = false,
+  tableLabel,
   testId,
   className,
 }: ChartFigureProps) {
@@ -71,6 +80,14 @@ export function ChartFigure({
   const captionId = React.useId();
   const isToggle = tableMode === "toggle";
   const tableVisible = !isToggle || open;
+
+  // Derive a per-chart accessible name for the toggle so multiple "Show data
+  // table" buttons on one page are distinguishable. Falls back to a string
+  // caption; if neither is available the visible text is used as-is.
+  const label = tableLabel ?? (typeof caption === "string" ? caption : undefined);
+  const toggleAccessibleName = label
+    ? `${open ? "Hide" : "Show"} data table, ${label}`
+    : undefined;
 
   const table = (
     <table
@@ -144,6 +161,7 @@ export function ChartFigure({
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-controls={tableId}
+            aria-label={toggleAccessibleName}
             data-testid={testId ? `${testId}-table-toggle` : undefined}
             className="mt-2 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground underline-offset-4 hover:bg-muted hover:underline"
           >

@@ -10,6 +10,10 @@ const EVIDENCE_DIR = join(here, "evidence", "m12-chart-a11y");
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
 
+// Make the evidence directory exist up-front so every screenshot test can run
+// independently (any order, or in isolation) without a missing-directory error.
+if (!existsSync(EVIDENCE_DIR)) mkdirSync(EVIDENCE_DIR, { recursive: true });
+
 /**
  * Accessibility gate for the chart-a11y + route-announcer pass:
  *   - every page exposes a skip-to-content link as the first focusable element;
@@ -177,7 +181,6 @@ test.describe("accessibility", () => {
   test("captures desktop evidence (1280x800) with the data table open", async ({
     page,
   }) => {
-    if (!existsSync(EVIDENCE_DIR)) mkdirSync(EVIDENCE_DIR, { recursive: true });
     await page.setViewportSize(DESKTOP);
     await page.goto("/#/charts");
     await expect(page.getByTestId("charts-gallery")).toBeVisible();

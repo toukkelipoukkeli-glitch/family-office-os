@@ -237,6 +237,43 @@ describe("projectCashflow — minBalance / shortfall edge cases", () => {
     ).toThrow(/non-finite/);
   });
 
+  it("rejects a malformed flow direction (fail fast, no silent mis-signing)", () => {
+    expect(() =>
+      projectCashflow({
+        openingBalance: "0",
+        horizonMonths: 1,
+        currency: "USD",
+        recurring: [
+          {
+            id: "bad",
+            label: "Bad",
+            category: "x",
+            direction: "credit" as never,
+            amount: "1",
+            frequency: "monthly",
+          },
+        ],
+      }),
+    ).toThrow(/direction must be/);
+    expect(() =>
+      projectCashflow({
+        openingBalance: "0",
+        horizonMonths: 1,
+        currency: "USD",
+        oneOff: [
+          {
+            id: "bad",
+            label: "Bad",
+            category: "x",
+            direction: "debit" as never,
+            amount: "1",
+            month: 0,
+          },
+        ],
+      }),
+    ).toThrow(/direction must be/);
+  });
+
   it("rejects a negative one-off month", () => {
     expect(() =>
       projectCashflow({
@@ -307,6 +344,39 @@ describe("peScheduleFlows — horizon boundary", () => {
     expect(flows).toHaveLength(1);
     expect(flows[0].month).toBe(11);
     expect(flows[0].label).toBe("last");
+  });
+
+  it("rejects a malformed startPeriod and ledger date (no NaN month leaks)", () => {
+    const c: Commitment = {
+      ...base,
+      ledger: [{ date: "2024-09-15", kind: "call", amount: "1" }],
+    };
+    expect(() =>
+      peScheduleFlows(c, { startPeriod: "2024/07", horizonMonths: 6 }),
+    ).toThrow(/startPeriod must be ISO/);
+    const bad: Commitment = {
+      ...base,
+      ledger: [{ date: "not-a-date", kind: "call", amount: "1" }],
+    };
+    expect(() =>
+      peScheduleFlows(bad, { startPeriod: "2024-07", horizonMonths: 6 }),
+    ).toThrow(/ledger date must be ISO/);
+  });
+
+  it("rejects an unknown ledger kind inside the horizon", () => {
+    const c: Commitment = {
+      ...base,
+      ledger: [
+        {
+          date: "2024-09-15",
+          kind: "transfer" as never,
+          amount: "1",
+        },
+      ],
+    };
+    expect(() =>
+      peScheduleFlows(c, { startPeriod: "2024-07", horizonMonths: 6 }),
+    ).toThrow(/unknown ledger kind/);
   });
 
   it("keeps an entry exactly on month 0", () => {

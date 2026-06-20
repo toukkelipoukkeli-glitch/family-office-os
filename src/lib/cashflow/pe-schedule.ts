@@ -15,8 +15,21 @@ import type { OneOffFlow } from "./engine";
  * Pure, deterministic, offline, READ-ONLY.
  */
 
+const ISO_MONTH = /^\d{4}-\d{2}$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 /** Number of whole months from `startPeriod` (`YYYY-MM`) to a `YYYY-MM-DD` date. */
 function monthOffset(startPeriod: string, isoDate: string): number {
+  if (!ISO_MONTH.test(startPeriod)) {
+    throw new Error(
+      `cashflow: startPeriod must be ISO YYYY-MM, got ${JSON.stringify(startPeriod)}`,
+    );
+  }
+  if (!ISO_DATE.test(isoDate)) {
+    throw new Error(
+      `cashflow: ledger date must be ISO YYYY-MM-DD, got ${JSON.stringify(isoDate)}`,
+    );
+  }
   const [sy, sm] = startPeriod.split("-").map(Number);
   const [dy, dm] = isoDate.split("-").map(Number);
   return (dy * 12 + (dm - 1)) - (sy * 12 + (sm - 1));
@@ -44,6 +57,11 @@ export function peScheduleFlows(
   commitment.ledger.forEach((entry: LedgerEntry, i) => {
     const month = monthOffset(input.startPeriod, entry.date);
     if (month < 0 || month >= input.horizonMonths) return;
+    if (entry.kind !== "call" && entry.kind !== "distribution") {
+      throw new Error(
+        `cashflow: unknown ledger kind ${JSON.stringify(entry.kind)}`,
+      );
+    }
     const isCall = entry.kind === "call";
     flows.push({
       id: `${commitment.id}-${entry.kind}-${i}`,

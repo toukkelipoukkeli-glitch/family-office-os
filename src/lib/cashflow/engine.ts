@@ -22,6 +22,15 @@ import { Decimal } from "decimal.js";
 
 const ZERO = new Decimal(0);
 
+/** Fail fast on a malformed flow direction rather than silently mis-signing it. */
+function assertDirection(direction: FlowDirection, context: string): void {
+  if (direction !== "inflow" && direction !== "outflow") {
+    throw new Error(
+      `cashflow: ${context} direction must be "inflow" or "outflow", got ${JSON.stringify(direction)}`,
+    );
+  }
+}
+
 /** How often a recurring flow repeats. */
 export type Frequency = "monthly" | "quarterly" | "annual";
 
@@ -240,6 +249,7 @@ export function projectCashflow(input: CashflowInput): CashflowProjection {
         `cashflow: unknown frequency ${JSON.stringify(flow.frequency)}`,
       );
     }
+    assertDirection(flow.direction, `recurring (${flow.id})`);
     if (flow.startMonth !== undefined) {
       assertNonNegativeInteger(
         flow.startMonth,
@@ -266,6 +276,7 @@ export function projectCashflow(input: CashflowInput): CashflowProjection {
       );
     }
     assertNonNegativeInteger(flow.month, `oneOff month (${flow.id})`);
+    assertDirection(flow.direction, `oneOff (${flow.id})`);
     return { flow, amount };
   });
 

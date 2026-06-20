@@ -19,23 +19,21 @@ import {
 import { buildCashflowModel, type CashflowModel } from "@/lib/cashflow";
 import { cn } from "@/lib/utils";
 
-const CURRENCY = "USD";
-
-/** Compact currency, e.g. `$4.0M`. */
-function compact(value: number): string {
+/** Compact currency, e.g. `$4.0M`, in the model's currency. */
+function compact(value: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: CURRENCY,
+    currency,
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
 }
 
-/** Full currency with no fractional cents, e.g. `$4,000,000`. */
-function whole(value: number): string {
+/** Full currency with no fractional cents, e.g. `$4,000,000`, in the model's currency. */
+function whole(value: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: CURRENCY,
+    currency,
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -158,21 +156,21 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-opening"
             label="Opening"
-            value={compact(kpis.openingBalance)}
+            value={compact(kpis.openingBalance, currency)}
             hint="cash on hand today"
             icon={<Wallet className="size-3.5" aria-hidden="true" />}
           />
           <Kpi
             testId="kpi-ending"
             label="Ending"
-            value={compact(kpis.endingBalance)}
+            value={compact(kpis.endingBalance, currency)}
             hint="end of horizon"
             tone={kpis.endingBalance >= kpis.openingBalance ? "up" : "down"}
           />
           <Kpi
             testId="kpi-min"
             label="Min balance"
-            value={compact(kpis.minBalance)}
+            value={compact(kpis.minBalance, currency)}
             hint={monthLabel(kpis.minBalancePeriod)}
             tone={kpis.minBalance < 0 ? "warn" : "default"}
             icon={<TrendingDown className="size-3.5" aria-hidden="true" />}
@@ -180,7 +178,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-inflows"
             label="Total inflows"
-            value={compact(kpis.totalInflows)}
+            value={compact(kpis.totalInflows, currency)}
             hint="over the horizon"
             tone="up"
             icon={<ArrowUpRight className="size-3.5" aria-hidden="true" />}
@@ -188,7 +186,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-outflows"
             label="Total outflows"
-            value={compact(kpis.totalOutflows)}
+            value={compact(kpis.totalOutflows, currency)}
             hint="over the horizon"
             tone="down"
             icon={<ArrowDownRight className="size-3.5" aria-hidden="true" />}
@@ -196,7 +194,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <Kpi
             testId="kpi-net"
             label="Net flow"
-            value={compact(kpis.netFlow)}
+            value={compact(kpis.netFlow, currency)}
             hint="inflows − outflows"
             tone={kpis.netFlow >= 0 ? "up" : "down"}
           />
@@ -247,7 +245,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
                     kpis.minBalance < 0 && "text-[var(--color-chart-down)]",
                   )}
                 >
-                  {compact(kpis.minBalance)}
+                  {compact(kpis.minBalance, currency)}
                 </span>{" "}
                 in {monthLabel(kpis.minBalancePeriod)}
               </span>
@@ -314,13 +312,13 @@ export function CashflowPage({ model }: CashflowPageProps) {
                         {monthLabel(m.period)}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums">
-                        {whole(m.openingBalance)}
+                        {whole(m.openingBalance, currency)}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-[var(--color-chart-up)]">
-                        {m.inflows > 0 ? whole(m.inflows) : "—"}
+                        {m.inflows > 0 ? whole(m.inflows, currency) : "—"}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-[var(--color-chart-down)]">
-                        {m.outflows > 0 ? whole(m.outflows) : "—"}
+                        {m.outflows > 0 ? whole(m.outflows, currency) : "—"}
                       </td>
                       <td
                         className={cn(
@@ -330,7 +328,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
                             : "text-[var(--color-chart-up)]",
                         )}
                       >
-                        {whole(m.netFlow)}
+                        {whole(m.netFlow, currency)}
                       </td>
                       <td
                         className={cn(
@@ -339,7 +337,7 @@ export function CashflowPage({ model }: CashflowPageProps) {
                             "text-[var(--color-chart-down)]",
                         )}
                       >
-                        {whole(m.closingBalance)}
+                        {whole(m.closingBalance, currency)}
                       </td>
                     </tr>
                   ))}

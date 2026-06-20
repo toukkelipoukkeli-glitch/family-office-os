@@ -1,3 +1,4 @@
+import { AlertsPage } from "@/alerts/AlertsPage";
 import Dashboard from "@/Dashboard";
 import { AttributionPage } from "@/attribution/AttributionPage";
 import CapTablePage from "@/captable/CapTablePage";
@@ -26,6 +27,10 @@ function App() {
 
   if (path === "/taxlots") {
     return <TaxLotsPage />;
+  }
+
+  if (path === "/alerts") {
+    return <AlertsPage />;
   }
 
   if (path === "/org") {

@@ -1,10 +1,25 @@
 {
+  "updatedAt": "2026-06-20",
   "generation": 1,
-  "updatedAt": "2026-06-19",
-  "phase": "feature-build",
-  "merged": ["scaffold (PR #2)"],
-  "active": [],
-  "openPRs": [],
-  "blocked": [],
-  "note": "Scaffold merged to main. The unified build workflow builds m0-m6 (dependency waves, full-cycle build+review+merge per unit), then QA + ideation, then relaunches for the next generation."
+  "phase": "gen-1 complete; launching gen-2",
+  "gen1": {
+    "status": "complete",
+    "merged": "35/35",
+    "verified": "typecheck clean; 1552 unit tests pass; build green; e2e 58 pass / 3 skipped; all 10 dashboard pages render (desktop 1280x800 + mobile 390x844, vision-checked); read-only + no secret leaks verified",
+    "qaHealthy": true,
+    "liveSweep": "ran via Claude-in-Chrome (desktop) + Playwright 390x844 (mobile); Computer Use itself gated behind unattended request_access",
+    "knownGaps": [
+      "/ops cockpit shows stale static fixture data, not wired to live harness/state",
+      "limited pixel visual-regression baselines on chart pages",
+      "Convex live-data path not integration-tested (offline-only)",
+      "3 skipped e2e tests not investigated",
+      "no automated accessibility / keyboard-nav checks"
+    ]
+  },
+  "gen2": {
+    "status": "launching",
+    "units": ["m7-tax-lots", "m7-harvest", "m7-attribution", "m7-fees", "m7-cashflow", "m7-alerts", "m7-ops-live", "m8-lookthrough", "m8-estate", "m8-reporting"],
+    "note": "Deepen money-management decision surfaces (tax lots, harvesting, attribution, fees, cashflow runway, alerts), cross-entity look-through + estate + board reporting; m7-ops-live fixes the stale /ops gap."
+  },
+  "blocked": []
 }

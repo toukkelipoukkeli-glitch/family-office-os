@@ -64,6 +64,13 @@ export function Dashboard() {
               Tax lots
             </a>
             <a
+              href="#/harvest"
+              data-testid="nav-harvest"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Harvest
+            </a>
+            <a
               href="#/ownership"
               data-testid="nav-ownership"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

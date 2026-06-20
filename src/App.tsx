@@ -6,6 +6,7 @@ import CompanyProfilePage from "@/company/CompanyProfilePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
 import { OwnershipGraphPage } from "@/components/ownership/ownership-graph-page";
 import FeesPage from "@/fees/FeesPage";
+import HarvestPage from "@/harvest/HarvestPage";
 import { useHashRoute } from "@/lib/use-hash-route";
 import LookThroughPage from "@/lookthrough/LookThroughPage";
 import OpsPage from "@/ops/OpsPage";
@@ -28,6 +29,10 @@ function App() {
 
   if (path === "/taxlots") {
     return <TaxLotsPage />;
+  }
+
+  if (path === "/harvest") {
+    return <HarvestPage />;
   }
 
   if (path === "/alerts") {

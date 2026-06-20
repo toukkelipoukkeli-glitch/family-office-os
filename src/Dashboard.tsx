@@ -99,6 +99,13 @@ export function Dashboard() {
               Look-through
             </a>
             <a
+              href="#/privatemarkets"
+              data-testid="nav-privatemarkets"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Private markets
+            </a>
+            <a
               href="#/org"
               data-testid="nav-org"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

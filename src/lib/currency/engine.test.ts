@@ -218,6 +218,59 @@ describe("applyHedge", () => {
     expect(s.totalAnnualCost.amount.isZero()).toBe(true);
   });
 
+  it("throws on a non-finite hedge ratio (NaN / Infinity)", () => {
+    const model = buildExposure(seededExposureInput);
+    expect(() => applyHedge(model, { defaultRatio: Number.NaN })).toThrow(
+      /finite/,
+    );
+    expect(() =>
+      applyHedge(model, { defaultRatio: Number.POSITIVE_INFINITY }),
+    ).toThrow(/finite/);
+    expect(() =>
+      applyHedge(model, { defaultRatio: 0, overrides: { USD: Number.NaN } }),
+    ).toThrow(/finite/);
+  });
+
+  it("keeps hedged+residual reconciling exactly at an awkward fractional ratio", () => {
+    // 1/3 would drift under floating point; Decimal must keep the split exact.
+    const model = buildExposure(seededExposureInput);
+    const s = applyHedge(model, { defaultRatio: 1 / 3 });
+    for (const c of s.currencies) {
+      expect(c.hedgedBase.amount.plus(c.residualBase.amount).toFixed()).toBe(
+        c.grossBase.amount.toFixed(),
+      );
+    }
+    // Aggregate hedged + residual still reconciles to gross foreign exactly.
+    expect(
+      s.hedgedForeignBase.amount.plus(s.residualForeignBase.amount).toFixed(),
+    ).toBe(s.grossForeignBase.amount.toFixed());
+  });
+
+  it("computes an exact effective ratio under mixed per-currency overrides", () => {
+    // USD fully hedged, everything else unhedged: effective = 6.5M / 11.8M.
+    const model = buildExposure(seededExposureInput);
+    const s = applyHedge(model, {
+      defaultRatio: 0,
+      overrides: { USD: 1 },
+    });
+    expect(s.hedgedForeignBase.amount.toFixed()).toBe("6500000");
+    expect(s.effectiveHedgeRatio.toFixed()).toBe(
+      new Decimal("6500000").div("11800000").toFixed(),
+    );
+    // Only the hedged USD bucket contributes cost: 6.5M * -0.0125.
+    expect(s.totalAnnualCost.amount.toFixed()).toBe("-81250");
+  });
+
+  it("treats an override for the base currency as inert (base is never hedged)", () => {
+    const model = buildExposure(seededExposureInput);
+    const s = applyHedge(model, {
+      defaultRatio: 0,
+      overrides: { EUR: 1 },
+    });
+    expect(s.currencies.some((c) => c.currency === "EUR")).toBe(false);
+    expect(s.hedgedForeignBase.amount.isZero()).toBe(true);
+  });
+
   it("uses a zero cost rate for currencies without a hedge assumption", () => {
     // Drop the SEK assumption; its hedge should then cost nothing.
     const input: ExposureInput = {

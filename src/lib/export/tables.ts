@@ -13,6 +13,8 @@
  * render boundary"). Everything here is pure, deterministic and offline.
  */
 
+import { Decimal } from "decimal.js";
+
 import type { CsvCell, CsvTable } from "./csv";
 import { toCsv } from "./csv";
 import { toJson } from "./json";
@@ -22,6 +24,7 @@ import type { NetWorthDashboardModel } from "@/lib/networth";
 import type { ScorecardView } from "@/lib/managers";
 import type { TaxTimeline } from "@/lib/taxtimeline";
 import type { BoardReport } from "@/lib/reporting";
+import type { HoldingsView } from "@/lib/holdings";
 import { assetClassLabel } from "@/lib/model/asset-class";
 
 /** A named export comprising a CSV table and a JSON-serializable object. */
@@ -80,6 +83,94 @@ export function netWorthExport(model: NetWorthDashboardModel): ExportDataset {
   };
 
   return { name: slugifyFilename(`net-worth-${asOf}`), table, json };
+}
+
+/* ------------------------------------------------------------------------- */
+/* Holdings index                                                            */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Holdings index view → one CSV row per visible holding + full structured JSON.
+ *
+ * The CSV mirrors exactly what the table shows — the rows after the active
+ * search / column filter / sort — so an export reproduces the analyst's current
+ * view. Money crosses the boundary as an exact decimal string (never a float):
+ * the JSON serializes `valueMoney/costBasisMoney/gainMoney` via `Money.amount`,
+ * and the CSV uses the same `.toFixed()` strings. Gain ratios and weights are
+ * unitless numbers.
+ */
+export function holdingsExport(view: HoldingsView): ExportDataset {
+  const rows: CsvCell[][] = view.rows.map((r) => [
+    r.name,
+    r.symbol,
+    r.assetClass,
+    r.assetClassLabel,
+    r.currency,
+    r.tags.join("|"),
+    r.lotCount,
+    // Money stays an exact decimal string even in CSV — never floating-point.
+    r.valueMoney.amount.toFixed(),
+    r.costBasisMoney.amount.toFixed(),
+    r.gainMoney.amount.toFixed(),
+    r.gainPct ?? null,
+    r.weight,
+    r.confidence ?? null,
+    r.valuationSource ?? null,
+    r.valuationAsOf ?? null,
+  ]);
+
+  const table: CsvTable = {
+    columns: [
+      "name",
+      "symbol",
+      "assetClass",
+      "assetClassLabel",
+      "currency",
+      "tags",
+      "lots",
+      `value (${view.baseCurrency})`,
+      `costBasis (${view.baseCurrency})`,
+      `gain (${view.baseCurrency})`,
+      "gainPct",
+      "weight",
+      "confidence",
+      "valuationSource",
+      "valuationAsOf",
+    ],
+    rows,
+  };
+
+  const json = {
+    baseCurrency: view.baseCurrency,
+    summary: {
+      count: view.summary.count,
+      totalValue: new Decimal(view.summary.totalValue).toFixed(),
+      totalCost: new Decimal(view.summary.totalCost).toFixed(),
+      totalGain: new Decimal(view.summary.totalGain).toFixed(),
+      totalWeight: view.summary.totalWeight,
+    },
+    holdings: view.rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      symbol: r.symbol,
+      assetClass: r.assetClass,
+      assetClassLabel: r.assetClassLabel,
+      currency: r.currency,
+      tags: [...r.tags],
+      lots: r.lotCount,
+      value: r.valueMoney.amount.toFixed(),
+      costBasis: r.costBasisMoney.amount.toFixed(),
+      gain: r.gainMoney.amount.toFixed(),
+      gainPct: r.gainPct ?? null,
+      weight: r.weight,
+      confidence: r.confidence ?? null,
+      valuationSource: r.valuationSource ?? null,
+      valuationAsOf: r.valuationAsOf ?? null,
+      unvalued: r.unvalued,
+    })),
+  };
+
+  return { name: "holdings-index", table, json };
 }
 
 /* ------------------------------------------------------------------------- */

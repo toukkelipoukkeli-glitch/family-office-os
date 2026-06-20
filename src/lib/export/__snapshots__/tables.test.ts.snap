@@ -305,6 +305,353 @@ exports[`board report export > produces byte-stable JSON 1`] = `
 "
 `;
 
+exports[`holdings export > produces byte-stable CSV 1`] = `
+"name,symbol,assetClass,assetClassLabel,currency,tags,lots,value (USD),costBasis (USD),gain (USD),gainPct,weight,confidence,valuationSource,valuationAsOf
+"Tuscan Vineyard Estate (8 ha, DOCG)",,vineyard,Vineyards,EUR,real-asset|operating|agriculture,1,2970000,2268000,702000,0.30952380952380953,0.4113195699619273,medium,model,2026-05-01T00:00:00Z
+Helvetia Growth Fund III (LP interest),,pe,Private equity,USD,alternative|illiquid|fund,1,1340000,1000000,340000,0.34,0.18557852651480897,low,manual,2026-03-31T00:00:00Z
+Nordic Forest Parcel (120 ha),,forest,Forest land,EUR,real-asset|land|timber,1,691200,544320,146880,0.2698412698412698,0.09572528173659399,medium,appraisal,2026-03-01T00:00:00Z
+Porsche 911 (993) Carrera RS 1995,,car,Classic cars,EUR,collectible|automobile,1,604800,345600,259200,0.75,0.08375962151951974,medium,appraisal,2026-02-20T00:00:00Z
+"David Hockney — Pool Study (lithograph, ed. 42/75)",,art,Art,GBP,collectible|art,1,304800,228600,76200,0.3333333333333333,0.04221219021023416,low,appraisal,2025-11-15T00:00:00Z
+Bitcoin,BTC,crypto,Crypto,USD,digital|volatile,2,303750,155703.13,148046.87,0.9508278349959952,0.042066774200651656,high,market,2026-06-18T16:00:00Z
+USD Operating Cash,,cash,Cash,USD,liquidity,0,250000,0,250000,,0.034622859424404656,high,manual,2026-06-18T00:00:00Z
+German Bund 2.3% 2032,DE0001102606,bond,Bonds,EUR,fixed-income|eu|sovereign,1,217512,212760,4752,0.02233502538071066,0.030123549596484424,high,market,2026-06-17T17:30:00+02:00
+Vanguard FTSE All-World UCITS ETF,VWRL,etf,ETFs,USD,etf|global|core,2,189000,151560,37440,0.24703087885985747,0.02617488172484992,high,market,2026-06-18T16:00:00Z
+Patek Philippe Nautilus 5711/1A,,watch,Watches,CHF,collectible|watch,1,134400,95200,39200,0.4117647058823529,0.018613249226559943,medium,appraisal,2026-05-20T00:00:00Z
+Apple Inc.,AAPL,equity,Equities,USD,us|tech|core,2,108625,70709.9,37915.1,0.536206386941574,0.015043632419903823,high,market,2026-06-18T16:00:00Z
+CHF Reserve,,cash,Cash,CHF,liquidity,0,95200,0,95200,,0.013184384868813293,high,manual,2026-06-18T00:00:00Z
+Château Lafite Rothschild 2016 (6x75cl),,wine,Fine wine,EUR,collectible|wine,1,7776,5508,2268,0.4117647058823529,0.0010769094195366823,medium,appraisal,2026-01-10T00:00:00Z
+LEGO UCS Millennium Falcon 75192 (sealed x3),,lego,LEGO sets,USD,collectible|lego,1,3600,2399.97,1200.03,0.5000187502343779,0.0004985691757114271,low,model,2026-04-01T00:00:00Z
+"
+`;
+
+exports[`holdings export > produces byte-stable JSON 1`] = `
+"{
+  "baseCurrency": "USD",
+  "holdings": [
+    {
+      "assetClass": "vineyard",
+      "assetClassLabel": "Vineyards",
+      "confidence": "medium",
+      "costBasis": "2268000",
+      "currency": "EUR",
+      "gain": "702000",
+      "gainPct": 0.30952380952380953,
+      "id": "hold-vineyard-tuscany",
+      "lots": 1,
+      "name": "Tuscan Vineyard Estate (8 ha, DOCG)",
+      "symbol": "",
+      "tags": [
+        "real-asset",
+        "operating",
+        "agriculture"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-05-01T00:00:00Z",
+      "valuationSource": "model",
+      "value": "2970000",
+      "weight": 0.4113195699619273
+    },
+    {
+      "assetClass": "pe",
+      "assetClassLabel": "Private equity",
+      "confidence": "low",
+      "costBasis": "1000000",
+      "currency": "USD",
+      "gain": "340000",
+      "gainPct": 0.34,
+      "id": "hold-pe-fundiii",
+      "lots": 1,
+      "name": "Helvetia Growth Fund III (LP interest)",
+      "symbol": "",
+      "tags": [
+        "alternative",
+        "illiquid",
+        "fund"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-03-31T00:00:00Z",
+      "valuationSource": "manual",
+      "value": "1340000",
+      "weight": 0.18557852651480897
+    },
+    {
+      "assetClass": "forest",
+      "assetClassLabel": "Forest land",
+      "confidence": "medium",
+      "costBasis": "544320",
+      "currency": "EUR",
+      "gain": "146880",
+      "gainPct": 0.2698412698412698,
+      "id": "hold-forest-nordic",
+      "lots": 1,
+      "name": "Nordic Forest Parcel (120 ha)",
+      "symbol": "",
+      "tags": [
+        "real-asset",
+        "land",
+        "timber"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-03-01T00:00:00Z",
+      "valuationSource": "appraisal",
+      "value": "691200",
+      "weight": 0.09572528173659399
+    },
+    {
+      "assetClass": "car",
+      "assetClassLabel": "Classic cars",
+      "confidence": "medium",
+      "costBasis": "345600",
+      "currency": "EUR",
+      "gain": "259200",
+      "gainPct": 0.75,
+      "id": "hold-car-porsche",
+      "lots": 1,
+      "name": "Porsche 911 (993) Carrera RS 1995",
+      "symbol": "",
+      "tags": [
+        "collectible",
+        "automobile"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-02-20T00:00:00Z",
+      "valuationSource": "appraisal",
+      "value": "604800",
+      "weight": 0.08375962151951974
+    },
+    {
+      "assetClass": "art",
+      "assetClassLabel": "Art",
+      "confidence": "low",
+      "costBasis": "228600",
+      "currency": "GBP",
+      "gain": "76200",
+      "gainPct": 0.3333333333333333,
+      "id": "hold-art-hockney",
+      "lots": 1,
+      "name": "David Hockney — Pool Study (lithograph, ed. 42/75)",
+      "symbol": "",
+      "tags": [
+        "collectible",
+        "art"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2025-11-15T00:00:00Z",
+      "valuationSource": "appraisal",
+      "value": "304800",
+      "weight": 0.04221219021023416
+    },
+    {
+      "assetClass": "crypto",
+      "assetClassLabel": "Crypto",
+      "confidence": "high",
+      "costBasis": "155703.13",
+      "currency": "USD",
+      "gain": "148046.87",
+      "gainPct": 0.9508278349959952,
+      "id": "hold-crypto-btc",
+      "lots": 2,
+      "name": "Bitcoin",
+      "symbol": "BTC",
+      "tags": [
+        "digital",
+        "volatile"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-06-18T16:00:00Z",
+      "valuationSource": "market",
+      "value": "303750",
+      "weight": 0.042066774200651656
+    },
+    {
+      "assetClass": "cash",
+      "assetClassLabel": "Cash",
+      "confidence": "high",
+      "costBasis": "0",
+      "currency": "USD",
+      "gain": "250000",
+      "gainPct": null,
+      "id": "hold-cash-usd",
+      "lots": 0,
+      "name": "USD Operating Cash",
+      "symbol": "",
+      "tags": [
+        "liquidity"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-06-18T00:00:00Z",
+      "valuationSource": "manual",
+      "value": "250000",
+      "weight": 0.034622859424404656
+    },
+    {
+      "assetClass": "bond",
+      "assetClassLabel": "Bonds",
+      "confidence": "high",
+      "costBasis": "212760",
+      "currency": "EUR",
+      "gain": "4752",
+      "gainPct": 0.02233502538071066,
+      "id": "hold-bond-bund",
+      "lots": 1,
+      "name": "German Bund 2.3% 2032",
+      "symbol": "DE0001102606",
+      "tags": [
+        "fixed-income",
+        "eu",
+        "sovereign"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-06-17T17:30:00+02:00",
+      "valuationSource": "market",
+      "value": "217512",
+      "weight": 0.030123549596484424
+    },
+    {
+      "assetClass": "etf",
+      "assetClassLabel": "ETFs",
+      "confidence": "high",
+      "costBasis": "151560",
+      "currency": "USD",
+      "gain": "37440",
+      "gainPct": 0.24703087885985747,
+      "id": "hold-etf-vwrl",
+      "lots": 2,
+      "name": "Vanguard FTSE All-World UCITS ETF",
+      "symbol": "VWRL",
+      "tags": [
+        "etf",
+        "global",
+        "core"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-06-18T16:00:00Z",
+      "valuationSource": "market",
+      "value": "189000",
+      "weight": 0.02617488172484992
+    },
+    {
+      "assetClass": "watch",
+      "assetClassLabel": "Watches",
+      "confidence": "medium",
+      "costBasis": "95200",
+      "currency": "CHF",
+      "gain": "39200",
+      "gainPct": 0.4117647058823529,
+      "id": "hold-watch-patek",
+      "lots": 1,
+      "name": "Patek Philippe Nautilus 5711/1A",
+      "symbol": "",
+      "tags": [
+        "collectible",
+        "watch"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-05-20T00:00:00Z",
+      "valuationSource": "appraisal",
+      "value": "134400",
+      "weight": 0.018613249226559943
+    },
+    {
+      "assetClass": "equity",
+      "assetClassLabel": "Equities",
+      "confidence": "high",
+      "costBasis": "70709.9",
+      "currency": "USD",
+      "gain": "37915.1",
+      "gainPct": 0.536206386941574,
+      "id": "hold-equity-aapl",
+      "lots": 2,
+      "name": "Apple Inc.",
+      "symbol": "AAPL",
+      "tags": [
+        "us",
+        "tech",
+        "core"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-06-18T16:00:00Z",
+      "valuationSource": "market",
+      "value": "108625",
+      "weight": 0.015043632419903823
+    },
+    {
+      "assetClass": "cash",
+      "assetClassLabel": "Cash",
+      "confidence": "high",
+      "costBasis": "0",
+      "currency": "CHF",
+      "gain": "95200",
+      "gainPct": null,
+      "id": "hold-cash-chf",
+      "lots": 0,
+      "name": "CHF Reserve",
+      "symbol": "",
+      "tags": [
+        "liquidity"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-06-18T00:00:00Z",
+      "valuationSource": "manual",
+      "value": "95200",
+      "weight": 0.013184384868813293
+    },
+    {
+      "assetClass": "wine",
+      "assetClassLabel": "Fine wine",
+      "confidence": "medium",
+      "costBasis": "5508",
+      "currency": "EUR",
+      "gain": "2268",
+      "gainPct": 0.4117647058823529,
+      "id": "hold-wine-lafite",
+      "lots": 1,
+      "name": "Château Lafite Rothschild 2016 (6x75cl)",
+      "symbol": "",
+      "tags": [
+        "collectible",
+        "wine"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-01-10T00:00:00Z",
+      "valuationSource": "appraisal",
+      "value": "7776",
+      "weight": 0.0010769094195366823
+    },
+    {
+      "assetClass": "lego",
+      "assetClassLabel": "LEGO sets",
+      "confidence": "low",
+      "costBasis": "2399.97",
+      "currency": "USD",
+      "gain": "1200.03",
+      "gainPct": 0.5000187502343779,
+      "id": "hold-lego-ucs",
+      "lots": 1,
+      "name": "LEGO UCS Millennium Falcon 75192 (sealed x3)",
+      "symbol": "",
+      "tags": [
+        "collectible",
+        "lego"
+      ],
+      "unvalued": false,
+      "valuationAsOf": "2026-04-01T00:00:00Z",
+      "valuationSource": "model",
+      "value": "3600",
+      "weight": 0.0004985691757114271
+    }
+  ],
+  "summary": {
+    "count": 14,
+    "totalCost": "5080361",
+    "totalGain": "2140302",
+    "totalValue": "7220663",
+    "totalWeight": 1
+  }
+}
+"
+`;
+
 exports[`managers export > produces byte-stable CSV 1`] = `
 "rank,id,name,strategy,vintage,aum,grossTotal,netTotal,excessReturn,informationRatio,feeDragShare,score
 1,meridian-global-equity,Meridian Global Equity,Long-only global equity,2019,1850000000,0.39237918865981014,0.29839058607157326,0.11902324011433896,2.705305314982326,0.23953513668566226,81.6664613759115

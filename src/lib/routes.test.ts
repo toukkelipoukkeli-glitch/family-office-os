@@ -64,7 +64,7 @@ describe("route registry", () => {
     expect(matchRoute("/reports/extra")).toBeUndefined();
   });
 
-  it("includes all 38 expected dashboard routes in order", () => {
+  it("includes all 39 expected dashboard routes in order", () => {
     const navPaths = ROUTES.filter((r) => r.nav !== false).map((r) => r.path);
     expect(navPaths).toEqual([
       "/home",
@@ -81,6 +81,7 @@ describe("route registry", () => {
       "/ips",
       "/rebalance",
       "/fees",
+      "/holdings",
       "/captable",
       "/taxlots",
       "/harvest",
@@ -148,6 +149,7 @@ describe("route registry", () => {
       ["/ips", "IPS", "nav-ips"],
       ["/rebalance", "Rebalance", "nav-rebalance"],
       ["/fees", "Fees", "nav-fees"],
+      ["/holdings", "Holdings", "nav-holdings"],
       ["/captable", "Cap table", "nav-captable"],
       ["/taxlots", "Tax lots", "nav-taxlots"],
       ["/harvest", "Harvest", "nav-harvest"],
@@ -211,10 +213,10 @@ describe("route registry", () => {
     expect(filterScopeForPath("/does-not-exist")).toBe("applies");
   });
 
-  it("registered routes default to an inert (n/a) filter scope", () => {
-    // No registered route is wired to narrow by holding tags today, so every one
-    // resolves to "n/a" — the shared control renders visibly inert there rather
-    // than pretending to filter.
+  it("each registered route resolves to its declared filter scope", () => {
+    // A route opts in to "applies" only when it narrows by holding tags (e.g.
+    // the holdings index); every other route defaults to "n/a", so the shared
+    // control renders visibly inert there rather than pretending to filter.
     for (const r of ROUTES) {
       expect(
         filterScopeForPath(r.path),

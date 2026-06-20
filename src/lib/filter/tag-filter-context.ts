@@ -72,3 +72,19 @@ export function useFilteredPortfolio(source: Portfolio): Portfolio {
     [source, selected],
   );
 }
+
+/**
+ * Like {@link useFilteredPortfolio}, but degrades to the unfiltered source when
+ * there is no `TagFilterProvider` above (e.g. an isolated unit render of a page).
+ * In production the provider is mounted at the app root, so this narrows by the
+ * active selection exactly like {@link useFilteredPortfolio}; in isolation it is
+ * a pure pass-through (same reference) rather than throwing.
+ */
+export function useOptionalFilteredPortfolio(source: Portfolio): Portfolio {
+  const ctx = React.useContext(TagFilterContext);
+  const selected = ctx?.selected;
+  return React.useMemo(
+    () => (selected ? filterPortfolioByTags(source, selected) : source),
+    [source, selected],
+  );
+}

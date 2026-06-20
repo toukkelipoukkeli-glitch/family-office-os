@@ -9,6 +9,7 @@ export {
 export { readStoredSelection, writeStoredSelection } from "./storage";
 export {
   useFilteredPortfolio,
+  useOptionalFilteredPortfolio,
   useOptionalTagFilter,
   useTagFilter,
   type TagFilterContextValue,

@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { AppShell } from "@/components/AppShell";
+import { ExportMenu } from "@/components/ExportMenu";
 import { BarChart, type BarDatum } from "@/components/charts/bar-chart";
 import { DonutChart, type DonutDatum } from "@/components/charts/donut-chart";
 import { seriesColor } from "@/components/charts/palette";
@@ -24,6 +25,7 @@ import {
 } from "@/lib/lookthrough";
 import type { Entity } from "@/lib/org";
 
+import { lookThroughExport } from "@/lib/export";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
 
@@ -149,8 +151,13 @@ export function LookThroughView({
   // render boundary: convert the exact Money first, then format/scale. Weights
   // and chart geometry are scale-invariant ratios, so only the labelled units
   // change. No-op when the reporting currency is the base.
-  const { convertMoney } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { convertMoney } = rm;
   const money = (m: Money): string => formatMoneyCompact(convertMoney(m));
+  const exportDataset = React.useMemo(
+    () => lookThroughExport(report, rm),
+    [report, rm],
+  );
 
   const donutData: DonutDatum[] = report.lines.map((l, i) => ({
     label: assetClassLabel(l.assetClass),
@@ -184,6 +191,7 @@ export function LookThroughView({
             ))}
           </select>
         </label>
+        <ExportMenu dataset={exportDataset} testId="lookthrough-export" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

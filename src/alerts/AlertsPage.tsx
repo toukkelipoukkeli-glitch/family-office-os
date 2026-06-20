@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   Card,
   CardContent,
@@ -16,7 +17,11 @@ import {
 } from "@/lib/alerts";
 import { cn } from "@/lib/utils";
 
-import { buildAlertsViewModel, type AlertRow } from "./alerts-view";
+import {
+  buildAlertsExport,
+  buildAlertsViewModel,
+  type AlertRow,
+} from "./alerts-view";
 
 /** A filter the user can toggle: show all rules, or just the breaches. */
 type Filter = "breaches" | "all";
@@ -35,6 +40,13 @@ export function AlertsPage() {
 
   const visibleRows = filter === "breaches" ? vm.breaches : vm.rows;
 
+  // Export the FILTERED, on-screen rows — not the full rule set — so a download
+  // matches exactly what the analyst is looking at.
+  const exportDataset = useMemo(
+    () => buildAlertsExport(visibleRows, vm.baseCurrency),
+    [visibleRows, vm.baseCurrency],
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
@@ -42,13 +54,16 @@ export function AlertsPage() {
           <h1 className="text-lg font-semibold tracking-tight">
             Limit alerts
           </h1>
-          <a
-            href="#/"
-            data-testid="alerts-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={exportDataset} testId="alerts-export" />
+            <a
+              href="#/"
+              data-testid="alerts-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

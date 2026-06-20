@@ -7,6 +7,7 @@ import {
   Umbrella,
 } from "lucide-react";
 
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   Card,
   CardContent,
@@ -28,6 +29,7 @@ import {
   type InsuranceBook,
   type PolicyStatus,
 } from "@/lib/insurance";
+import { insuranceExport } from "@/lib/export";
 import { formatMoney } from "@/lib/format";
 import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
@@ -193,7 +195,12 @@ export function InsurancePage({ book }: InsurancePageProps) {
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary (no-op when reporting === base). Coverage meters are ratios
   // of same-currency values and are scale-invariant, so only labels change unit.
-  const money = makeMoney(useReportingMoney());
+  const rm = useReportingMoney();
+  const money = makeMoney(rm);
+  const exportDataset = React.useMemo(
+    () => insuranceExport(analysis, rm),
+    [analysis, rm],
+  );
 
   const towerRatio = analysis.liabilityCoverageRatio;
   const towerCovered = towerRatio
@@ -214,13 +221,16 @@ export function InsurancePage({ book }: InsurancePageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Insurance coverage tracker
           </h1>
-          <a
-            href="#/"
-            data-testid="insurance-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={exportDataset} testId="insurance-export" />
+            <a
+              href="#/"
+              data-testid="insurance-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

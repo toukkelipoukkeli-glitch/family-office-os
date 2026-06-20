@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { BarChart, type BarDatum } from "@/components/charts/bar-chart";
 import { DonutChart, type DonutDatum } from "@/components/charts/donut-chart";
+import { ExportMenu } from "@/components/ExportMenu";
 import { seriesColor } from "@/components/charts/palette";
 import {
   Card,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/consolidation";
 import { entityKindLabel } from "@/lib/org";
 import type { Entity } from "@/lib/org";
+import { consolidationExport } from "@/lib/export";
 import { useHashQueryParam } from "@/lib/hash-location";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import type { Money } from "@/lib/money";
@@ -112,7 +114,12 @@ export function ConsolidationView({
   // render boundary: convert the exact Money first, then format/scale. The
   // donut/bar geometry is a uniform scalar of the converted values, so only the
   // labelled units change. No-op when the reporting currency is the base.
-  const { convertMoney } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { convertMoney } = rm;
+  const exportDataset = React.useMemo(
+    () => consolidationExport(report, rm),
+    [report, rm],
+  );
   const money = (m: Money): string => formatMoneyCompact(convertMoney(m));
   const num = (m: Money): number => convertMoney(m).amount.toNumber();
 
@@ -164,6 +171,7 @@ export function ConsolidationView({
             ))}
           </select>
         </label>
+        <ExportMenu dataset={exportDataset} testId="consolidation-export" />
       </div>
 
       {/* KPI tiles */}

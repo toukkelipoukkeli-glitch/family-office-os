@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
+import { ExportMenu } from "@/components/ExportMenu";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { goalsExport } from "@/lib/export";
 import {
   analyzeFundingPlan,
   formatFundedRatio,
@@ -136,7 +138,12 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary (no-op when reporting === base). Funded-ratio progress bars
   // are scale-invariant, so only the labelled values change unit.
-  const money = makeMoney(useReportingMoney());
+  const rm = useReportingMoney();
+  const money = makeMoney(rm);
+  const exportDataset = React.useMemo(
+    () => goalsExport(summary, rm),
+    [summary, rm],
+  );
 
   const totalTarget = num(summary.totalTarget);
   const covered = num(summary.dedicatedCovered);
@@ -152,6 +159,7 @@ export function GoalFundingPage({ plan }: GoalFundingPageProps) {
       backTestId="goals-back"
       mainClassName="space-y-6"
       mainTestId="goals-page"
+      actions={<ExportMenu dataset={exportDataset} testId="goals-export" />}
     >
         <p
           className="text-sm text-muted-foreground"

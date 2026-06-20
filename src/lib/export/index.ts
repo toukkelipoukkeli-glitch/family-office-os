@@ -13,3 +13,4 @@ export * from "./csv";
 export * from "./json";
 export * from "./download";
 export * from "./tables";
+export * from "./pages";

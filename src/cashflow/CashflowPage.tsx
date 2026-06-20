@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { BarChart } from "@/components/charts/bar-chart";
+import { ExportMenu } from "@/components/ExportMenu";
 import { LineChart } from "@/components/charts/line-chart";
 import {
   Card,
@@ -17,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildCashflowModel, type CashflowModel } from "@/lib/cashflow";
+import { cashflowExport } from "@/lib/export";
 import { formatMoneyCompact, formatMoneyWhole } from "@/lib/format";
 import { useReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
@@ -86,7 +88,9 @@ export function CashflowPage({ model }: CashflowPageProps) {
 
   // Re-express every base-USD figure in the chosen reporting currency at the
   // render boundary (no-op when the reporting currency is the model base).
-  const { currency, convert } = useReportingMoney();
+  const rm = useReportingMoney();
+  const { currency, convert } = rm;
+  const exportDataset = React.useMemo(() => cashflowExport(cf, rm), [cf, rm]);
   /** Compact currency, e.g. `$4.0M`, in the reporting currency. */
   const compact = (value: number): string =>
     formatMoneyCompact(convert(value), currency);
@@ -113,13 +117,16 @@ export function CashflowPage({ model }: CashflowPageProps) {
           <h1 className="text-lg font-semibold tracking-tight">
             Household cashflow projection
           </h1>
-          <a
-            href="#/"
-            data-testid="cashflow-back"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
+          <div className="flex items-center gap-4">
+            <ExportMenu dataset={exportDataset} testId="cashflow-export" />
+            <a
+              href="#/"
+              data-testid="cashflow-back"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Back to dashboard
+            </a>
+          </div>
         </div>
       </header>
 

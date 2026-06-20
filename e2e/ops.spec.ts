@@ -127,7 +127,16 @@ test.describe("/ops cockpit", () => {
   // machine; in CI (Linux) there is no matching baseline, so skip there rather
   // than fail on an expected cross-OS pixel diff. The DOM assertions above are
   // the deterministic, cross-platform gate.
-  test("visual snapshot of the ops cockpit", async ({ page }) => {
+  //
+  // We snapshot only the page header — a fixed-height chrome element with static
+  // content ("Ops cockpit" + "Back to dashboard") — rather than the full page.
+  // A full-page snapshot pixel-compares the live cockpit, whose height grows as
+  // the harness advances generations (more milestones/units), so it drifts on
+  // every generation regardless of any maxDiffPixelRatio (Playwright fails
+  // immediately on a dimension mismatch). The header is the stable structural
+  // element, so this stays a meaningful CSS-regression check without coupling to
+  // transient build state.
+  test("visual snapshot of the ops cockpit header", async ({ page }) => {
     test.skip(
       !!process.env.CI,
       "visual baseline is OS-specific; DOM assertions gate CI",
@@ -138,9 +147,9 @@ test.describe("/ops cockpit", () => {
     ).toBeVisible();
     // Wait for fonts/layout to settle for a stable screenshot.
     await page.evaluate(() => document.fonts.ready);
-    await expect(page).toHaveScreenshot("ops-cockpit.png", {
-      fullPage: true,
-      maxDiffPixelRatio: 0.02,
-    });
+    await expect(page.locator("header")).toHaveScreenshot(
+      "ops-cockpit-header.png",
+      { maxDiffPixelRatio: 0.02 },
+    );
   });
 });

@@ -43,6 +43,13 @@ export function Dashboard() {
               Alerts
             </a>
             <a
+              href="#/fees"
+              data-testid="nav-fees"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Fees
+            </a>
+            <a
               href="#/captable"
               data-testid="nav-captable"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

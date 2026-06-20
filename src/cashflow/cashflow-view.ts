@@ -15,17 +15,19 @@ import {
   periodLabel,
 } from "@/lib/cashflow";
 
-/** Compact currency, e.g. `$8.0M`. */
+/** Compact currency, e.g. `$8.0M`. Negative zero is normalized to `$0`. */
 export function compactCurrency(value: number, currency: string): string {
+  // `value + 0` collapses `-0` to `+0` so a drained-to-empty flow never
+  // renders as the nonsensical `-$0`.
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     notation: "compact",
     maximumFractionDigits: 1,
-  }).format(value);
+  }).format(value + 0);
 }
 
-/** Signed compact currency, e.g. `-$1.2M` / `+$0.9M`. */
+/** Signed compact currency, e.g. `-$1.2M` / `+$0.9M`. Zero renders as `+$0`. */
 export function signedCompactCurrency(value: number, currency: string): string {
   const sign = value < 0 ? "-" : "+";
   return `${sign}${compactCurrency(Math.abs(value), currency)}`;
@@ -122,16 +124,18 @@ export function flowRows(forecast: CashflowForecast): FlowRow[] {
       // `+ 0` normalizes a negated zero magnitude (-0) to +0.
       byKind[k] = (found ? found.signed.amount.toNumber() : 0) + 0;
     }
+    const closing = s.closing.amount.toNumber();
     return {
       period: s.period,
       label: periodLabel(s.period),
-      opening: s.opening.amount.toNumber(),
+      // `+ 0` normalizes a negated-zero magnitude (-0) to +0 across every field.
+      opening: s.opening.amount.toNumber() + 0,
       byKind,
-      inflow: s.inflow.amount.toNumber(),
-      outflow: s.outflow.amount.toNumber(),
-      net: s.net.amount.toNumber(),
-      closing: s.closing.amount.toNumber(),
-      breached: s.closing.amount.toNumber() < 0,
+      inflow: s.inflow.amount.toNumber() + 0,
+      outflow: s.outflow.amount.toNumber() + 0,
+      net: s.net.amount.toNumber() + 0,
+      closing: closing + 0,
+      breached: closing < 0,
     };
   });
 }

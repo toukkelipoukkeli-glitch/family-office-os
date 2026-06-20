@@ -78,6 +78,13 @@ export function Dashboard() {
               IPS
             </a>
             <a
+              href="#/rebalance"
+              data-testid="nav-rebalance"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Rebalance
+            </a>
+            <a
               href="#/fees"
               data-testid="nav-fees"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

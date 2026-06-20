@@ -38,6 +38,11 @@ const RiskCockpitPage = lazy(() => import("@/risk/RiskCockpitPage"));
 const VaultPage = lazy(() => import("@/vault/VaultPage"));
 const ReportsPage = lazy(() => import("@/reports/ReportsPage"));
 const InsightsPage = lazy(() => import("@/insights/InsightsPage"));
+const RebalancePage = lazy(() =>
+  import("@/rebalance/RebalancePage").then((m) => ({
+    default: m.RebalancePage,
+  })),
+);
 
 const AlertsPage = lazy(() =>
   import("@/alerts/AlertsPage").then((m) => ({ default: m.AlertsPage })),
@@ -100,6 +105,7 @@ function routeElement(path: string) {
   if (path === "/harvest") return <HarvestPage />;
   if (path === "/alerts") return <AlertsPage />;
   if (path === "/ips") return <IpsPage />;
+  if (path === "/rebalance") return <RebalancePage />;
   if (path === "/org") return <OrgChartPage />;
   if (path === "/charts") return <ChartsGalleryPage />;
   if (path === "/scenarios") return <ScenarioCockpit />;

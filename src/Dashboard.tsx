@@ -3,10 +3,15 @@ import * as React from "react";
 import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
 import { ExportMenu } from "@/components/ExportMenu";
+import { ReportingCurrencySwitcher } from "@/components/ReportingCurrencySwitcher";
 import { TagFilter } from "@/components/TagFilter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NetWorthDashboard } from "@/networth/NetWorthDashboard";
 import { buildNetWorthDashboard, networthRateTable } from "@/lib/networth";
+import {
+  reexpressNetWorth,
+  useReportingCurrency,
+} from "@/lib/reporting-currency";
 import { useFilteredPortfolio, useTagFilter } from "@/lib/filter";
 import { seededPortfolio } from "@/fixtures";
 import { netWorthExport } from "@/lib/export";
@@ -26,10 +31,18 @@ export function Dashboard() {
   // full seeded portfolio (same reference), so the unfiltered dashboard is
   // unchanged; selecting tags rebuilds the net-worth model over the subset.
   const { selected, isFiltering } = useTagFilter();
+  const { currency: reportingCurrency } = useReportingCurrency();
   const filteredPortfolio = useFilteredPortfolio(seededPortfolio);
-  const model = React.useMemo(
+  // Build the model once in the canonical base, then re-express it in the chosen
+  // reporting currency. When the reporting currency is the base this is a no-op
+  // (same reference), so the default view is unchanged.
+  const baseModel = React.useMemo(
     () => buildNetWorthDashboard(filteredPortfolio, networthRateTable),
     [filteredPortfolio],
+  );
+  const model = React.useMemo(
+    () => reexpressNetWorth(baseModel, networthRateTable, reportingCurrency),
+    [baseModel, reportingCurrency],
   );
   const exportDataset = React.useMemo(() => netWorthExport(model), [model]);
   const matchedCount = filteredPortfolio.holdings.length;
@@ -62,6 +75,7 @@ export function Dashboard() {
               ))}
             </nav>
             <TagFilter />
+            <ReportingCurrencySwitcher className="hidden sm:inline-flex" />
             <ExportMenu
               dataset={exportDataset}
               testId="networth-export"
@@ -79,7 +93,8 @@ export function Dashboard() {
       >
         {/* On small screens the header export menu is hidden to save room, so
             surface it inline at the top of the page instead. */}
-        <div className="flex justify-end sm:hidden">
+        <div className="flex items-center justify-end gap-2 sm:hidden">
+          <ReportingCurrencySwitcher testId="reporting-currency-mobile" />
           <ExportMenu
             dataset={exportDataset}
             testId="networth-export-mobile"

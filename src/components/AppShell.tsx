@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { MAIN_CONTENT_ID } from "@/lib/main-content";
 import { CommandPaletteTrigger } from "@/components/CommandPaletteTrigger";
+import { ReportingCurrencySwitcher } from "@/components/ReportingCurrencySwitcher";
 import { TagFilter } from "@/components/TagFilter";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -143,6 +144,9 @@ export function AppShell({
                 the active selection is visible and adjustable anywhere, not just
                 on the dashboard. It renders nothing when there are no tags. */}
             <TagFilter />
+            {/* Global reporting-currency switcher: re-expresses portfolio values
+                in the chosen base on every shell page. */}
+            <ReportingCurrencySwitcher className="hidden sm:inline-flex" />
             <CommandPaletteTrigger />
             <ThemeToggle />
             {backLink}

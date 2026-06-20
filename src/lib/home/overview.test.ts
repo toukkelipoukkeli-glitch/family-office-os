@@ -54,6 +54,23 @@ describe("formatMoneyCompact", () => {
     expect(formatMoneyCompact(Money.of("480000", "USD"))).toBe("$480K");
     expect(formatMoneyCompact(Money.of("1380000", "USD"))).toBe("$1.38M");
   });
+
+  it("handles the tier boundaries, zero and billions", () => {
+    expect(formatMoneyCompact(Money.of("0", "USD"))).toBe("$0");
+    expect(formatMoneyCompact(Money.of("999", "USD"))).toBe("$999");
+    expect(formatMoneyCompact(Money.of("1000", "USD"))).toBe("$1K");
+    expect(formatMoneyCompact(Money.of("12340000000", "USD"))).toBe("$12.34B");
+  });
+
+  it("keeps the sign for negative amounts (drawn-down positions)", () => {
+    expect(formatMoneyCompact(Money.of("-7220663", "USD"))).toBe("$-7.22M");
+    expect(formatMoneyCompact(Money.of("-480000", "USD"))).toBe("$-480K");
+    expect(formatMoneyCompact(Money.of("-999", "USD"))).toBe("$-999");
+  });
+
+  it("renders a non-USD currency as a prefixed code", () => {
+    expect(formatMoneyCompact(Money.of("1500000", "EUR"))).toBe("EUR 1.5M");
+  });
 });
 
 describe("liquidityRunwayMonths", () => {
@@ -186,5 +203,43 @@ describe("buildOverview (injected reports)", () => {
     const liq = model.kpis.find((k) => k.id === "liquidity")!;
     expect(liq.value).toBe("shortfall 2025-06");
     expect(liq.status).toBe("critical");
+  });
+
+  it("warns when a finite runway falls under twelve months", () => {
+    // 1,000,000 opening, 1,200,000 net burn over 12 months => 100,000/mo
+    // => 10 months runway, which is < 12 and no shortfall => warning.
+    const model = buildOverview({
+      cashflow: cashflowModel(
+        { openingBalance: 1_000_000, netFlow: -1_200_000 },
+        12,
+      ),
+    });
+    const liq = model.kpis.find((k) => k.id === "liquidity")!;
+    expect(liq.value).toBe("10 mo");
+    expect(liq.status).toBe("warning");
+  });
+
+  it("treats a runway of exactly twelve months as ok (boundary)", () => {
+    // 1,200,000 opening, 1,200,000 burn over 12 months => 100,000/mo => 12 mo.
+    const model = buildOverview({
+      cashflow: cashflowModel(
+        { openingBalance: 1_200_000, netFlow: -1_200_000 },
+        12,
+      ),
+    });
+    const liq = model.kpis.find((k) => k.id === "liquidity")!;
+    expect(liq.value).toBe("12 mo");
+    expect(liq.status).toBe("ok");
+  });
+
+  it("keeps the worst-of banner at critical even when later KPIs are ok", () => {
+    // The seeded reports already carry critical IPS + alerts; a healthy
+    // cashflow override must not soften the page-level worst status.
+    const model = buildOverview({
+      cashflow: cashflowModel({ openingBalance: 5_000_000, netFlow: 250_000 }, 12),
+    });
+    const liq = model.kpis.find((k) => k.id === "liquidity")!;
+    expect(liq.status).toBe("ok");
+    expect(model.worstStatus).toBe("critical");
   });
 });

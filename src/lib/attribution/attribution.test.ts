@@ -310,3 +310,151 @@ describe("multiPeriodAttribution — Carino linking", () => {
     ).toThrow(/-100%/);
   });
 });
+
+describe("attribute — adversarial reconciliation (both conventions)", () => {
+  // A deterministic pseudo-random many-segment book. The Brinson identity
+  // Σ(A+S+I) = R_p − R_b must hold to machine precision for BOTH conventions and
+  // for arbitrary weights/returns (not just the curated textbook fixtures).
+  function makeBook(seed: number, n: number): AttributionInput {
+    // Simple deterministic LCG so the test is reproducible and offline.
+    let s = seed >>> 0;
+    const rand = () => {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 0xffffffff;
+    };
+    const rawPw = Array.from({ length: n }, () => rand() + 0.01);
+    const rawBw = Array.from({ length: n }, () => rand() + 0.01);
+    const sumPw = rawPw.reduce((a, b) => a + b, 0);
+    const sumBw = rawBw.reduce((a, b) => a + b, 0);
+    const segments = Array.from({ length: n }, (_, i) => ({
+      id: `s${i}`,
+      label: `S${i}`,
+      portfolioWeight: rawPw[i] / sumPw,
+      benchmarkWeight: rawBw[i] / sumBw,
+      portfolioReturn: rand() * 0.4 - 0.2, // −20%..+20%
+      benchmarkReturn: rand() * 0.4 - 0.2,
+    }));
+    return { segments };
+  }
+
+  for (const method of ["BF", "BHB"] as const) {
+    it(`${method}: effects reconcile to active return across many random books`, () => {
+      for (let seed = 1; seed <= 25; seed++) {
+        const book = makeBook(seed, 7);
+        const r = attribute({ ...book, method });
+        // The identity must hold near machine precision regardless of inputs.
+        expect(
+          r.totalEffect.minus(r.activeReturn).abs().toNumber(),
+          `seed ${seed}`,
+        ).toBeLessThan(1e-12);
+        // Per-segment totals must also sum the three effects exactly.
+        for (const seg of r.segments) {
+          expect(
+            seg.total
+              .minus(seg.allocation.plus(seg.selection).plus(seg.interaction))
+              .abs()
+              .toNumber(),
+          ).toBe(0);
+        }
+      }
+    });
+  }
+
+  it("BHB and BF per-segment allocation differ by exactly B·(w−W)", () => {
+    // The only structural difference between the two conventions is that BF
+    // subtracts the total benchmark return B from each segment's allocation
+    // return. So per segment: alloc_BHB − alloc_BF = (w−W)·B.
+    const book = makeBook(99, 6);
+    const bf = attribute({ ...book, method: "BF" });
+    const bhb = attribute({ ...book, method: "BHB" });
+    const B = bf.benchmarkReturn;
+    for (let i = 0; i < bf.segments.length; i++) {
+      const aBf = bf.segments[i];
+      const aBhb = bhb.segments[i];
+      const expectedDelta = aBhb.activeWeight.times(B);
+      expect(
+        aBhb.allocation.minus(aBf.allocation).minus(expectedDelta).abs().toNumber(),
+      ).toBeLessThan(1e-15);
+      // Selection and interaction are convention-independent.
+      expect(aBhb.selection.minus(aBf.selection).abs().toNumber()).toBe(0);
+      expect(aBhb.interaction.minus(aBf.interaction).abs().toNumber()).toBe(0);
+    }
+  });
+
+  it("handles a portfolio that underperforms (negative active return)", () => {
+    // Underweight the winner, overweight the loser, and pick losers inside.
+    const r = attribute({
+      method: "BF",
+      segments: [
+        { id: "win", label: "Winner", portfolioWeight: 0.3, benchmarkWeight: 0.6, portfolioReturn: 0.08, benchmarkReturn: 0.1 },
+        { id: "lose", label: "Loser", portfolioWeight: 0.7, benchmarkWeight: 0.4, portfolioReturn: -0.05, benchmarkReturn: -0.02 },
+      ],
+    });
+    expect(r.activeReturn.isNegative()).toBe(true);
+    // Still reconciles exactly.
+    expect(r.totalEffect.minus(r.activeReturn).abs().toNumber()).toBeLessThan(1e-15);
+  });
+
+  it("a single segment held at full weight has zero active return and zero effects", () => {
+    const r = attribute({
+      segments: [
+        { id: "only", label: "Only", portfolioWeight: 1, benchmarkWeight: 1, portfolioReturn: 0.07, benchmarkReturn: 0.07 },
+      ],
+    });
+    expectClose(r.activeReturn, 0);
+    expectClose(r.totalEffect, 0);
+    expectClose(r.segments[0].allocation, 0);
+    expectClose(r.segments[0].selection, 0);
+    expectClose(r.segments[0].interaction, 0);
+  });
+});
+
+describe("multiPeriodAttribution — adversarial Carino edge cases", () => {
+  const twoSeg = (pr1: number, br1: number, pr2: number, br2: number): AttributionInput => ({
+    segments: [
+      { id: "eq", label: "Eq", portfolioWeight: 0.6, benchmarkWeight: 0.5, portfolioReturn: pr1, benchmarkReturn: br1 },
+      { id: "fi", label: "FI", portfolioWeight: 0.4, benchmarkWeight: 0.5, portfolioReturn: pr2, benchmarkReturn: br2 },
+    ],
+  });
+
+  it("reconciles exactly even when one period has zero active return (Carino limit)", () => {
+    // Period 2 is constructed so portfolio and benchmark returns are equal,
+    // exercising the kₜ = 1/(1+R) limit branch.
+    const periods = [
+      twoSeg(0.05, 0.03, 0.02, 0.01), // active ≠ 0
+      twoSeg(0.04, 0.04, 0.04, 0.04), // R_p = R_b = 0.04 → zero active
+    ];
+    const m = multiPeriodAttribution({ periods, method: "BF" });
+    expect(m.totalEffect.minus(m.activeReturn).abs().toNumber()).toBeLessThan(1e-12);
+  });
+
+  it("reconciles exactly when the TOTAL compounded active return is ~zero", () => {
+    // Period 1 portfolio beats; period 2 it gives it all back, so the compounded
+    // active return is approximately zero — the overall-k limit must stay finite.
+    const periods = [
+      twoSeg(0.1, 0.05, 0.0, 0.0),
+      twoSeg(-0.05, 0.0, 0.0, 0.0),
+    ];
+    const m = multiPeriodAttribution({ periods, method: "BF" });
+    expect(m.totalEffect.minus(m.activeReturn).abs().toNumber()).toBeLessThan(1e-12);
+  });
+
+  it("Carino linking reconciles for the BHB convention too", () => {
+    const periods = [
+      twoSeg(0.06, 0.04, 0.03, 0.02),
+      twoSeg(0.02, 0.05, 0.07, 0.04),
+      twoSeg(-0.03, -0.01, 0.05, 0.03),
+    ];
+    const m = multiPeriodAttribution({ periods, method: "BHB" });
+    expect(m.totalEffect.minus(m.activeReturn).abs().toNumber()).toBeLessThan(1e-12);
+    // Compounded active return matches direct compounding.
+    let gp = new Decimal(1);
+    let gb = new Decimal(1);
+    for (const p of periods) {
+      const r = attribute({ ...p, method: "BHB" });
+      gp = gp.times(r.portfolioReturn.plus(1));
+      gb = gb.times(r.benchmarkReturn.plus(1));
+    }
+    expectClose(m.activeReturn, gp.minus(gb).toNumber());
+  });
+});

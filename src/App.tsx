@@ -17,6 +17,7 @@ import { useHashRoute } from "@/lib/use-hash-route";
  * are adapted inline to `{ default: ... }`.
  */
 const Dashboard = lazy(() => import("@/Dashboard"));
+const HomePage = lazy(() => import("@/home/HomePage"));
 const OpsPage = lazy(() => import("@/ops/OpsPage"));
 const CapTablePage = lazy(() => import("@/captable/CapTablePage"));
 const TaxLotsPage = lazy(() => import("@/taxlots/TaxLotsPage"));
@@ -94,6 +95,7 @@ function CrashTestRoute(): never {
 /** Resolve the current hash path to a page element. */
 function routeElement(path: string) {
   if (path === "/crash-test") return <CrashTestRoute />;
+  if (path === "/home") return <HomePage />;
   if (path === "/ops") return <OpsPage />;
   if (path === "/captable") return <CapTablePage />;
   if (path === "/taxlots") return <TaxLotsPage />;

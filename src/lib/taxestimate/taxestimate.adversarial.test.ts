@@ -73,6 +73,14 @@ describe("applyBrackets — boundary & numeric-form adversarial", () => {
       applyBrackets(usd("100"), [{ from: "0", rate: "Infinity" }]),
     ).toThrow(TaxEstimateError);
   });
+
+  it("rejects a floor whose currency differs from the taxable base", () => {
+    expect(() =>
+      applyBrackets(usd("1000"), schedule.ordinary, {
+        floor: Money.of("5000", "EUR"),
+      }),
+    ).toThrow(/floor currency/);
+  });
 });
 
 describe("estimateTax — exact cross-class netting edges", () => {
@@ -175,6 +183,60 @@ describe("estimateTax — reconciliation invariants", () => {
       expect(sliceTax.equals(bt.tax)).toBe(true);
       expect(sliceBase.equals(bt.taxable)).toBe(true);
     }
+  });
+
+  it("carries forward capital loss that exceeds the ordinary income available to absorb it", () => {
+    // Net loss 3000, cap 3000, but only 1000 of ordinary income exists.
+    // Only 1000 can offset ordinary; the other 2000 must carry forward.
+    const est = estimateTax(
+      {
+        currency: USD,
+        year: 2024,
+        realized: { shortTermGain: usd("-3000"), longTermGain: usd("0") },
+        ordinaryIncome: usd("1000"),
+      },
+      schedule,
+    );
+    expect(est.capitalLossUsedAgainstOrdinary.toString()).toBe("1000 USD");
+    expect(est.capitalLossCarryforward.toString()).toBe("2000 USD");
+    expect(est.taxableOrdinaryIncome.isZero()).toBe(true);
+    // Reconciliation must still hold.
+    expect(
+      est.capitalLossUsedAgainstOrdinary
+        .plus(est.capitalLossCarryforward)
+        .equals(est.netCapitalLoss),
+    ).toBe(true);
+  });
+
+  it("carries forward the whole loss when there is no ordinary income at all", () => {
+    const est = estimateTax(
+      {
+        currency: USD,
+        year: 2024,
+        realized: { shortTermGain: usd("-2500"), longTermGain: usd("0") },
+      },
+      schedule,
+    );
+    expect(est.capitalLossUsedAgainstOrdinary.isZero()).toBe(true);
+    expect(est.capitalLossCarryforward.toString()).toBe("2500 USD");
+  });
+
+  it("offset is reduced by fees that shrink the available ordinary base", () => {
+    // Income 4000 - fees 2500 = 1500 ordinary base; loss 5000, cap 3000.
+    // Only 1500 can be absorbed; 3500 carries forward.
+    const est = estimateTax(
+      {
+        currency: USD,
+        year: 2024,
+        realized: { shortTermGain: usd("-5000"), longTermGain: usd("0") },
+        ordinaryIncome: usd("4000"),
+        deductibleFees: usd("2500"),
+      },
+      schedule,
+    );
+    expect(est.capitalLossUsedAgainstOrdinary.toString()).toBe("1500 USD");
+    expect(est.capitalLossCarryforward.toString()).toBe("3500 USD");
+    expect(est.taxableOrdinaryIncome.isZero()).toBe(true);
   });
 
   it("net capital loss always reconciles to used-against-ordinary + carryforward", () => {

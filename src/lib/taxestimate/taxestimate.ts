@@ -262,6 +262,12 @@ export function applyBrackets(
   const label = options.label ?? "brackets";
   const norm = normalizeBrackets(brackets, label);
 
+  if (options.floor && options.floor.currency !== currency) {
+    throw new TaxEstimateError(
+      `${label}.floor currency ${options.floor.currency} does not match ${currency}`,
+    );
+  }
+
   const taxable = taxableBase.isNegative()
     ? Money.zero(currency)
     : taxableBase;
@@ -432,13 +438,6 @@ export function estimateTax(
     ),
     ccy,
   );
-  const capitalLossUsedAgainstOrdinary = Money.of(
-    Decimal.min(netCapitalLoss.amount, cap.amount),
-    ccy,
-  );
-  const capitalLossCarryforward = netCapitalLoss.minus(
-    capitalLossUsedAgainstOrdinary,
-  );
 
   const ordinaryIncome = toMoney(inputs.ordinaryIncome, ccy, "ordinaryIncome");
   const deductibleFees = toMoney(inputs.deductibleFees, ccy, "deductibleFees");
@@ -449,13 +448,29 @@ export function estimateTax(
     throw new TaxEstimateError("deductibleFees must be non-negative");
   }
 
-  // Taxable ordinary income = income − fees − capital-loss offset, floored at 0.
-  let taxableOrdinaryIncome = ordinaryIncome
-    .minus(deductibleFees)
-    .minus(capitalLossUsedAgainstOrdinary);
-  if (taxableOrdinaryIncome.isNegative()) {
-    taxableOrdinaryIncome = Money.zero(ccy);
-  }
+  // Ordinary base available to absorb a capital-loss offset = income − fees,
+  // floored at 0. A loss can only reduce ordinary income that actually exists;
+  // anything it cannot absorb here must carry forward, not vanish.
+  const ordinaryBaseAfterFees = ordinaryIncome.minus(deductibleFees);
+  const ordinaryBaseForOffset = ordinaryBaseAfterFees.isNegative()
+    ? Money.zero(ccy)
+    : ordinaryBaseAfterFees;
+
+  // Offset is bounded by (a) the net capital loss, (b) the annual cap, and
+  // (c) the ordinary base actually available to absorb it.
+  const capitalLossUsedAgainstOrdinary = Money.of(
+    Decimal.min(netCapitalLoss.amount, cap.amount, ordinaryBaseForOffset.amount),
+    ccy,
+  );
+  const capitalLossCarryforward = netCapitalLoss.minus(
+    capitalLossUsedAgainstOrdinary,
+  );
+
+  // Taxable ordinary income = ordinary base − capital-loss offset (already
+  // bounded by the base, so this never goes negative).
+  const taxableOrdinaryIncome = ordinaryBaseForOffset.minus(
+    capitalLossUsedAgainstOrdinary,
+  );
 
   // Ordinary income tax (the base).
   const ordinaryIncomeTax = applyBrackets(

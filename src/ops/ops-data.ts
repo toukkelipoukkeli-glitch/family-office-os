@@ -1,10 +1,14 @@
 // Ops cockpit data model.
 //
-// This is a *deterministic snapshot* of the autonomous-build harness state
-// (backlog units + their lifecycle status). It is bundled at build time so the
-// /ops page renders offline with no live file reads or network calls, which
-// keeps the page testable and screenshot-stable. When the harness advances a
-// unit, this snapshot is regenerated from `harness/state/*.json`.
+// The /ops page renders a *deterministic snapshot* of the autonomous-build
+// harness state (backlog units + their lifecycle status). The snapshot is now
+// derived from the committed harness-state JSON (`harness/state/backlog.json` +
+// `tasks.json`) at build time — see `harness-state.ts` — so the cockpit tracks
+// reality instead of a hand-maintained fixture. Because the JSON is bundled at
+// build time, the page still renders offline with no live file reads or network
+// calls, which keeps it testable and screenshot-stable.
+
+import { buildSnapshot, liveBacklog, liveTasks } from "./harness-state";
 
 /** Lifecycle status of a single build unit. */
 export type UnitStatus = "backlog" | "active" | "merged" | "blocked";
@@ -45,48 +49,9 @@ export interface OpsSnapshot {
 }
 
 /**
- * Bundled snapshot of harness state. Kept in sync (by hand or tooling) with
- * `harness/state/backlog.json` + `tasks.json`. Statuses reflect the build loop.
+ * Live snapshot of harness state, derived deterministically from the committed
+ * `harness/state/backlog.json` + `tasks.json` at build time. See
+ * `harness-state.ts` for the derivation. This replaces the previous
+ * hand-maintained fixture, which QA flagged for drifting out of date.
  */
-export const opsSnapshot: OpsSnapshot = {
-  generation: 1,
-  updatedAt: "2026-06-19",
-  phase: "feature-build",
-  heartbeat: "2026-06-19T22:35:00Z",
-  milestones: [
-    {
-      id: "m0",
-      title: "Spine on fixtures",
-      units: [
-        { id: "m0-money", title: "Decimal money type + currency utils", oracle: "unit", deps: [], status: "merged", pr: "#3" },
-        { id: "m0-model", title: "Holding / asset-class / lot data model + Zod", oracle: "unit", deps: ["m0-money"], status: "merged", pr: "#4" },
-        { id: "m0-fixtures", title: "Seed a diverse fixture portfolio", oracle: "unit", deps: ["m0-model"], status: "merged", pr: "#5" },
-        { id: "m0-returns", title: "Returns engine: TWR, MWR, XIRR", oracle: "unit", deps: ["m0-model"], status: "active" },
-        { id: "m0-alloc", title: "Allocation + rebalancing-drift engine", oracle: "unit", deps: ["m0-model"], status: "active" },
-        { id: "m0-risk", title: "Risk metrics: vol, drawdown, Sharpe", oracle: "unit", deps: ["m0-returns"], status: "backlog" },
-        { id: "m0-app", title: "Vite+React+TS+Tailwind+shadcn app shell", oracle: "e2e", deps: [], status: "merged", pr: "#2" },
-        { id: "m0-charts", title: "Reusable charting kit", oracle: "e2e+screenshot", deps: ["m0-app"], status: "backlog" },
-        { id: "m0-networth", title: "Net-worth-over-time visualization", oracle: "e2e+screenshot", deps: ["m0-returns", "m0-charts", "m0-fixtures"], status: "backlog" },
-      ],
-    },
-    {
-      id: "m1",
-      title: "Backend + live data",
-      units: [
-        { id: "m1-convex", title: "Convex schema + queries", oracle: "unit", deps: ["m0-model"], status: "blocked", note: "needs Convex project provisioning (human)" },
-        { id: "m1-equities", title: "Equities/ETF price adapter (Alpha Vantage)", oracle: "unit", deps: ["m1-convex"], status: "backlog" },
-        { id: "m1-fx", title: "FX adapter (frankfurter.dev)", oracle: "unit", deps: ["m1-convex"], status: "backlog" },
-        { id: "m1-crypto", title: "Crypto adapter (CoinGecko)", oracle: "unit", deps: ["m1-convex"], status: "backlog" },
-        { id: "m1-macro", title: "Macro adapter (FRED): rates, CPI", oracle: "unit", deps: ["m1-convex"], status: "backlog" },
-        { id: "m1-weather", title: "Weather/world adapter (Open-Meteo, World Bank)", oracle: "unit", deps: ["m1-convex"], status: "backlog" },
-      ],
-    },
-    {
-      id: "m4",
-      title: "Ops cockpit",
-      units: [
-        { id: "m4-ops", title: "/ops page rendering harness state", oracle: "e2e", deps: ["m0-app"], status: "active", pr: "#4" },
-      ],
-    },
-  ],
-};
+export const opsSnapshot: OpsSnapshot = buildSnapshot(liveBacklog, liveTasks);

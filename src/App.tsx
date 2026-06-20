@@ -34,6 +34,9 @@ const PrivateMarketsPage = lazy(
 const AlertsPage = lazy(() =>
   import("@/alerts/AlertsPage").then((m) => ({ default: m.AlertsPage })),
 );
+const IpsPage = lazy(() =>
+  import("@/ips/IpsPage").then((m) => ({ default: m.IpsPage })),
+);
 const AttributionPage = lazy(() =>
   import("@/attribution/AttributionPage").then((m) => ({
     default: m.AttributionPage,
@@ -83,6 +86,7 @@ function routeElement(path: string) {
   if (path === "/taxlots") return <TaxLotsPage />;
   if (path === "/harvest") return <HarvestPage />;
   if (path === "/alerts") return <AlertsPage />;
+  if (path === "/ips") return <IpsPage />;
   if (path === "/org") return <OrgChartPage />;
   if (path === "/charts") return <ChartsGalleryPage />;
   if (path === "/scenarios") return <ScenarioCockpit />;

@@ -50,6 +50,13 @@ export function Dashboard() {
               Alerts
             </a>
             <a
+              href="#/ips"
+              data-testid="nav-ips"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              IPS
+            </a>
+            <a
               href="#/fees"
               data-testid="nav-fees"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

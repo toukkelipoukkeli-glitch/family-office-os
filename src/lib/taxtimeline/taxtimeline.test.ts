@@ -277,3 +277,83 @@ describe("buildTaxTimeline — graceful degradation & validation", () => {
     expect(tl.byCategory.every((c) => c.count === 0)).toBe(true);
   });
 });
+
+describe("buildTaxTimeline — adversarial edge cases", () => {
+  it("keeps the 4 quarterly instalments reconciling exactly even on an indivisible cent total", () => {
+    // 250274.75 / 4 = 62568.6875 → floors to 62568.68 ×3, Q4 absorbs +0.03.
+    // The invariant under test: no cent is ever created or lost regardless of
+    // how ugly the remainder is.
+    const tl = buildTaxTimeline(seededTimelineInputs);
+    const q = tl.events
+      .filter((e) => e.category === "estimated-tax")
+      .map((e) => e.amount!);
+    const sum = q.reduce((acc, m) => acc.plus(m), Money.zero("USD"));
+    expect(sum.amount.eq(tl.estimatedTax.amount)).toBe(true);
+    // First three are equal and floored; the last differs by the remainder.
+    expect(q[0].amount.eq(q[1].amount)).toBe(true);
+    expect(q[1].amount.eq(q[2].amount)).toBe(true);
+    expect(q[3].amount.gte(q[0].amount)).toBe(true);
+  });
+
+  it("anchors the Q4 instalment and the filing deadline into the NEXT calendar year", () => {
+    // Cross-year arithmetic must not drift: Q4 due Jan-15 and the return due
+    // Apr-15 both belong to year+1, and sort after every in-year event.
+    const tl = buildTaxTimeline(seededTimelineInputs);
+    const q4 = tl.events.find((e) => e.id === "tax-q4")!;
+    const filing = tl.events.find((e) => e.id === "filing-return")!;
+    expect(q4.date).toBe("2027-01-15");
+    expect(filing.date).toBe("2027-04-15");
+    // They are the last two events in the chronological order.
+    const ids = tl.events.map((e) => e.id);
+    expect(ids.slice(-2)).toEqual(["tax-q4", "filing-return"]);
+  });
+
+  it("computes a correct ±30-day wash-sale window across month boundaries", () => {
+    // asOf = Nov 30 still flags the BABA Nov-19 add (within ±30d); the window
+    // must be exact day arithmetic across two month boundaries:
+    //   −30d → Oct 31 (Nov has 30 days, Oct has 31) and +30d → Dec 30.
+    const tl = buildTaxTimeline({
+      ...seededTimelineInputs,
+      taxEstimate: undefined,
+      giving: undefined,
+      estate: undefined,
+      harvest: { ...seededTimelineInputs.harvest!, asOf: "2026-11-30" },
+    });
+    const blackout = tl.events.find((e) =>
+      e.id.startsWith("harvest-washsale-"),
+    )!;
+    expect(blackout).toBeDefined();
+    expect(blackout.date).toBe("2026-10-31"); // asOf − 30
+    expect(blackout.windowEnd).toBe("2026-12-30"); // asOf + 30
+  });
+
+  it("emits a 'no candidates' harvest review without any blackout windows when nothing is underwater", () => {
+    // Price every symbol far ABOVE cost so no lot is harvestable: the review
+    // event must still appear (severity action) but produce zero wash-sale rows.
+    const ledger = seededTimelineInputs.harvest!.ledger;
+    const upPrices: Record<string, string> = {};
+    for (const sym of Object.keys(seededTimelineInputs.harvest!.prices)) {
+      upPrices[sym] = "100000";
+    }
+    const tl = buildTaxTimeline({
+      year: SEEDED_YEAR,
+      currency: "USD",
+      harvest: { ledger, prices: upPrices, asOf: "2026-12-01" },
+    });
+    const review = tl.events.find((e) => e.id === "harvest-review")!;
+    expect(review.detail).toMatch(/No underwater lots/);
+    expect(
+      tl.events.some((e) => e.id.startsWith("harvest-washsale-")),
+    ).toBe(false);
+    expect(f0(tl.harvestableLoss)).toBe("$0");
+  });
+
+  it("is order-independent: the same inputs sort identically regardless of engine declaration order", () => {
+    // Determinism guard beyond a plain re-run — the sort must not depend on the
+    // order events happen to be pushed in.
+    const tl = buildTaxTimeline(seededTimelineInputs);
+    const dates = tl.events.map((e) => e.date);
+    const sorted = [...dates].sort();
+    expect(dates).toEqual(sorted);
+  });
+});

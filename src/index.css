@@ -97,3 +97,83 @@
 body {
   @apply bg-background text-foreground;
 }
+
+/*
+ * Print stylesheet — clean report output.
+ *
+ * Printing a family-office report should produce ink-friendly pages, not a
+ * screenshot of dark-mode chrome. We force a light palette (regardless of the
+ * active theme), drop interactive chrome (navigation, the theme toggle, "back"
+ * links, buttons), open up the content column to the full page width, and keep
+ * cards/charts from splitting across a page break. Anything tagged with the
+ * Tailwind `print:hidden` utility is also removed.
+ */
+@media print {
+  /* Force the light token set so printed output is dark-on-white even when the
+     viewer had dark mode on. Mirrors the `:root` values in light mode. */
+  :root,
+  .dark {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --border: oklch(0.85 0 0);
+    --input: oklch(0.85 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-grid: oklch(0.85 0 0);
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000;
+    color-scheme: light;
+  }
+
+  /* Pages give the dashboard chrome a sticky-style header + a back link; neither
+     belongs on paper. Remove site navigation and any element opting out via the
+     Tailwind `print:hidden` utility. */
+  header nav,
+  a[data-testid$="-back"] {
+    display: none !important;
+  }
+
+  /* Open the content column to the full printable width. */
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* Don't split a card, table row, or chart across a page break. */
+  table,
+  svg,
+  figure,
+  [data-print-keep] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Headings should keep at least some following content with them. */
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Hint browsers to print background colors of charts/badges. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

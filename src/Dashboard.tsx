@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { NetWorthDashboard } from "@/networth/NetWorthDashboard";
 import { seededNetWorth } from "@/lib/networth";
 import { ROUTES } from "@/lib/routes";
@@ -19,25 +20,28 @@ export function Dashboard() {
           <h1 className="text-lg font-semibold tracking-tight">
             Family Office OS
           </h1>
-          <nav className="flex items-center gap-4">
-            {ROUTES.filter((r) => r.nav !== false).map((r, i) => (
-              <a
-                key={r.path}
-                href={`#${r.path}`}
-                data-testid={r.navTestId}
-                className={cn(
-                  "text-sm underline-offset-4 hover:underline",
-                  // The first link (Overview) is emphasised; the rest are muted,
-                  // matching the original hand-written navigation.
-                  i === 0
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {r.label}
-              </a>
-            ))}
-          </nav>
+          <div className="flex items-center gap-4">
+            <nav className="flex items-center gap-4">
+              {ROUTES.filter((r) => r.nav !== false).map((r, i) => (
+                <a
+                  key={r.path}
+                  href={`#${r.path}`}
+                  data-testid={r.navTestId}
+                  className={cn(
+                    "text-sm underline-offset-4 hover:underline",
+                    // The first link (Overview) is emphasised; the rest are
+                    // muted, matching the original hand-written navigation.
+                    i === 0
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {r.label}
+                </a>
+              ))}
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

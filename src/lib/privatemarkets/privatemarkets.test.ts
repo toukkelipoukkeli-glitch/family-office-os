@@ -201,7 +201,116 @@ describe("edge cases", () => {
   });
 });
 
+describe("adversarial edge cases", () => {
+  it("keeps original order for same-date cashflows (stable sort)", () => {
+    // A call and a distribution settle on the same day; the entry order in the
+    // ledger must be preserved so the J-curve is deterministic.
+    const pos: FundPosition = {
+      commitment: { fundName: "SameDay", committed: "1000000", vintageYear: 2020, currency: "USD" },
+      cashflows: [
+        { date: "2020-01-01", kind: "call", amount: "1000000" },
+        { date: "2020-01-01", kind: "distribution", amount: "300000" },
+      ],
+    };
+    const m = computeLifecycle(pos);
+    // Both points share the date; the running net goes −1M then −700k.
+    expect(m.jCurve.map((p) => p.cumulativeNet.toNumber())).toEqual([
+      -1000000, -700000,
+    ]);
+    expectDecimal(m.paidIn, "1000000");
+    expectDecimal(m.distributed, "300000");
+  });
+
+  it("uses an explicit asOf even when it predates the last cashflow", () => {
+    // The IRR's terminal NAV is dated at asOf; an asOf before the final flow
+    // must still be honoured (xirr handles non-monotonic terminal dating).
+    const pos: FundPosition = {
+      commitment: { fundName: "EarlyMark", committed: "1000000", vintageYear: 2020, currency: "USD" },
+      cashflows: [
+        { date: "2020-01-01", kind: "call", amount: "1000000" },
+        { date: "2023-01-01", kind: "distribution", amount: "500000" },
+      ],
+      nav: "800000",
+      asOf: "2021-01-01",
+    };
+    const m = computeLifecycle(pos);
+    // Multiples are date-independent: TVPI = (0.5M + 0.8M)/1M = 1.3.
+    expectDecimal(m.tvpi, "1.3");
+    expect(m.irr).not.toBeNull();
+  });
+
+  it("preserves the TVPI = DPI + RVPI identity for the realized fund too", () => {
+    const m = computeLifecycle(realizedVentureFund);
+    expectDecimal(m.dpi.plus(m.rvpi), m.tvpi.toString());
+  });
+
+  it("computes exact-decimal multiples that a float would round wrong", () => {
+    // 0.1 + 0.2 != 0.3 in float; Decimal must keep it exact.
+    const pos: FundPosition = {
+      commitment: { fundName: "FloatTrap", committed: "1", vintageYear: 2020, currency: "USD" },
+      cashflows: [
+        { date: "2020-01-01", kind: "call", amount: "0.3" },
+        { date: "2021-01-01", kind: "distribution", amount: "0.1" },
+        { date: "2022-01-01", kind: "distribution", amount: "0.2" },
+      ],
+    };
+    const m = computeLifecycle(pos);
+    // distributed 0.1 + 0.2 = 0.3 exactly; DPI = 0.3 / 0.3 = 1.
+    expectDecimal(m.distributed, "0.3");
+    expectDecimal(m.dpi, "1");
+  });
+
+  it("treats zero committed safely (calledPct ratio guards divide-by-zero)", () => {
+    const pos: FundPosition = {
+      commitment: { fundName: "ZeroCommit", committed: "0", vintageYear: 2020, currency: "USD" },
+      cashflows: [{ date: "2020-01-01", kind: "call", amount: "100" }],
+    };
+    const m = computeLifecycle(pos);
+    // committed is 0 → calledPct ratio returns 0 rather than Infinity/NaN.
+    expectDecimal(m.calledPct, "0");
+    expectDecimal(m.unfunded, "0");
+  });
+
+  it("accepts a Decimal instance directly as an amount input", () => {
+    const pos: FundPosition = {
+      commitment: { fundName: "DecimalIn", committed: new Decimal("1000"), vintageYear: 2020, currency: "USD" },
+      cashflows: [
+        { date: "2020-01-01", kind: "call", amount: new Decimal("1000") },
+        { date: "2021-01-01", kind: "distribution", amount: new Decimal("1500") },
+      ],
+    };
+    const m = computeLifecycle(pos);
+    expectDecimal(m.paidIn, "1000");
+    expectDecimal(m.tvpi, "1.5");
+  });
+});
+
 describe("input validation", () => {
+  it("rejects a non-finite NAV", () => {
+    const pos: FundPosition = {
+      commitment: { fundName: "Bad", committed: "1000000", vintageYear: 2024, currency: "USD" },
+      cashflows: [],
+      nav: Infinity,
+    };
+    expect(() => computeLifecycle(pos)).toThrow(/non-finite/);
+  });
+
+  it("rejects an unparseable amount string", () => {
+    const pos: FundPosition = {
+      commitment: { fundName: "Bad", committed: "1000000", vintageYear: 2024, currency: "USD" },
+      cashflows: [{ date: "2024-01-01", kind: "call", amount: "not-a-number" }],
+    };
+    expect(() => computeLifecycle(pos)).toThrow(/invalid/);
+  });
+
+  it("rejects an unknown cashflow kind", () => {
+    const pos = {
+      commitment: { fundName: "Bad", committed: "1000000", vintageYear: 2024, currency: "USD" },
+      cashflows: [{ date: "2024-01-01", kind: "redemption", amount: "1" }],
+    } as unknown as FundPosition;
+    expect(() => computeLifecycle(pos)).toThrow(/call.*distribution/);
+  });
+
   it("rejects a negative cashflow magnitude", () => {
     const pos: FundPosition = {
       commitment: { fundName: "Bad", committed: "1000000", vintageYear: 2024, currency: "USD" },

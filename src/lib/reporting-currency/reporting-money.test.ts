@@ -53,7 +53,7 @@ describe("convertFromBase", () => {
     expect(convertFromBase(1_270_000, "GBP")).toBe(1_000_000);
   });
 
-  it("converts a smaller reporting unit to a larger figure (USD→EUR grows)", () => {
+  it("yields FEWER reporting units when the reporting currency is worth more (USD→EUR shrinks)", () => {
     // EUR is worth more than USD, so the same value is FEWER EUR than USD.
     expect(convertFromBase(1_000_000, "EUR")).toBeLessThan(1_000_000);
   });

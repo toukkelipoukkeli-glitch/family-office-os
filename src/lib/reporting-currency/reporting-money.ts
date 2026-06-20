@@ -42,8 +42,9 @@ export const REPORTING_BASE_CURRENCY = networthRateTable.base;
  * Units of base currency per 1 unit of the chosen reporting currency, from the
  * given FX table. Returns `1` when reporting === base (the no-op USD path).
  *
- * Throws (via {@link ReportingConverter.from}) only when given an unsupported
- * code; callers should pass a value already normalized by the switcher.
+ * The code is normalized first ({@link normalizeReportingCurrency}), so an
+ * unsupported or malformed value resolves to the base currency (a `1`/no-op
+ * rate) rather than throwing — callers need not pre-validate the code.
  */
 export function reportingRate(
   reporting: string,

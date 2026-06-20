@@ -1,6 +1,7 @@
 import { AlertsPage } from "@/alerts/AlertsPage";
 import Dashboard from "@/Dashboard";
 import { AttributionPage } from "@/attribution/AttributionPage";
+import { BenchmarkPage } from "@/benchmark/BenchmarkPage";
 import CapTablePage from "@/captable/CapTablePage";
 import CompanyProfilePage from "@/company/CompanyProfilePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
@@ -54,6 +55,10 @@ function App() {
 
   if (path === "/attribution") {
     return <AttributionPage />;
+  }
+
+  if (path === "/benchmark") {
+    return <BenchmarkPage />;
   }
 
   if (path === "/fees") {

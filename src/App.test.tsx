@@ -58,6 +58,15 @@ describe("App", () => {
     expect(screen.getByTestId("lookthrough-view")).toBeInTheDocument();
   });
 
+  it("renders the benchmark view at #/benchmark", () => {
+    setHash("#/benchmark");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /benchmark & relative performance/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("benchmark-page")).toBeInTheDocument();
+  });
+
   it("renders the limit alerts at #/alerts", () => {
     setHash("#/alerts");
     render(<App />);

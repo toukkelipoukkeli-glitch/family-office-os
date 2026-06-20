@@ -36,6 +36,13 @@ export function Dashboard() {
               Attribution
             </a>
             <a
+              href="#/benchmark"
+              data-testid="nav-benchmark"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Benchmark
+            </a>
+            <a
               href="#/alerts"
               data-testid="nav-alerts"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

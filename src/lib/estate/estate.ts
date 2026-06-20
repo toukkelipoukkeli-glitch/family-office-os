@@ -207,7 +207,7 @@ export interface FlowLink {
 export interface FlowNode {
   id: string;
   label: string;
-  kind: "estate" | "entity" | "beneficiary" | "tax";
+  kind: "estate" | "entity" | "beneficiary" | "tax" | "settlement";
 }
 
 /** What a single beneficiary nets after estate tax. */
@@ -589,10 +589,19 @@ export function analyzeEstate(
   );
 
   // --- Succession flow graph (estate → entity → beneficiary) ---------------
+  // Beneficiaries receive their *net* (post-tax) inheritance; estate tax and the
+  // debt/admin settlement are split into their own sinks. With those three sinks
+  // the entity layer conserves value exactly: in (gross estate) = out (net to
+  // beneficiaries + tax + debts & admin).
+  const netByBeneficiary = new Map<string, Money>();
+  for (const s of byBeneficiary.values()) {
+    netByBeneficiary.set(s.beneficiaryId, s.net);
+  }
   const { flowNodes, flowLinks } = buildFlow(
     plan,
-    grossByBequest,
+    netByBeneficiary,
     estateTax,
+    totalDebts.plus(adminCost),
     ccy,
   );
 
@@ -624,13 +633,18 @@ export function analyzeEstate(
 /**
  * Build the entity / succession flow: a small directed graph the view renders
  * as a Sankey-style diagram. Value flows from the estate, through each asset's
- * holding entity, to the beneficiaries; the estate tax is split off into a
- * dedicated `tax` sink so the diagram conserves value.
+ * holding entity, to where it actually ends up: the beneficiaries' **net**
+ * (post-tax) inheritance, the estate **tax** sink, and the **settlement** sink
+ * (debts + administration). Splitting those three sinks off makes the entity
+ * layer conserve value exactly — every entity's inflow (its asset value) equals
+ * its outflow (net + tax + settlement, pro-rated by entity weight) — so the
+ * ribbons add up and the eye can trust "where does the wealth end up".
  */
 function buildFlow(
   plan: EstatePlan,
-  grossByBequest: Map<string, Money>,
+  netByBeneficiary: Map<string, Money>,
   estateTax: Money,
+  settlementOther: Money,
   ccy: string,
 ): { flowNodes: FlowNode[]; flowLinks: FlowLink[] } {
   const zero = Money.zero(ccy);
@@ -657,54 +671,85 @@ function buildFlow(
     links.push({ source: "estate", target: `entity:${key}`, value: total });
   }
 
+  // The split base spans every flow-bearing node in the entity column —
+  // including the "held personally" node — so the weights cover the *whole*
+  // estate.
   const entityKeys = entityOrder.filter((k) => !entityTotals.get(k)!.isZero());
   const entityGrand = sumMoney(
     entityKeys.map((k) => entityTotals.get(k)!),
     ccy,
   );
 
-  // Tax sink.
+  // Whatever the gross estate isn't accounted for by net inheritance + tax +
+  // debts/admin is unbequeathed residue (e.g. a plan that leaves part of the
+  // estate undirected). Modelling it as its own sink keeps the diagram
+  // value-conserving instead of silently dropping or double-counting value.
+  const benNetTotal = sumMoney([...netByBeneficiary.values()], ccy);
+  const accounted = benNetTotal.plus(estateTax).plus(settlementOther);
+  const residueRaw = entityGrand.minus(accounted);
+  const residue = residueRaw.isNegative() ? zero : residueRaw;
+
+  // The ordered list of where value lands (targets), each with its grand total.
+  // Every entity node distributes its *own* inflow across these targets in the
+  // same proportions, so the ribbons out of a node always sum to the value in —
+  // value is conserved per node, not merely in aggregate.
+  const targets: { id: string; total: Money }[] = [];
+  for (const ben of plan.beneficiaries) {
+    const benNet = netByBeneficiary.get(ben.id) ?? zero;
+    if (benNet.isPositive()) targets.push({ id: `ben:${ben.id}`, total: benNet });
+  }
+  if (estateTax.isPositive()) targets.push({ id: "tax", total: estateTax });
+  if (settlementOther.isPositive()) {
+    targets.push({ id: "settlement", total: settlementOther });
+  }
+  if (residue.isPositive()) targets.push({ id: "residue", total: residue });
+
+  // Target nodes (declared before their links so they render in column order).
+  for (const ben of plan.beneficiaries) {
+    const benNet = netByBeneficiary.get(ben.id) ?? zero;
+    if (benNet.isPositive()) {
+      nodes.push({ id: `ben:${ben.id}`, label: ben.name, kind: "beneficiary" });
+    }
+  }
   if (estateTax.isPositive()) {
     nodes.push({ id: "tax", label: "Estate tax", kind: "tax" });
   }
-
-  // Each beneficiary's gross is pro-rated across the entities by entity weight,
-  // which keeps the diagram readable while conserving totals.
-  for (const ben of plan.beneficiaries) {
-    const benGross = sumMoney(
-      plan.bequests
-        .filter((bq) => bq.beneficiaryId === ben.id)
-        .map((bq) => grossByBequest.get(bq.id)!),
-      ccy,
-    );
-    if (benGross.isZero()) continue;
-    nodes.push({ id: `ben:${ben.id}`, label: ben.name, kind: "beneficiary" });
-    for (const k of entityKeys) {
-      const w = entityGrand.isZero()
-        ? new Decimal(0)
-        : entityTotals.get(k)!.amount.div(entityGrand.amount);
-      const v = benGross.times(w);
-      if (v.isPositive()) {
-        links.push({
-          source: `entity:${k}`,
-          target: `ben:${ben.id}`,
-          value: v,
-        });
-      }
-    }
+  if (settlementOther.isPositive()) {
+    nodes.push({
+      id: "settlement",
+      label: "Debts & admin",
+      kind: "settlement",
+    });
+  }
+  if (residue.isPositive()) {
+    nodes.push({ id: "residue", label: "Unallocated", kind: "settlement" });
   }
 
-  // Tax flows from the entity layer (pro-rata) to the tax sink.
-  if (estateTax.isPositive()) {
-    for (const k of entityKeys) {
-      const w = entityGrand.isZero()
-        ? new Decimal(0)
-        : entityTotals.get(k)!.amount.div(entityGrand.amount);
-      const v = estateTax.times(w);
+  // Distribute each entity node's inflow across the targets. The last target
+  // absorbs the per-node rounding residual so the outflow sums to the inflow
+  // exactly (value conservation, per node).
+  const distGrand = sumMoney(
+    targets.map((t) => t.total),
+    ccy,
+  );
+  for (const k of entityKeys) {
+    const inflow = entityTotals.get(k)!;
+    if (!inflow.isPositive() || targets.length === 0) continue;
+    let allocated = zero;
+    targets.forEach((t, i) => {
+      const isLast = i === targets.length - 1;
+      // Round each slice to a clean minor unit; the last target absorbs the
+      // accumulated rounding residual so the node's outflow == its inflow exactly.
+      const v = isLast
+        ? inflow.minus(allocated)
+        : distGrand.isZero()
+          ? zero
+          : inflow.times(t.total.amount.div(distGrand.amount)).round();
+      allocated = allocated.plus(v);
       if (v.isPositive()) {
-        links.push({ source: `entity:${k}`, target: "tax", value: v });
+        links.push({ source: `entity:${k}`, target: t.id, value: v });
       }
-    }
+    });
   }
 
   return { flowNodes: nodes, flowLinks: links };

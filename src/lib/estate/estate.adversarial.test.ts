@@ -203,4 +203,87 @@ describe("estate engine invariants (property-style)", () => {
       }
     }
   });
+
+  it("the succession flow conserves value through the entity layer", () => {
+    // Multi-entity plans (the property generator above uses none): each entity
+    // node's incoming value (estate → entity) must equal its outgoing value
+    // (entity → beneficiaries + entity → tax), to within rounding slack.
+    for (const seed of SEEDS.slice(0, 30)) {
+      const plan = withEntities(randomPlan(seed), seed);
+      const a = analyzeEstate(plan);
+
+      for (const node of a.flowNodes) {
+        if (node.kind !== "entity") continue;
+        const incoming = sumLinks(a.flowLinks, (l) => l.target === node.id);
+        const outgoing = sumLinks(a.flowLinks, (l) => l.source === node.id);
+        // Per-node conservation is exact (the last target absorbs the residual).
+        expect(outgoing.toString(), `seed ${seed} ${node.id}`).toBe(
+          incoming.toString(),
+        );
+      }
+
+      // Estate → entity links still sum to the gross estate.
+      const fromEstate = sumLinks(a.flowLinks, (l) => l.source === "estate");
+      expect(fromEstate.toString(), `seed ${seed}`).toBe(
+        a.grossEstate.isZero() ? "0 USD" : a.grossEstate.toString(),
+      );
+
+      // The whole entity layer conserves value: total inflow (gross estate) ==
+      // total outflow to beneficiaries-net + tax + debts/admin + residue.
+      const totalOut = sumLinks(a.flowLinks, (l) =>
+        l.source.startsWith("entity:"),
+      );
+      expect(totalOut.toString(), `seed ${seed} layer`).toBe(
+        fromEstate.toString(),
+      );
+    }
+  });
+
+  it("a zero-value estate analyzes cleanly without dividing by zero", () => {
+    const empty: EstatePlan = {
+      id: "empty",
+      name: "Empty",
+      currency: "USD",
+      principal: "P",
+      entities: [],
+      assets: [{ id: "a0", name: "A", value: usd("0"), liquidity: "cash" }],
+      liabilities: [],
+      beneficiaries: [{ id: "b0", name: "B", relation: "child" }],
+      bequests: [{ id: "q0", beneficiaryId: "b0", residueShare: 1 }],
+      exemption: usd("0"),
+      taxRate: 0.4,
+    };
+    const a = analyzeEstate(empty);
+    expect(a.grossEstate.toString()).toBe("0 USD");
+    expect(a.estateTax.toString()).toBe("0 USD");
+    // Zero settlement need is treated as fully covered (coverage = 100%).
+    expect(a.covered).toBe(true);
+    expect(a.coverageRatio.toString()).toBe("1");
+    expect(a.shortfall.toString()).toBe("0 USD");
+  });
 });
+
+/** Sum the value of every flow link matching `pred` (USD). */
+function sumLinks(
+  links: ReturnType<typeof analyzeEstate>["flowLinks"],
+  pred: (l: (typeof links)[number]) => boolean,
+): Money {
+  return sumMoney(
+    links.filter(pred).map((l) => l.value),
+    "USD",
+  );
+}
+
+/** Attach holding entities to a generated plan, round-robin across its assets. */
+function withEntities(plan: EstatePlan, seed: number): EstatePlan {
+  const rng = mulberry32(seed ^ 0x9e3779b9);
+  const entities = [
+    { id: "e0", name: "Trust", kind: "trust" as const },
+    { id: "e1", name: "HoldCo", kind: "holdco" as const },
+  ];
+  const assets = plan.assets.map((a, i) =>
+    // Leave some assets held personally (undefined entityId) to mix both paths.
+    rng() < 0.75 ? { ...a, entityId: entities[i % entities.length].id } : a,
+  );
+  return { ...plan, entities, assets };
+}

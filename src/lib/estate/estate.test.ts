@@ -305,6 +305,38 @@ describe("analyzeEstate — succession flow graph", () => {
     expect(fromEstate.toString()).toBe(a.grossEstate.toString());
   });
 
+  it("conserves value through the entity layer (inflow == outflow per node)", () => {
+    const a = analyzeEstate(seededEstatePlan);
+    for (const node of a.flowNodes) {
+      if (node.kind !== "entity") continue;
+      const incoming = a.flowLinks
+        .filter((l) => l.target === node.id)
+        .reduce((acc, l) => acc.plus(l.value), Money.zero("USD"));
+      const outgoing = a.flowLinks
+        .filter((l) => l.source === node.id)
+        .reduce((acc, l) => acc.plus(l.value), Money.zero("USD"));
+      expect(outgoing.toString(), node.id).toBe(incoming.toString());
+    }
+    // Beneficiary nodes receive *net* (post-tax), not gross — so the ribbons
+    // landing on a beneficiary equal that beneficiary's net inheritance (to
+    // within a few minor units of per-node rounding).
+    for (const s of a.beneficiaryShares) {
+      if (!s.net.isPositive()) continue;
+      const toBen = a.flowLinks
+        .filter((l) => l.target === `ben:${s.beneficiaryId}`)
+        .reduce((acc, l) => acc.plus(l.value), Money.zero("USD"));
+      expect(
+        toBen.minus(s.net).abs().lessThan(Money.of("0.05", "USD")),
+        `${s.beneficiaryId}: ${toBen.toString()} vs net ${s.net.toString()}`,
+      ).toBe(true);
+    }
+    // The full diagram conserves the gross estate end to end.
+    const grandOut = a.flowLinks
+      .filter((l) => l.source.startsWith("entity:"))
+      .reduce((acc, l) => acc.plus(l.value), Money.zero("USD"));
+    expect(grandOut.toString()).toBe(a.grossEstate.toString());
+  });
+
   it("routes assets without an entity through a 'held personally' node", () => {
     const a = analyzeEstate(seededEstatePlan);
     const personal = a.flowNodes.find((n) => n.id === "entity:__personal__");

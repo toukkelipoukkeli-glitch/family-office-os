@@ -434,7 +434,7 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
             <CardTitle className="text-base">Succession flow</CardTitle>
             <CardDescription>
               How value passes from the estate, through each holding entity, to
-              the beneficiaries — with the estate tax split off.
+              the beneficiaries — with estate tax and debts &amp; admin split off.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -454,6 +454,10 @@ export function EstatePlannerPage({ plan }: EstatePlannerPageProps) {
               <LegendDot color="var(--color-chart-2)" label="Entity / vehicle" />
               <LegendDot color="var(--color-chart-up)" label="Beneficiary" />
               <LegendDot color="var(--color-chart-down)" label="Estate tax" />
+              <LegendDot
+                color="var(--color-muted-foreground)"
+                label="Debts & admin"
+              />
             </div>
           </CardContent>
         </Card>

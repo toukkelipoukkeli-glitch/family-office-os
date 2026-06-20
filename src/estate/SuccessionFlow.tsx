@@ -19,6 +19,7 @@ const COLUMN_BY_KIND: Record<FlowNode["kind"], number> = {
   entity: 1,
   beneficiary: 2,
   tax: 2,
+  settlement: 2,
 };
 
 function colorForKind(kind: FlowNode["kind"]): string {
@@ -29,6 +30,8 @@ function colorForKind(kind: FlowNode["kind"]): string {
       return "var(--color-chart-2)";
     case "tax":
       return "var(--color-chart-down)";
+    case "settlement":
+      return "var(--color-muted-foreground)";
     default:
       return "var(--color-chart-up)";
   }
@@ -157,7 +160,9 @@ export const SuccessionFlow = React.forwardRef<
           key={`${l.source}->${l.target}-${i}`}
           d={d}
           fill="none"
-          stroke={colorForKind(t.kind === "tax" ? "tax" : s.kind)}
+          stroke={colorForKind(
+            t.kind === "tax" || t.kind === "settlement" ? t.kind : s.kind,
+          )}
           strokeWidth={round(Math.max(wS, wT))}
           strokeOpacity={0.28}
           data-testid="flow-link"

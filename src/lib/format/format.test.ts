@@ -90,6 +90,10 @@ describe("formatMoney (compact toggle)", () => {
         currency,
         notation: compactN ? "compact" : "standard",
         maximumFractionDigits: compactN ? 1 : 0,
+        // Match the deterministic formatter: strip a trailing `.0` so the
+        // baseline is identical on every ICU build (macOS strips by default,
+        // Linux/CI does not).
+        ...(compactN ? { trailingZeroDisplay: "stripIfInteger" as const } : {}),
       }).format(value);
     for (const v of [0, 1234, 1_250_000, 12_500_000, -3_200_000]) {
       expect(formatMoney(v, "USD", { compact: true })).toBe(legacy("USD", v, true));
@@ -128,6 +132,8 @@ describe("formatMoneySignedCompact", () => {
         currency: "USD",
         notation: "compact",
         maximumFractionDigits: 1,
+        // Match the deterministic formatter (strip trailing `.0` on every ICU).
+        trailingZeroDisplay: "stripIfInteger" as const,
       }).format(value);
     const legacy = (value: number) =>
       `${value < 0 ? "-" : "+"}${compact(Math.abs(value))}`;

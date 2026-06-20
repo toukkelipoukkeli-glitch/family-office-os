@@ -62,6 +62,22 @@ describe("buildSnapshot — gen-1 status derivation", () => {
     expect(counts.merged).toBe(0);
   });
 
+  it("does not treat an 'incomplete' gen-1 status as complete", () => {
+    // Guards the word-boundary check in isGenerationComplete: a naive substring
+    // match would let "incomplete" satisfy "complete" and wrongly mark every
+    // gen-1 unit as merged.
+    const tasks: TasksState = {
+      updatedAt: "2026-06-20",
+      generation: 1,
+      phase: "feature-build",
+      gen1: { status: "incomplete", merged: "1/3" },
+    };
+    const snap = buildSnapshot(backlog, tasks);
+    const counts = countByStatus(snap);
+    expect(counts.merged).toBe(0);
+    expect(counts.backlog).toBe(3);
+  });
+
   it("respects an explicit blocked list over the merged default", () => {
     const tasks: TasksState = {
       updatedAt: "2026-06-20",

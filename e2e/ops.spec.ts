@@ -71,8 +71,19 @@ test.describe("/ops cockpit", () => {
     const mergedCount = Number(mergedText.replace(/\D/g, ""));
     expect(mergedCount).toBeGreaterThanOrEqual(30);
 
-    // Every backlog milestone from backlog.json is rendered (m0..m8).
-    for (const milestone of ["m0", "m1", "m2", "m3", "m4", "m5", "m6", "m7"]) {
+    // Every milestone is rendered: m0..m6 from backlog.json plus the synthetic
+    // m7/m8 milestones derived from the in-flight gen-2 units.
+    for (const milestone of [
+      "m0",
+      "m1",
+      "m2",
+      "m3",
+      "m4",
+      "m5",
+      "m6",
+      "m7",
+      "m8",
+    ]) {
       await expect(page.getByTestId(`milestone-${milestone}`)).toBeVisible();
     }
   });

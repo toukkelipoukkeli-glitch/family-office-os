@@ -74,7 +74,9 @@ export const liveTasks = tasksJson as TasksState;
 /** A generation is "shipped" once its rollup status reads complete/done. */
 function isGenerationComplete(gen: GenerationState | undefined): boolean {
   if (!gen) return false;
-  return /complete|done|shipped/i.test(gen.status);
+  // Match whole status words only — a substring match would let "incomplete"
+  // satisfy "complete" and wrongly mark every gen-1 unit as merged.
+  return /\b(complete|done|shipped)\b/i.test(gen.status);
 }
 
 /**

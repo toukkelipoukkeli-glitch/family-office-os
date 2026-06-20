@@ -148,6 +148,13 @@ export function Dashboard() {
               Estate
             </a>
             <a
+              href="#/vault"
+              data-testid="nav-vault"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Vault
+            </a>
+            <a
               href="#/ops"
               data-testid="nav-ops"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

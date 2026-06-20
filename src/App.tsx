@@ -31,6 +31,7 @@ const PrivateMarketsPage = lazy(
   () => import("@/privatemarkets/PrivateMarketsPage"),
 );
 const CashflowPage = lazy(() => import("@/cashflow/CashflowPage"));
+const VaultPage = lazy(() => import("@/vault/VaultPage"));
 
 const AlertsPage = lazy(() =>
   import("@/alerts/AlertsPage").then((m) => ({ default: m.AlertsPage })),
@@ -99,6 +100,7 @@ function routeElement(path: string) {
   if (path === "/privatemarkets") return <PrivateMarketsPage />;
   if (path === "/cashflow") return <CashflowPage />;
   if (path === "/estate") return <EstatePlannerPage />;
+  if (path === "/vault") return <VaultPage />;
   if (path === "/pipeline" || path.startsWith("/pipeline/")) {
     return <PipelinePage path={path} />;
   }

@@ -106,15 +106,35 @@ function sortedEntries(commitment: Commitment): PreparedEntry[] {
  */
 export function buildJCurve(commitment: Commitment): JCurve {
   const entries = sortedEntries(commitment);
-  const nav =
-    commitment.nav === undefined
-      ? ZERO
-      : commitment.nav instanceof Decimal
+  // Validate nav / navDate with the *same* constraints commitmentMetrics
+  // enforces, so the same payload can never validate under one API and be
+  // rejected (or silently mishandled) under the other.
+  let nav: Decimal;
+  if (commitment.nav === undefined) {
+    nav = ZERO;
+  } else {
+    nav =
+      commitment.nav instanceof Decimal
         ? commitment.nav
         : new Decimal(commitment.nav);
-  const navDate =
-    commitment.navDate ??
-    (entries.length > 0 ? entries[entries.length - 1].date : null);
+    if (!nav.isFinite()) {
+      throw new Error("privatemarkets: jcurve non-finite nav");
+    }
+    if (nav.isNegative()) {
+      throw new Error("privatemarkets: jcurve nav must be non-negative");
+    }
+  }
+  let navDate: string | null;
+  if (commitment.navDate !== undefined) {
+    if (!isRealIsoDate(commitment.navDate)) {
+      throw new Error(
+        "privatemarkets: jcurve navDate must be a real ISO YYYY-MM-DD date",
+      );
+    }
+    navDate = commitment.navDate;
+  } else {
+    navDate = entries.length > 0 ? entries[entries.length - 1].date : null;
+  }
 
   interface Bucket {
     date: string;

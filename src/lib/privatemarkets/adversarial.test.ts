@@ -98,6 +98,35 @@ describe("J-curve — NAV attachment edge cases", () => {
     expect(jc.breakevenDate).toBeNull(); // never went negative → nothing to cross
   });
 
+  it("rejects a negative nav, matching commitmentMetrics' contract", () => {
+    const c: Commitment = {
+      id: "neg-nav",
+      name: "Neg NAV",
+      strategy: "Buyout",
+      committed: "5000000",
+      vintageYear: 2020,
+      currency: "USD",
+      nav: "-1",
+      ledger: [{ date: "2020-01-01", kind: "call", amount: "1000000" }],
+    };
+    expect(() => buildJCurve(c)).toThrow(/nav/);
+  });
+
+  it("rejects a calendar-impossible navDate, matching commitmentMetrics", () => {
+    const c: Commitment = {
+      id: "bad-navdate",
+      name: "Bad navDate",
+      strategy: "Buyout",
+      committed: "5000000",
+      vintageYear: 2020,
+      currency: "USD",
+      nav: "1000000",
+      navDate: "2020-02-30",
+      ledger: [{ date: "2020-01-01", kind: "call", amount: "1000000" }],
+    };
+    expect(() => buildJCurve(c)).toThrow(/real ISO/);
+  });
+
   it("yields an empty series with a zero trough for an empty ledger", () => {
     const c: Commitment = {
       id: "empty",

@@ -10,18 +10,18 @@ import {
 import { ROUTES } from "./routes";
 
 describe("buildCommands", () => {
-  it("includes the quick actions first, then one command per route", () => {
+  it("includes the quick actions first (no recents), then one command per route", () => {
     const commands = buildCommands();
-    // The two fixed quick actions lead the list.
+    // With no recent pages, the two fixed quick actions lead the list.
     expect(commands[0].id).toBe("action:dashboard");
     expect(commands[1].id).toBe("action:toggle-theme");
-    // Every route is represented exactly once.
-    const navIds = commands
-      .filter((c) => c.kind === "navigation")
+    // Every route is represented exactly once by a `route:` navigation command.
+    const routeIds = commands
+      .filter((c) => c.id.startsWith("route:"))
       .map((c) => c.id);
-    expect(navIds).toHaveLength(ROUTES.length);
+    expect(routeIds).toHaveLength(ROUTES.length);
     for (const route of ROUTES) {
-      expect(navIds).toContain(`route:${route.path}`);
+      expect(routeIds).toContain(`route:${route.path}`);
     }
   });
 
@@ -33,11 +33,61 @@ describe("buildCommands", () => {
   });
 
   it("stays in sync with the registry as it grows (no second list)", () => {
-    // Generated from ROUTES, so the count must track the registry exactly.
-    const navCount = buildCommands().filter(
-      (c) => c.kind === "navigation",
+    // Generated from ROUTES, so the `route:` command count must track the
+    // registry exactly. (Deep-link sub-views are also navigation-kind but carry
+    // their own `deeplink:` id prefix.)
+    const routeCount = buildCommands().filter((c) =>
+      c.id.startsWith("route:"),
     ).length;
-    expect(navCount).toBe(ROUTES.length);
+    expect(routeCount).toBe(ROUTES.length);
+  });
+
+  it("emits one reporting-currency command per supported currency", () => {
+    const commands = buildCommands();
+    const currencyCmds = commands.filter((c) => c.kind === "currency");
+    expect(currencyCmds.map((c) => c.currencyCode)).toEqual([
+      "USD",
+      "EUR",
+      "GBP",
+      "CHF",
+    ]);
+    // Each currency command navigates nowhere (it switches state).
+    for (const c of currencyCmds) {
+      expect(commandHref(c)).toBeUndefined();
+    }
+  });
+
+  it("marks the current reporting currency as (current)", () => {
+    const commands = buildCommands({ currentCurrency: "EUR" });
+    const eur = commands.find((c) => c.id === "currency:EUR");
+    const usd = commands.find((c) => c.id === "currency:USD");
+    expect(eur?.label).toContain("(current)");
+    expect(usd?.label).not.toContain("(current)");
+  });
+
+  it("includes curated deep-link sub-views with full hrefs", () => {
+    const commands = buildCommands();
+    const gfc = commands.find((c) => c.id === "deeplink:stress:gfc-2008");
+    expect(gfc?.kind).toBe("navigation");
+    expect(commandHref(gfc!)).toBe("#/stress?e=gfc-2008");
+  });
+
+  it("floats recently visited routes to the top as 'Recent' commands", () => {
+    const commands = buildCommands({ recentPaths: ["/fees", "/risk"] });
+    expect(commands[0].id).toBe("recent:/fees");
+    expect(commands[0].hint).toBe("Recent");
+    expect(commands[0].label).toBe("Fees");
+    expect(commands[1].id).toBe("recent:/risk");
+    // The fixed quick actions follow the recents.
+    expect(commands[2].id).toBe("action:dashboard");
+  });
+
+  it("ignores recent paths that no longer resolve to a route", () => {
+    const commands = buildCommands({
+      recentPaths: ["/gone", "/fees", "/fees"],
+    });
+    const recents = commands.filter((c) => c.id.startsWith("recent:"));
+    expect(recents.map((c) => c.id)).toEqual(["recent:/fees"]);
   });
 });
 
@@ -48,8 +98,14 @@ describe("commandHref", () => {
       label: "Risk",
       hint: "Risk",
       kind: "navigation",
+      href: "#/risk",
     };
     expect(commandHref(cmd)).toBe("#/risk");
+  });
+
+  it("returns the deep-link href for a generated route command", () => {
+    const risk = buildCommands().find((c) => c.id === "route:/risk");
+    expect(commandHref(risk!)).toBe("#/risk");
   });
 
   it("returns undefined for an action command", () => {
@@ -58,6 +114,17 @@ describe("commandHref", () => {
       label: "Toggle theme",
       hint: "Quick action",
       kind: "action",
+    };
+    expect(commandHref(cmd)).toBeUndefined();
+  });
+
+  it("returns undefined for a currency command", () => {
+    const cmd: Command = {
+      id: "currency:EUR",
+      label: "Reporting currency → EUR",
+      hint: "Currency",
+      kind: "currency",
+      currencyCode: "EUR",
     };
     expect(commandHref(cmd)).toBeUndefined();
   });

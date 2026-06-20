@@ -4,6 +4,17 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CommandPalette } from "./CommandPalette";
 import { openCommandPalette } from "./command-palette-events";
+import {
+  ReportingCurrencyProvider,
+  useReportingCurrency,
+} from "@/lib/reporting-currency";
+import { RECENT_PAGES_STORAGE_KEY } from "@/lib/palette/recent-pages";
+
+/** Reads the active reporting currency into the DOM so tests can assert on it. */
+function CurrencyProbe() {
+  const { currency } = useReportingCurrency();
+  return <span data-testid="currency-probe">{currency}</span>;
+}
 
 /** Open the palette with the global Cmd-K shortcut. */
 async function pressCmdK(user: ReturnType<typeof userEvent.setup>) {
@@ -23,10 +34,12 @@ async function openAndFocus(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   window.location.hash = "";
+  window.localStorage.clear();
 });
 
 afterEach(() => {
   window.location.hash = "";
+  window.localStorage.clear();
 });
 
 describe("CommandPalette", () => {
@@ -302,5 +315,79 @@ describe("CommandPalette", () => {
     // No command to run -> no navigation, palette remains open.
     expect(window.location.hash).toBe("");
     expect(screen.getByTestId("command-palette")).toBeInTheDocument();
+  });
+
+  // --- m13: deep-links, currency actions, recent pages ----------------------
+
+  it("navigates to a deep-link sub-view (carrying the query) on click", async () => {
+    const user = userEvent.setup();
+    render(<CommandPalette />);
+    await pressCmdK(user);
+    const input = await screen.findByTestId("command-palette-input");
+    await user.type(input, "2008 Global Financial");
+    const option = await screen.findByTestId(
+      "command-option-deeplink:stress:gfc-2008",
+    );
+    await user.click(option);
+    // Deep link sets both the route and the sub-view query param.
+    expect(window.location.hash).toBe("#/stress?e=gfc-2008");
+  });
+
+  it("switches the reporting currency via a currency command", async () => {
+    const user = userEvent.setup();
+    render(
+      <ReportingCurrencyProvider initialCurrency="USD">
+        <CurrencyProbe />
+        <CommandPalette />
+      </ReportingCurrencyProvider>,
+    );
+    expect(screen.getByTestId("currency-probe")).toHaveTextContent("USD");
+
+    await pressCmdK(user);
+    const input = await screen.findByTestId("command-palette-input");
+    await user.type(input, "currency EUR");
+    const option = await screen.findByTestId("command-option-currency:EUR");
+    await user.click(option);
+
+    // The reporting currency switched, and the route is unchanged.
+    expect(screen.getByTestId("currency-probe")).toHaveTextContent("EUR");
+    expect(window.location.hash).toBe("");
+    await waitFor(() =>
+      expect(screen.queryByTestId("command-palette")).not.toBeInTheDocument(),
+    );
+  });
+
+  it("marks the active currency command as (current)", async () => {
+    const user = userEvent.setup();
+    render(
+      <ReportingCurrencyProvider initialCurrency="GBP">
+        <CommandPalette />
+      </ReportingCurrencyProvider>,
+    );
+    await pressCmdK(user);
+    const input = await screen.findByTestId("command-palette-input");
+    await user.type(input, "currency GBP");
+    const option = await screen.findByTestId("command-option-currency:GBP");
+    expect(option).toHaveTextContent("(current)");
+  });
+
+  it("surfaces recently visited pages at the top when the palette opens", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      RECENT_PAGES_STORAGE_KEY,
+      JSON.stringify(["/fees", "/risk"]),
+    );
+    render(<CommandPalette />);
+    await pressCmdK(user);
+    await screen.findByTestId("command-palette");
+    // The most-recent page is the first option (a "Recent" command).
+    const options = screen.getAllByRole("option");
+    expect(options[0]).toHaveAttribute(
+      "data-testid",
+      "command-option-recent:/fees",
+    );
+    // Clicking it navigates to that route.
+    await user.click(screen.getByTestId("command-option-recent:/fees"));
+    expect(window.location.hash).toBe("#/fees");
   });
 });

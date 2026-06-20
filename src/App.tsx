@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import { RouteAnnouncer, SkipToContentLink } from "@/components/AppChrome";
 import { useMainContentAnchor } from "@/lib/main-content";
@@ -6,6 +6,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
 import { TagFilterProvider } from "@/lib/filter";
+import { recordRecentPage } from "@/lib/palette/recent-pages";
 import { ReportingCurrencyProvider } from "@/lib/reporting-currency";
 import { seededPortfolio } from "@/fixtures";
 import { matchRoute } from "@/lib/routes";
@@ -52,6 +53,14 @@ function App() {
   // Guarantee a `#main-content` anchor exists on every route (including pages
   // that hand-roll a bare `<main>`), so the skip link always has a target.
   useMainContentAnchor(path);
+
+  // Record each visited route so the command palette can surface recently-seen
+  // pages at the top of its list. Only known routes are recorded (the helper
+  // ignores non-route paths); the dashboard fallback (`/`) is intentionally not
+  // a registry route, so it is skipped.
+  useEffect(() => {
+    if (matchRoute(path)) recordRecentPage(path);
+  }, [path]);
 
   return (
     // Global holding-tag filter state, seeded from the demo portfolio. Mounted

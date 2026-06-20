@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ArrowRight, Search, Zap } from "lucide-react";
+import { ArrowRight, Coins, Search, Zap } from "lucide-react";
 
 import {
   buildCommands,
@@ -14,6 +14,8 @@ import {
   type Command,
 } from "@/lib/command-palette";
 import { COMMAND_PALETTE_OPEN_EVENT } from "@/components/command-palette-events";
+import { readRecentPages } from "@/lib/palette/recent-pages";
+import { useOptionalReportingCurrencyContext } from "@/lib/reporting-currency";
 import { useTheme } from "@/lib/theme/use-theme";
 import { cn } from "@/lib/utils";
 
@@ -45,8 +47,21 @@ export function CommandPalette() {
   const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   const { cyclePreference } = useTheme();
+  // The reporting-currency context may be absent in isolated renders; the
+  // currency commands then fall back to the default and are inert if run.
+  const reportingCurrency = useOptionalReportingCurrencyContext();
 
-  const commands = useMemo(() => buildCommands(), []);
+  // Rebuild the command list each time the palette opens so freshly-recorded
+  // recent pages and the current reporting currency are reflected. (Closed, the
+  // palette renders nothing, so rebuilding only on `open` is sufficient.)
+  const commands = useMemo(
+    () =>
+      buildCommands({
+        recentPaths: open ? readRecentPages() : [],
+        currentCurrency: reportingCurrency?.currency,
+      }),
+    [open, reportingCurrency?.currency],
+  );
   const results = useMemo(
     () => filterCommands(query, commands),
     [query, commands],
@@ -62,7 +77,11 @@ export function CommandPalette() {
     (command: Command) => {
       const href = commandHref(command);
       if (href) {
+        // Both top-level routes and deep-link sub-views carry a full hash href.
         window.location.hash = href;
+      } else if (command.kind === "currency" && command.currencyCode) {
+        // Switch the global reporting currency (no-op without a provider).
+        reportingCurrency?.setCurrency(command.currencyCode);
       } else if (command.id === "action:dashboard") {
         window.location.hash = "#/";
       } else if (command.id === "action:toggle-theme") {
@@ -70,7 +89,7 @@ export function CommandPalette() {
       }
       close();
     },
-    [cyclePreference, close],
+    [cyclePreference, reportingCurrency, close],
   );
 
   // Global Cmd-K / Ctrl-K to open (and toggle) the palette, plus a custom
@@ -251,7 +270,12 @@ export function CommandPalette() {
           ) : (
             results.map((command, index) => {
               const selected = index === activeIndex;
-              const Icon = command.kind === "action" ? Zap : ArrowRight;
+              const Icon =
+                command.kind === "currency"
+                  ? Coins
+                  : command.kind === "action"
+                    ? Zap
+                    : ArrowRight;
               return (
                 <li
                   key={command.id}
@@ -272,7 +296,7 @@ export function CommandPalette() {
                   <Icon
                     className={cn(
                       "h-4 w-4 shrink-0",
-                      command.kind === "action"
+                      command.kind === "action" || command.kind === "currency"
                         ? "text-primary"
                         : "text-muted-foreground",
                     )}

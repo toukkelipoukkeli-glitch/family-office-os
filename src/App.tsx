@@ -10,6 +10,7 @@ import OrgChartPage from "@/org/OrgChartPage";
 import PipelinePage from "@/pipeline/PipelinePage";
 import { RelationshipGraphPage } from "@/relationship/RelationshipGraphPage";
 import { ScenarioCockpit } from "@/scenario/ScenarioCockpitPage";
+import TaxLotsPage from "@/taxlots/TaxLotsPage";
 
 function App() {
   const path = useHashRoute();
@@ -20,6 +21,10 @@ function App() {
 
   if (path === "/captable") {
     return <CapTablePage />;
+  }
+
+  if (path === "/taxlots") {
+    return <TaxLotsPage />;
   }
 
   if (path === "/org") {

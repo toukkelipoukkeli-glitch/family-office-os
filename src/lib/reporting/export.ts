@@ -11,26 +11,23 @@
  * more.
  */
 
+import { formatBps, formatMoneyWhole, formatPercent } from "@/lib/format";
+
 import type { BoardReport } from "./report";
 
 /** Format a fraction as a percent string, e.g. `0.123 → "12.3%"`. */
 function pct(value: number, digits = 2): string {
-  return `${(value * 100).toFixed(digits)}%`;
+  return formatPercent(value, { digits });
 }
 
 /** Format a base-currency amount with thousands separators, no decimals. */
 function money(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, currency);
 }
 
 /** Signed basis points, e.g. `0.0123 → "+123 bps"`. */
 function bps(value: number): string {
-  const b = Math.round(value * 10000);
-  return `${b >= 0 ? "+" : ""}${b} bps`;
+  return formatBps(value);
 }
 
 /**

@@ -12,36 +12,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buildCurrencyModel } from "@/lib/currency";
+import {
+  formatMoneyCompact,
+  formatMoneyWhole,
+  formatPercentIntl,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Compact base-currency amount, e.g. `€6.5M`. */
 function compact(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, currency);
 }
 
 /** Whole base-currency amount with no fractional units, e.g. `€6,500,000`. */
 function whole(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, currency);
 }
 
 /** A signed percentage, e.g. `+50.0%` / `-1.3%`. */
 function pct(fraction: number, opts: { signed?: boolean } = {}): string {
-  const s = new Intl.NumberFormat("en-US", {
-    style: "percent",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-    signDisplay: opts.signed ? "exceptZero" : "auto",
-  }).format(fraction);
-  return s;
+  return formatPercentIntl(fraction, { signed: opts.signed });
 }
 
 interface KpiProps {

@@ -14,6 +14,11 @@ import {
   type CockpitModel,
 } from "@/lib/scenario/cockpit";
 import { getScenario, SCENARIO_RATIONALE } from "@/lib/scenario/named";
+import {
+  formatMoneyCompact,
+  formatMoneySignedCompact,
+  formatPercent,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { FanChart } from "./FanChart";
@@ -24,22 +29,16 @@ const CURRENCY = "USD";
 
 /** Compact currency, e.g. `$12.5M`. */
 function compact(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: CURRENCY,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, CURRENCY);
 }
 
 /** Signed compact currency, e.g. `-$1.3M`. */
 function signedCompact(value: number): string {
-  const sign = value < 0 ? "-" : "+";
-  return `${sign}${compact(Math.abs(value))}`;
+  return formatMoneySignedCompact(value, CURRENCY);
 }
 
 function percent(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
+  return formatPercent(value);
 }
 
 interface KpiProps {

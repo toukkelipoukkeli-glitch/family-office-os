@@ -12,6 +12,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  formatMoneyValue,
+  formatPercent,
+  formatPercentSigned,
+} from "@/lib/format";
 import { assetClassLabel } from "@/lib/model/asset-class";
 import { Money } from "@/lib/money";
 import type {
@@ -23,13 +28,7 @@ import { cn } from "@/lib/utils";
 
 /** Compact currency string, e.g. `$12.5M` / `$840K`, for axis-free KPIs. */
 function compactMoney(money: Money): string {
-  const n = money.amount.toNumber();
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: money.currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(n);
+  return formatMoneyValue(money);
 }
 
 /** Full currency string with no fractional minor units. */
@@ -39,14 +38,12 @@ function fullMoney(money: Money): string {
 
 /** Signed percent string for a return/change, e.g. `+18.4%` / `-3.2%`. */
 function signedPercent(value: { toNumber(): number }): string {
-  const pct = value.toNumber() * 100;
-  const sign = pct >= 0 ? "+" : "";
-  return `${sign}${pct.toFixed(1)}%`;
+  return formatPercentSigned(value);
 }
 
 /** Unsigned percent string for a share/weight, e.g. `41.1%`. */
 function sharePercent(value: { toNumber(): number }): string {
-  return `${(value.toNumber() * 100).toFixed(1)}%`;
+  return formatPercent(value);
 }
 
 function seriesValues(series: NetWorthSeries): number[] {

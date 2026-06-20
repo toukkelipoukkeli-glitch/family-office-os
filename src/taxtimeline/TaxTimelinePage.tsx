@@ -26,6 +26,7 @@ import {
   type TimelineEvent,
   type TimelineSeverity,
 } from "@/lib/taxtimeline";
+import { formatMoneyCompact, formatMoneyWhole } from "@/lib/format";
 import type { Money } from "@/lib/money";
 import { ExportMenu } from "@/components/ExportMenu";
 import { taxTimelineExport } from "@/lib/export";
@@ -55,20 +56,11 @@ const SEVERITY_LABEL: Record<TimelineSeverity, string> = {
 };
 
 function money(currency: string, value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return formatMoneyCompact(value, currency);
 }
 
 function moneyFull(currency: string, value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, currency);
 }
 
 const num = (m: Money) => m.amount.toNumber();

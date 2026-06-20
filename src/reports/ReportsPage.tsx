@@ -26,20 +26,17 @@ import {
   type BoardReport,
 } from "@/lib/reporting";
 import { reportExport } from "@/lib/export";
+import { formatMoneyWhole, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Full currency with no fractional cents, e.g. `$1,250,000`. */
 function whole(value: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatMoneyWhole(value, currency);
 }
 
 /** Percent, e.g. `12.3%`. */
 function percent(value: number, digits = 1): string {
-  return `${(value * 100).toFixed(digits)}%`;
+  return formatPercent(value, { digits });
 }
 
 /** Signed basis points, e.g. `+123 bps`. */

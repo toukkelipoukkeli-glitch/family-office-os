@@ -26,6 +26,7 @@ import {
   type ScorecardView,
 } from "@/lib/managers";
 import { managersExport } from "@/lib/export";
+import { formatMoneyCompact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Format a decimal fraction as a percentage, optionally signed. */
@@ -42,12 +43,7 @@ function num(value: number, digits = 2): string {
 
 /** Compact currency, e.g. $1.85B. */
 function money(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 2,
-  }).format(value);
+  return formatMoneyCompact(value, "USD", { maximumFractionDigits: 2 });
 }
 
 interface KpiProps {

@@ -50,6 +50,70 @@ test.describe("/ops cockpit", () => {
     ).toBeVisible();
   });
 
+  test("reflects live harness state, not a stale fixture", async ({ page }) => {
+    await page.goto("/#/ops");
+
+    // The header surfaces the live generation/phase derived from tasks.json.
+    // gen-1 is complete and gen-2 is launching, so the phase mentions gen-2.
+    await expect(page.getByText(/launching gen-2/i)).toBeVisible();
+
+    // gen-2 work is in flight: the currently-active unit appears in the
+    // in-progress column (the old static snapshot never showed gen-2 at all).
+    const activeColumn = page.getByTestId("column-active");
+    await expect(
+      activeColumn.getByTestId("unit-row").first(),
+    ).toBeVisible();
+
+    // gen-1 shipped: the cockpit shows a large merged count (35 gen-1 units +
+    // the ops unit), far more than the handful the stale fixture listed.
+    const mergedTile = page.getByTestId("summary-merged");
+    const mergedText = (await mergedTile.textContent()) ?? "";
+    const mergedCount = Number(mergedText.replace(/\D/g, ""));
+    expect(mergedCount).toBeGreaterThanOrEqual(30);
+
+    // Every milestone is rendered: m0..m6 from backlog.json plus the synthetic
+    // m7/m8 milestones derived from the in-flight gen-2 units.
+    for (const milestone of [
+      "m0",
+      "m1",
+      "m2",
+      "m3",
+      "m4",
+      "m5",
+      "m6",
+      "m7",
+      "m8",
+    ]) {
+      await expect(page.getByTestId(`milestone-${milestone}`)).toBeVisible();
+    }
+  });
+
+  // Visual-QA evidence: capture the cockpit at desktop + mobile viewports so a
+  // human (and the worker's vision check) can confirm it renders correctly.
+  test("captures desktop + mobile evidence", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/#/ops");
+    await expect(
+      page.getByRole("heading", { name: /ops cockpit/i }),
+    ).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({
+      path: "e2e/evidence/m7-ops-live/ops-desktop.png",
+      fullPage: true,
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/#/ops");
+    await expect(
+      page.getByRole("heading", { name: /ops cockpit/i }),
+    ).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({
+      path: "e2e/evidence/m7-ops-live/ops-mobile.png",
+      fullPage: true,
+    });
+  });
+
   // Screenshot baselines are OS-specific (font rendering differs across
   // platforms). The committed baseline is generated on the maintainer's macOS
   // machine; in CI (Linux) there is no matching baseline, so skip there rather

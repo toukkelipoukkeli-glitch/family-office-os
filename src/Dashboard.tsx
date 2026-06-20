@@ -36,6 +36,13 @@ export function Dashboard() {
               Attribution
             </a>
             <a
+              href="#/cashflow"
+              data-testid="nav-cashflow"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Cashflow
+            </a>
+            <a
               href="#/captable"
               data-testid="nav-captable"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

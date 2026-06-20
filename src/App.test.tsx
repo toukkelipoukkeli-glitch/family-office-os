@@ -40,6 +40,15 @@ describe("App", () => {
     expect(screen.getByTestId("charts-gallery")).toBeInTheDocument();
   });
 
+  it("renders the cashflow runway at #/cashflow", () => {
+    setHash("#/cashflow");
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: /cashflow & liquidity runway/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("cashflow-page")).toBeInTheDocument();
+  });
+
   it("renders the ownership graph at #/ownership", () => {
     setHash("#/ownership");
     render(<App />);

@@ -1,6 +1,7 @@
 import Dashboard from "@/Dashboard";
 import { AttributionPage } from "@/attribution/AttributionPage";
 import CapTablePage from "@/captable/CapTablePage";
+import CashflowPage from "@/cashflow/CashflowPage";
 import CompanyProfilePage from "@/company/CompanyProfilePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
 import { OwnershipGraphPage } from "@/components/ownership/ownership-graph-page";
@@ -42,6 +43,10 @@ function App() {
 
   if (path === "/attribution") {
     return <AttributionPage />;
+  }
+
+  if (path === "/cashflow") {
+    return <CashflowPage />;
   }
 
   if (path === "/ownership") {

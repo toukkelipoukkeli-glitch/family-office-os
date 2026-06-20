@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { ArrowLeft, Briefcase, Target, TrendingUp, Trophy } from "lucide-react";
 
+import { AppShell } from "@/components/AppShell";
 import {
   Card,
   CardContent,
@@ -394,27 +395,15 @@ export function PipelinePage({
   const stageCount = orderedStages(pipeline).length;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">
-              Deal pipeline
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {pipeline.name} · {stageCount} stages
-            </p>
-          </div>
-          <a
-            href="#/"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Back to dashboard
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl space-y-6 px-6 py-10">
+    <AppShell
+      title="Deal pipeline"
+      subtitle={
+        <p className="text-xs text-muted-foreground">
+          {pipeline.name} · {stageCount} stages
+        </p>
+      }
+      mainClassName="space-y-6"
+    >
         {detailId ? (
           selected ? (
             <DealDetail deal={selected} pipeline={pipeline} />
@@ -436,8 +425,7 @@ export function PipelinePage({
         ) : (
           <BoardView pipeline={pipeline} deals={deals} />
         )}
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

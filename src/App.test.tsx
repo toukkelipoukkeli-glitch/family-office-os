@@ -1,7 +1,8 @@
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import App from "./App";
+import { ROUTES } from "./lib/routes";
 
 function setHash(hash: string) {
   act(() => {
@@ -127,5 +128,29 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: /family office os/i }),
     ).toBeInTheDocument();
+  });
+
+  // Registry resolution: every route in the typed registry must mount its page
+  // without falling back to the dashboard or throwing into the error boundary.
+  // The default error fallback renders role="alert", so its absence proves the
+  // lazy page resolved and rendered cleanly.
+  describe("every registered route resolves", () => {
+    for (const route of ROUTES) {
+      it(`mounts ${route.path}`, async () => {
+        setHash(`#${route.path}`);
+        const { unmount } = render(<App />);
+        // Wait for the Suspense fallback to clear (the chunk to resolve).
+        await waitFor(() => {
+          expect(screen.queryByTestId("route-fallback")).not.toBeInTheDocument();
+        });
+        // The page rendered without tripping the error boundary.
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        // A heading is present (the shared chrome always renders an <h1>).
+        expect(
+          screen.getAllByRole("heading").length,
+        ).toBeGreaterThan(0);
+        unmount();
+      });
+    }
   });
 });

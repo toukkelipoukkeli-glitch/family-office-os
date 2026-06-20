@@ -1,13 +1,17 @@
 {
   "updatedAt": "2026-06-20",
-  "generation": 5,
-  "phase": "gen-4 complete (7/7); gen-5 building",
+  "generation": 6,
+  "phase": "gen-5 complete (8/8); gen-6 building (SEQUENTIAL polish)",
   "gen1": { "status": "complete", "merged": "35/35" },
   "gen2": { "status": "complete", "merged": "8/10" },
   "gen3": { "status": "complete", "merged": "9/9" },
-  "gen4": { "status": "complete", "merged": "7/7", "units": ["m10-rebalance", "m10-currency", "m10-stress", "m10-philanthropy", "m10-insurance", "m10-home", "m10-ai-insights"] },
-  "gen5": { "status": "building", "units": ["m11-liquidity-coverage", "m11-goal-funding", "m11-factor-attribution", "m11-tax-timeline", "m11-concentration-risk", "m11-entity-consolidation", "m11-manager-scorecard", "m11-data-quality"] },
-  "stats": "main: ~62 PR merges, ~2509 tests, 31 routes, healthy; live Computer-Use sweep ran in gen-4",
-  "note": "Gen-4 was clean (7/7). Steered gen-5+ ideation toward depth/polish/gaps (a11y, exports, search, perf, unused keys) rather than more niche pages, as the app is now very feature-rich.",
+  "gen4": { "status": "complete", "merged": "7/7" },
+  "gen5": { "status": "complete", "merged": "8/8", "units": ["m11-liquidity-coverage", "m11-goal-funding", "m11-factor-attribution", "m11-tax-timeline", "m11-concentration-risk", "m11-entity-consolidation", "m11-manager-scorecard", "m11-data-quality"] },
+  "gen6": {
+    "status": "building (sequential)",
+    "units": ["m12-route-registry", "m12-theme-print", "m12-command-palette", "m12-chart-a11y", "m12-export-toolkit", "m12-tag-filter", "m12-reporting-currency"],
+    "note": "CROSS-CUTTING polish — these touch shared files (App.tsx, AppShell, charts), so built SEQUENTIALLY (each off latest main) to avoid the constant route-wiring conflicts that parallel feature pages don't have. Led by a route-registry + AppShell refactor that should also reduce future App.tsx conflicts."
+  },
+  "stats": "main: ~70 PR merges, ~2815 tests, 39 routes, healthy",
   "blocked": []
 }

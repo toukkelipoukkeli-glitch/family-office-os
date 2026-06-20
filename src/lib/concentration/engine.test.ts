@@ -284,6 +284,120 @@ describe("analyzeConcentration — edge cases", () => {
     ).toThrow();
   });
 
+  it("reconciles to the last unit with awkward weights and a prime value", () => {
+    // A value not cleanly divisible by the weights, so float math would drift:
+    // the residual must be computed as (whole − Σmodelled), not Σ(1−weights).
+    const b = book([
+      {
+        kind: "fund",
+        id: "f",
+        name: "Odd fund",
+        liquidity: "liquid",
+        value: usd("1000003"),
+        constituents: [
+          { issuerId: "a", name: "A", sector: "technology", weight: 0.333333 },
+          { issuerId: "c", name: "C", sector: "energy", weight: 0.333333 },
+          { issuerId: "d", name: "D", sector: "healthcare", weight: 0.333333 },
+        ],
+      },
+    ]);
+    const r = analyzeConcentration(b);
+    expect(r.reconciles).toBe(true);
+    // Single-name slices (3 names + 1 residual) sum back to the whole exactly.
+    expect(sum(r.singleNames.map((n) => n.value.amount)).toString()).toBe(
+      "1000003",
+    );
+    // The residual is strictly positive and equals whole − Σmodelled.
+    const residual = r.singleNames.find((n) => n.residual)!;
+    expect(residual.value.amount.greaterThan(0)).toBe(true);
+  });
+
+  it("a name in different sectors across positions still reconciles per sector", () => {
+    // Same issuer id but classified into two sectors by two sources: the engine
+    // keys names by issuerId (first sector wins for the name) yet each slice is
+    // booked to the sector on the slice, so sector totals must still reconcile.
+    const b = book([
+      {
+        kind: "direct",
+        id: "p1",
+        name: "Dual A",
+        issuerId: "a",
+        sector: "technology",
+        liquidity: "liquid",
+        value: usd("4000000"),
+      },
+      {
+        kind: "fund",
+        id: "f1",
+        name: "Fund holding A as financials",
+        liquidity: "liquid",
+        value: usd("6000000"),
+        constituents: [
+          { issuerId: "a", name: "Dual A", sector: "financials", weight: 1 },
+        ],
+      },
+    ]);
+    const r = analyzeConcentration(b);
+    expect(r.reconciles).toBe(true);
+    // The two sector slices sum to the full 10M book.
+    expect(sum(r.sectors.map((s) => s.value.amount)).toString()).toBe(
+      "10000000",
+    );
+    // The single name "a" aggregates both sources to 10M (full book).
+    const a = r.singleNames.find((n) => n.issuerId === "a")!;
+    expect(a.value.amount.toString()).toBe("10000000");
+    expect(a.sources).toHaveLength(2);
+  });
+
+  it("breaks value ties deterministically by issuer id", () => {
+    const b = book([
+      {
+        kind: "direct",
+        id: "pz",
+        name: "Zeta",
+        issuerId: "zeta",
+        sector: "other",
+        liquidity: "liquid",
+        value: usd("5000000"),
+      },
+      {
+        kind: "direct",
+        id: "pa",
+        name: "Alpha",
+        issuerId: "alpha",
+        sector: "other",
+        liquidity: "liquid",
+        value: usd("5000000"),
+      },
+    ]);
+    const r = analyzeConcentration(b);
+    // Equal value -> sorted by issuer id ascending, so alpha precedes zeta.
+    expect(r.issuers.map((i) => i.issuerId)).toEqual(["alpha", "zeta"]);
+    // topName picks the first real single name deterministically.
+    expect(r.topName?.issuerId).toBe("alpha");
+  });
+
+  it("a book with only an empty (zero-value) position does not divide by zero", () => {
+    const b = book([
+      {
+        kind: "direct",
+        id: "p0",
+        name: "Worthless",
+        issuerId: "z",
+        sector: "other",
+        liquidity: "liquid",
+        value: usd("0"),
+      },
+    ]);
+    const r = analyzeConcentration(b);
+    expect(r.total.amount.toString()).toBe("0");
+    expect(r.reconciles).toBe(true);
+    expect(r.hhi).toBe(0);
+    // Every weight is a finite 0, never NaN.
+    for (const n of r.singleNames) expect(Number.isFinite(n.weight)).toBe(true);
+    expect(r.illiquid.weight).toBe(0);
+  });
+
   it("rejects duplicate position ids", () => {
     expect(() =>
       book([

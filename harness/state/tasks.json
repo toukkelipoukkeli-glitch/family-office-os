@@ -1,17 +1,19 @@
 {
   "updatedAt": "2026-06-20",
-  "generation": 6,
-  "phase": "gen-5 complete (8/8); gen-6 building (SEQUENTIAL polish)",
+  "generation": 7,
+  "phase": "gen-6 complete (7/7); gen-7 building (SEQUENTIAL rollout/consistency)",
   "gen1": { "status": "complete", "merged": "35/35" },
   "gen2": { "status": "complete", "merged": "8/10" },
   "gen3": { "status": "complete", "merged": "9/9" },
   "gen4": { "status": "complete", "merged": "7/7" },
-  "gen5": { "status": "complete", "merged": "8/8", "units": ["m11-liquidity-coverage", "m11-goal-funding", "m11-factor-attribution", "m11-tax-timeline", "m11-concentration-risk", "m11-entity-consolidation", "m11-manager-scorecard", "m11-data-quality"] },
-  "gen6": {
+  "gen5": { "status": "complete", "merged": "8/8" },
+  "gen6": { "status": "complete", "merged": "7/7", "units": ["m12-route-registry", "m12-theme-print", "m12-command-palette", "m12-chart-a11y", "m12-export-toolkit", "m12-tag-filter", "m12-reporting-currency"] },
+  "gen7": {
     "status": "building (sequential)",
-    "units": ["m12-route-registry", "m12-theme-print", "m12-command-palette", "m12-chart-a11y", "m12-export-toolkit", "m12-tag-filter", "m12-reporting-currency"],
-    "note": "CROSS-CUTTING polish — these touch shared files (App.tsx, AppShell, charts), so built SEQUENTIALLY (each off latest main) to avoid the constant route-wiring conflicts that parallel feature pages don't have. Led by a route-registry + AppShell refactor that should also reduce future App.tsx conflicts."
+    "units": ["m13-format-boundary", "m13-currency-rollout", "m13-export-rollout", "m13-filter-scope-consistency", "m13-url-subview-state", "m13-palette-deeplink-actions", "m13-holdings-index"],
+    "note": "Consistency/rollout pass: the gen-6 polish (reporting-currency, export, tag-filter) was built but not adopted on every page. Roll it out everywhere + a shared format-boundary module + deep-linkable URL state + a global holdings index. The PM ideation auditing adoption (not just adding features) is exactly the right maturity signal."
   },
-  "stats": "main: ~70 PR merges, ~2815 tests, 39 routes, healthy",
+  "stats": "main: ~77 PR merges, ~3116 tests, ~39 routes, dark/light theme, Cmd-K palette, a11y, export. Healthy.",
+  "trajectory": "App is now feature-complete + polished. Asked gen-8 ideation to be honest about saturation and weigh production-readiness vs more features.",
   "blocked": []
 }

@@ -104,4 +104,78 @@ describe("AppShell", () => {
     );
     expect(screen.getByTestId("x-main").className).toContain("max-w-6xl");
   });
+
+  // --- Adversarial: lock the chrome's invariants -------------------------
+
+  it("renders actions BEFORE the back link in DOM order", () => {
+    // The header lays out actions then the back link; assert document order so a
+    // future refactor can't flip them and silently change tab/visual order.
+    render(
+      <AppShell
+        title="Reports"
+        backTestId="reports-back"
+        actions={<button data-testid="toggle">Export</button>}
+      >
+        body
+      </AppShell>,
+    );
+    const toggle = screen.getByTestId("toggle");
+    const back = screen.getByTestId("reports-back");
+    // compareDocumentPosition: FOLLOWING (4) means `back` comes after `toggle`.
+    expect(
+      toggle.compareDocumentPosition(back) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("subtitle takes precedence over titleAside when both are supplied", () => {
+    // The component branches subtitle-first; both rendering would double the
+    // header. Assert the subtitle wins and the aside is dropped.
+    render(
+      <AppShell
+        title="Pipeline"
+        subtitle={<p>3 stages</p>}
+        titleAside={<span>as of 2025</span>}
+      >
+        body
+      </AppShell>,
+    );
+    expect(screen.getByText("3 stages")).toBeInTheDocument();
+    expect(screen.queryByText("as of 2025")).not.toBeInTheDocument();
+  });
+
+  it("keeps the canonical heading typography for visual consistency", () => {
+    render(<AppShell title="Fees">body</AppShell>);
+    const h1 = screen.getByRole("heading", { name: "Fees" });
+    expect(h1.className).toContain("text-lg");
+    expect(h1.className).toContain("font-semibold");
+    expect(h1.className).toContain("tracking-tight");
+  });
+
+  it("merges a custom titleClassName onto the heading (icon-in-title case)", () => {
+    render(
+      <AppShell title="AI insights" titleClassName="flex items-center gap-2">
+        body
+      </AppShell>,
+    );
+    const h1 = screen.getByRole("heading", { name: "AI insights" });
+    // Base classes survive...
+    expect(h1.className).toContain("font-semibold");
+    // ...and the extra layout classes are appended.
+    expect(h1.className).toContain("flex");
+    expect(h1.className).toContain("items-center");
+  });
+
+  it("renders a single back link (no duplicate when actions present)", () => {
+    render(
+      <AppShell
+        title="Reports"
+        backTestId="reports-back"
+        actions={<button>Export</button>}
+      >
+        body
+      </AppShell>,
+    );
+    expect(screen.getAllByTestId("reports-back")).toHaveLength(1);
+  });
 });

@@ -118,4 +118,90 @@ describe("route registry", () => {
       expect(groups.has(r.group)).toBe(true);
     }
   });
+
+  // --- Adversarial: lock the registry against silent regressions ---------
+
+  // A frozen snapshot of (path, label, navTestId) for every route, in order.
+  // This is the no-regressions contract: routes/URLs and the e2e selectors that
+  // depend on them must not be renamed, dropped, reordered, or relabelled by a
+  // future refactor without a deliberate, reviewable change here. Mirrors the
+  // hand-written routing/nav that existed on `main` before the registry.
+  it("matches the frozen path/label/navTestId contract (no silent drift)", () => {
+    const tuples = ROUTES.map((r) => [r.path, r.label, r.navTestId]);
+    expect(tuples).toEqual([
+      ["/home", "Overview", "nav-home"],
+      ["/reports", "Reports", "nav-reports"],
+      ["/insights", "AI insights", "nav-insights"],
+      ["/charts", "Charts", "nav-charts"],
+      ["/scenarios", "Scenarios", "nav-scenarios"],
+      ["/stress", "Stress tests", "nav-stress"],
+      ["/attribution", "Attribution", "nav-attribution"],
+      ["/factors", "Factors", "nav-factors"],
+      ["/benchmark", "Benchmark", "nav-benchmark"],
+      ["/managers", "Managers", "nav-managers"],
+      ["/alerts", "Alerts", "nav-alerts"],
+      ["/ips", "IPS", "nav-ips"],
+      ["/rebalance", "Rebalance", "nav-rebalance"],
+      ["/fees", "Fees", "nav-fees"],
+      ["/captable", "Cap table", "nav-captable"],
+      ["/taxlots", "Tax lots", "nav-taxlots"],
+      ["/harvest", "Harvest", "nav-harvest"],
+      ["/ownership", "Ownership", "nav-ownership"],
+      ["/pipeline", "Pipeline", "nav-pipeline"],
+      ["/companies", "Companies", "nav-companies"],
+      ["/lookthrough", "Look-through", "nav-lookthrough"],
+      ["/consolidation", "Consolidation", "nav-consolidation"],
+      ["/risk", "Risk", "nav-risk"],
+      ["/concentration", "Concentration", "nav-concentration"],
+      ["/privatemarkets", "Private markets", "nav-privatemarkets"],
+      ["/cashflow", "Cashflow", "nav-cashflow"],
+      ["/liquidity", "Liquidity", "nav-liquidity"],
+      ["/currency", "Currency", "nav-currency"],
+      ["/data-quality", "Data quality", "nav-data-quality"],
+      ["/org", "Org chart", "nav-org"],
+      ["/relationships", "Relationships", "nav-relationships"],
+      ["/estate", "Estate", "nav-estate"],
+      ["/giving", "Giving", "nav-giving"],
+      ["/goals", "Goals", "nav-goals"],
+      ["/tax-timeline", "Tax timeline", "nav-tax-timeline"],
+      ["/insurance", "Insurance", "nav-insurance"],
+      ["/vault", "Vault", "nav-vault"],
+      ["/ops", "Ops cockpit", "nav-ops"],
+    ]);
+  });
+
+  it("exactly one route is prefix-matched (only /pipeline)", () => {
+    const prefixed = ROUTES.filter((r) => r.matchPrefix).map((r) => r.path);
+    expect(prefixed).toEqual(["/pipeline"]);
+  });
+
+  it("the prefix route does not swallow a sibling with a shared name stem", () => {
+    // `/pipeline` must not match `/pipelinexyz` — the boundary is `/pipeline/`,
+    // not the bare prefix string.
+    expect(matchRoute("/pipelinexyz")).toBeUndefined();
+    expect(matchRoute("/pipeline-archive")).toBeUndefined();
+  });
+
+  it("a bare trailing slash does not resolve an exact route", () => {
+    // The original exact-string check never normalised trailing slashes; keep
+    // that behaviour so `/reports/` falls back to the dashboard rather than
+    // silently aliasing `/reports`.
+    expect(matchRoute("/reports/")).toBeUndefined();
+    // `/pipeline/` IS a prefix match (drills into an empty id) — unchanged.
+    expect(matchRoute("/pipeline/")?.path).toBe("/pipeline");
+  });
+
+  it("matchRoute is case-sensitive (original behaviour)", () => {
+    expect(matchRoute("/Reports")).toBeUndefined();
+    expect(matchRoute("/HOME")).toBeUndefined();
+  });
+
+  it("every nav testid is derivable from its path segment", () => {
+    // Catches a copy-paste where a route keeps another route's testid: the part
+    // after `nav-` must equal the path with `/` stripped (paths have no nested
+    // segments in the nav set).
+    for (const r of ROUTES) {
+      expect(r.navTestId).toBe(`nav-${r.path.slice(1)}`);
+    }
+  });
 });

@@ -211,6 +211,13 @@ export function Dashboard() {
               Currency
             </a>
             <a
+              href="#/data-quality"
+              data-testid="nav-data-quality"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Data quality
+            </a>
+            <a
               href="#/org"
               data-testid="nav-org"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

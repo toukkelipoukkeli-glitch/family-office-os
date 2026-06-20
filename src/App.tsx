@@ -5,6 +5,7 @@ import CapTablePage from "@/captable/CapTablePage";
 import CompanyProfilePage from "@/company/CompanyProfilePage";
 import { ChartsGalleryPage } from "@/components/charts/charts-gallery";
 import { OwnershipGraphPage } from "@/components/ownership/ownership-graph-page";
+import FeesPage from "@/fees/FeesPage";
 import { useHashRoute } from "@/lib/use-hash-route";
 import LookThroughPage from "@/lookthrough/LookThroughPage";
 import OpsPage from "@/ops/OpsPage";
@@ -47,6 +48,10 @@ function App() {
 
   if (path === "/attribution") {
     return <AttributionPage />;
+  }
+
+  if (path === "/fees") {
+    return <FeesPage />;
   }
 
   if (path === "/ownership") {

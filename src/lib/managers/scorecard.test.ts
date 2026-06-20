@@ -298,3 +298,48 @@ describe("scoreManager + scoreRoster", () => {
     expect(a).toEqual(b);
   });
 });
+
+describe("netGross — adversarial edge cases", () => {
+  it("charges no carry on a recovery year that stays below the prior high-water mark", () => {
+    // Year 1: +40% gross (crystallises carry, sets HWM at 1.40).
+    // Year 2: -50% (drops to 0.70, no carry on a loss).
+    // Year 3: +60% (recovers to 1.12 — still below the 1.40 HWM, so NO carry).
+    // Carry must only be charged in year 1.
+    const m: Manager = {
+      id: "hwm",
+      name: "High-water mark",
+      strategy: "test",
+      vintage: 2020,
+      aum: 100,
+      fees: { managementFee: 0, fundExpenses: 0, carry: 0.2, hurdle: 0 },
+      grossReturns: [0.4, -0.5, 0.6],
+      benchmarkReturns: [0, 0, 0],
+    };
+    const ng = netGross(m, { periodsPerYear: 1 });
+    // Only year 1's profit (0.40) above a 0 hurdle is carried: 0.40 * 0.2 = 0.08.
+    expect(ng.totalCarryFraction.toNumber()).toBeCloseTo(0.08, 10);
+    // Year-3 recovery (gross wealth 1.40*0.5*1.6 = 1.12 < HWM 1.40) must not be charged.
+    // Net of the single year-1 carry: 1.40*(1-0.08)*0.5*1.6 = 1.0304.
+    expect(ng.netTotal.toNumber()).toBeCloseTo(0.0304, 8);
+  });
+
+  it("handles a single observation with carry crystallised at the final period", () => {
+    const m: Manager = {
+      id: "one",
+      name: "Single period",
+      strategy: "test",
+      vintage: 2020,
+      aum: 100,
+      fees: { managementFee: 0.12, fundExpenses: 0, carry: 0.2, hurdle: 0 },
+      grossReturns: [0.1],
+      benchmarkReturns: [0],
+    };
+    // periodsPerYear 12 but only 1 obs → final-period crystallisation, prorated hurdle.
+    const ng = netGross(m, { periodsPerYear: 12 });
+    expect(ng.netReturns).toHaveLength(1);
+    // mgmt 0.12/12 = 0.01 per period → net-before-carry 0.10-0.01 = 0.09.
+    // Year fraction = 1/12; gross growth 0.10 above 0 hurdle → carry 0.10*0.2 = 0.02 of net wealth.
+    expect(ng.netTotal.lessThan(new Decimal(0.09))).toBe(true);
+    expect(ng.totalCarryFraction.greaterThan(0)).toBe(true);
+  });
+});

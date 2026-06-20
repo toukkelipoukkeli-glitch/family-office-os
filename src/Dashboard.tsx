@@ -64,6 +64,13 @@ export function Dashboard() {
               Attribution
             </a>
             <a
+              href="#/factors"
+              data-testid="nav-factors"
+              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Factors
+            </a>
+            <a
               href="#/benchmark"
               data-testid="nav-benchmark"
               className="text-sm text-muted-foreground underline-offset-4 hover:underline"

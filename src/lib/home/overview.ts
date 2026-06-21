@@ -47,16 +47,58 @@ import {
 /** Traffic-light status shared by every status-bearing KPI tile. */
 export type OverviewStatus = "ok" | "warning" | "critical";
 
+/**
+ * The base-currency monetary figures behind a money-bearing KPI tile.
+ *
+ * The headline overview model is built in the canonical base currency (USD),
+ * and {@link OverviewKpi.value} / {@link OverviewKpi.detail} are pre-formatted
+ * in that base so the model reads correctly with no reporting-currency context.
+ * To honour the global reporting-currency switcher, a money-bearing tile also
+ * carries its exact base-currency {@link Money} figures here, so the render
+ * boundary can re-express them into the active reporting currency (the same
+ * `convertMoney` boundary every other value-bearing page uses).
+ *
+ * Non-monetary tiles (TWR %, IPS status, runway months, …) omit this entirely.
+ */
+export interface OverviewKpiMoney {
+  /**
+   * The exact base-currency figure shown as the tile's primary value — present
+   * only when the primary value is itself monetary (net worth). A tile whose
+   * value is non-monetary (e.g. a runway month count) omits this and re-expresses
+   * only its {@link OverviewKpiMoney.detail} figure.
+   */
+  readonly value?: Money;
+  /**
+   * Optional secondary figure interpolated into the tile detail line, with the
+   * template pieces that surround it (so the detail can be rebuilt verbatim in
+   * the reporting currency). When absent, the detail line has no money in it.
+   */
+  readonly detail?: {
+    readonly amount: Money;
+    /** Text before the figure, e.g. `"from "`. */
+    readonly prefix: string;
+    /** Text after the figure, e.g. `" opening"`. */
+    readonly suffix: string;
+  };
+}
+
 /** A single headline KPI tile on the executive home. */
 export interface OverviewKpi {
   /** Stable id, used as the tile `data-kpi` attribute and React key. */
   readonly id: string;
   /** Short human label. */
   readonly label: string;
-  /** Display-ready primary value (already formatted). */
+  /** Display-ready primary value (already formatted in the base currency). */
   readonly value: string;
-  /** Optional supporting line under the value. */
+  /** Optional supporting line under the value (formatted in the base currency). */
   readonly detail: string;
+  /**
+   * Exact base-currency figures behind this tile, when it is money-bearing.
+   * Present only for tiles whose value/detail express currency (net worth,
+   * liquidity); the render boundary re-expresses these into the active
+   * reporting currency. Absent for percentage / status / count tiles.
+   */
+  readonly money?: OverviewKpiMoney;
   /** Traffic-light status; drives the tile accent and the `data-status` attr. */
   readonly status: OverviewStatus;
   /** Hash route the tile links into (e.g. `#/risk`). */
@@ -201,6 +243,14 @@ export function buildOverview(input: OverviewInput = {}): OverviewModel {
     label: "Net worth",
     value: formatMoneyCompact(netWorth.current),
     detail: `from ${formatMoneyCompact(netWorth.opening)} opening`,
+    money: {
+      value: netWorth.current,
+      detail: {
+        amount: netWorth.opening,
+        prefix: "from ",
+        suffix: " opening",
+      },
+    },
     status: "ok",
     href: "#/",
     module: "Net worth",
@@ -277,6 +327,15 @@ export function buildOverview(input: OverviewInput = {}): OverviewModel {
           ? "Cash-positive"
           : `${runway} mo`,
     detail: `min balance ${formatMoneyCompact(minBalance)} in ${cashflow.kpis.minBalancePeriod}`,
+    // The runway value itself is a month count (not money); only the min-balance
+    // figure in the detail line is re-expressed in the reporting currency.
+    money: {
+      detail: {
+        amount: minBalance,
+        prefix: "min balance ",
+        suffix: ` in ${cashflow.kpis.minBalancePeriod}`,
+      },
+    },
     status: runwayStatus,
     href: "#/cashflow",
     module: "Cashflow",

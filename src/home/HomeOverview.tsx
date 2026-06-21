@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { Sparkline } from "@/components/charts/sparkline";
+import { formatMoneyCompact } from "@/lib/format";
 import {
   seededOverview,
   type OverviewKpi,
@@ -8,7 +9,43 @@ import {
   type OverviewStatus,
 } from "@/lib/home";
 import { seededNetWorth } from "@/lib/networth";
+import { useReportingMoney, type ReportingMoney } from "@/lib/reporting-currency";
 import { cn } from "@/lib/utils";
+
+/**
+ * Re-express a money-bearing KPI's primary value into the active reporting
+ * currency at the render boundary.
+ *
+ * Mirrors every other value-bearing page: the model carries the exact
+ * base-currency {@link import("@/lib/home").Money} figure, and this converts it
+ * with the shared {@link ReportingMoney} boundary before formatting. Non-money
+ * tiles (and the no-op base-currency path) fall back to the model's pre-formatted
+ * string, so output is byte-identical when the reporting currency is the base.
+ */
+function kpiValue(kpi: OverviewKpi, reporting: ReportingMoney): string {
+  const base = kpi.money?.value;
+  if (!base) return kpi.value;
+  return formatMoneyCompact(
+    reporting.convertMoney(base).amount.toNumber(),
+    reporting.currency,
+    { maximumFractionDigits: 2 },
+  );
+}
+
+/**
+ * Re-express the money figure embedded in a KPI's detail line into the active
+ * reporting currency, rebuilding the surrounding template verbatim. Falls back
+ * to the model's pre-formatted detail for non-money tiles and the base path.
+ */
+function kpiDetail(kpi: OverviewKpi, reporting: ReportingMoney): string {
+  const detail = kpi.money?.detail;
+  if (!detail) return kpi.detail;
+  const amount = formatMoneyCompact(
+    reporting.convertMoney(detail.amount).amount.toNumber(),
+    reporting.currency,
+  );
+  return `${detail.prefix}${amount}${detail.suffix}`;
+}
 
 /** Per-status presentation: accent dot colour + banner copy. */
 const STATUS_META: Record<
@@ -33,7 +70,13 @@ const STATUS_META: Record<
 };
 
 /** One headline KPI tile, linking into its module. */
-function KpiTile({ kpi }: { kpi: OverviewKpi }) {
+function KpiTile({
+  kpi,
+  reporting,
+}: {
+  kpi: OverviewKpi;
+  reporting: ReportingMoney;
+}) {
   const meta = STATUS_META[kpi.status];
   return (
     <a
@@ -61,9 +104,11 @@ function KpiTile({ kpi }: { kpi: OverviewKpi }) {
         data-testid="home-kpi-value"
         className="text-2xl font-semibold tracking-tight tabular-nums"
       >
-        {kpi.value}
+        {kpiValue(kpi, reporting)}
       </div>
-      <div className="text-sm text-muted-foreground">{kpi.detail}</div>
+      <div className="text-sm text-muted-foreground">
+        {kpiDetail(kpi, reporting)}
+      </div>
       <div className="mt-auto pt-1 text-xs font-medium text-muted-foreground underline-offset-4 group-hover:underline">
         Open {kpi.module} →
       </div>
@@ -84,6 +129,7 @@ export interface HomeOverviewProps {
  */
 export function HomeOverview({ model = seededOverview }: HomeOverviewProps) {
   const banner = STATUS_META[model.worstStatus];
+  const reporting = useReportingMoney();
   const trend = React.useMemo(
     () => seededNetWorth.total.points.map((p) => p.value.amount.toNumber()),
     [],
@@ -129,8 +175,11 @@ export function HomeOverview({ model = seededOverview }: HomeOverviewProps) {
             <div className="text-xs uppercase tracking-wide text-muted-foreground">
               Net worth
             </div>
-            <div className="text-xl font-semibold tabular-nums">
-              {netWorthKpi?.value}
+            <div
+              data-testid="home-banner-networth"
+              className="text-xl font-semibold tabular-nums"
+            >
+              {netWorthKpi ? kpiValue(netWorthKpi, reporting) : null}
             </div>
           </div>
           <Sparkline
@@ -152,7 +201,7 @@ export function HomeOverview({ model = seededOverview }: HomeOverviewProps) {
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {model.kpis.map((kpi) => (
-            <KpiTile key={kpi.id} kpi={kpi} />
+            <KpiTile key={kpi.id} kpi={kpi} reporting={reporting} />
           ))}
         </div>
       </section>

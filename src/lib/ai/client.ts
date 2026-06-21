@@ -1,5 +1,6 @@
 import type { BoardReport } from "@/lib/reporting";
 
+import { guardLiveCall, isBrowserRuntime } from "./guard";
 import { buildNarrativePrompt, deterministicNarrative } from "./prompt";
 import {
   GeminiErrorResponse,
@@ -66,11 +67,19 @@ export interface AiInsightsAdapterOptions {
   fetchImpl?: FetchLike;
   /** Per-request timeout in ms (defaults to {@link DEFAULT_REQUEST_TIMEOUT_MS}). */
   requestTimeoutMs?: number;
+  /**
+   * Override the runtime detection used by the no-live-call guard. Defaults to
+   * {@link isBrowserRuntime}. When the runtime is a browser, the adapter refuses
+   * to call a live provider host even if a key is present (the live fetch lives
+   * server-side). Exposed only so tests can drive both branches deterministically.
+   */
+  isBrowser?: boolean;
 }
 
 /** Why the AI narrative could not be produced. */
 export type InsightUnavailableReason =
   | "missing-key"
+  | "browser-blocked"
   | "http-error"
   | "blocked"
   | "empty"
@@ -124,6 +133,7 @@ export class AiInsightsAdapter {
   private readonly baseUrl: string;
   private readonly fetchImpl?: FetchLike;
   private readonly requestTimeoutMs: number;
+  private readonly isBrowser: boolean;
 
   constructor(options: AiInsightsAdapterOptions = {}) {
     this.apiKey = resolveApiKey(options.apiKey);
@@ -133,6 +143,7 @@ export class AiInsightsAdapter {
       options.fetchImpl ?? (globalThis as { fetch?: FetchLike }).fetch;
     this.requestTimeoutMs =
       options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.isBrowser = options.isBrowser ?? isBrowserRuntime();
   }
 
   /** True when an API key is configured (key present, not validated remotely). */
@@ -170,6 +181,22 @@ export class AiInsightsAdapter {
     const url =
       `${this.baseUrl}/models/${encodeURIComponent(this.model)}:generateContent` +
       `?key=${encodeURIComponent(this.apiKey)}`;
+
+    // No-live-call guard (m14): even with a key present, never reach a live
+    // provider host from a browser runtime. The live fetch belongs server-side;
+    // the client degrades gracefully to the deterministic summary.
+    const decision = guardLiveCall(url, { isBrowser: this.isBrowser });
+    if (!decision.allow) {
+      return {
+        status: "unavailable",
+        reason: "browser-blocked",
+        detail:
+          "AI insights are generated server-side; the browser does not call " +
+          "the live AI provider. Showing the deterministic summary instead.",
+        deterministic,
+      };
+    }
+
     const body = JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 512 },

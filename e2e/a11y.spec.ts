@@ -26,13 +26,22 @@ if (!existsSync(EVIDENCE_DIR)) mkdirSync(EVIDENCE_DIR, { recursive: true });
 test.describe("accessibility", () => {
   test("skip-to-content link focuses the main region without changing route", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.goto("/#/charts");
     await expect(page.getByTestId("charts-gallery")).toBeVisible();
 
-    // The skip link is the first thing reached by keyboard.
-    await page.keyboard.press("Tab");
     const skip = page.getByTestId("skip-to-content");
+    // WebKit (like Safari) does not move keyboard focus to links/buttons via Tab
+    // unless the OS "Full Keyboard Access" setting is on, which is off by default
+    // in headless WebKit. On chromium/firefox we assert the skip link is the very
+    // first thing reached by Tab; on webkit we focus it directly (its CSS
+    // reveal-on-focus + Enter-activation — the behaviours actually under test —
+    // are exercised identically below on every engine).
+    if (testInfo.project.name === "webkit") {
+      await skip.focus();
+    } else {
+      await page.keyboard.press("Tab");
+    }
     await expect(skip).toBeFocused();
     await expect(skip).toHaveText("Skip to content");
     await expect(skip).toBeVisible(); // revealed on focus
@@ -165,14 +174,21 @@ test.describe("accessibility", () => {
 
   test("captures the dashboard with the focused skip link (desktop)", async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize(DESKTOP);
     await page.goto("/");
     await expect(
       page.getByRole("heading", { name: "Family Office OS" }),
     ).toBeVisible();
-    await page.keyboard.press("Tab");
-    await expect(page.getByTestId("skip-to-content")).toBeFocused();
+    const skip = page.getByTestId("skip-to-content");
+    // See note in the skip-link focus test: WebKit won't Tab to a link by
+    // default, so focus it directly there; Tab on the keyboard-driven engines.
+    if (testInfo.project.name === "webkit") {
+      await skip.focus();
+    } else {
+      await page.keyboard.press("Tab");
+    }
+    await expect(skip).toBeFocused();
     await page.screenshot({
       path: join(EVIDENCE_DIR, "skip-link-desktop.png"),
     });

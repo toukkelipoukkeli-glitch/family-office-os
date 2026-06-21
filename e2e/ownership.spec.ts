@@ -124,7 +124,11 @@ test.describe("ownership network graph", () => {
       });
     });
 
-    test("visual snapshot of the graph is stable", async ({ page }) => {
+    test("visual snapshot of the graph is stable", async ({ page }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== "chromium",
+        "visual baseline is chromium-only; firefox/webkit gated by DOM assertions",
+      );
       test.skip(
         !platformBaselineExists("ownership-graph"),
         "No screenshot baseline for this platform yet; run with --update-snapshots to create one.",

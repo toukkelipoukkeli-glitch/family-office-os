@@ -96,7 +96,14 @@ test.describe("charts gallery", () => {
       });
     });
 
-    test("visual snapshot of the gallery is stable", async ({ page }) => {
+    test("visual snapshot of the gallery is stable", async ({ page }, testInfo) => {
+      // Screenshot baselines are chromium-specific (font/AA rendering differs
+      // across browser engines as well as OS). Run the pixel comparison on the
+      // chromium project only; firefox/webkit get the DOM assertions above.
+      test.skip(
+        testInfo.project.name !== "chromium",
+        "visual baseline is chromium-only; firefox/webkit gated by DOM assertions",
+      );
       test.skip(
         !platformBaselineExists("charts-gallery"),
         "No screenshot baseline for this platform yet; run with --update-snapshots to create one.",

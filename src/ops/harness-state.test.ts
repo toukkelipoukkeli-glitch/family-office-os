@@ -147,6 +147,55 @@ describe("buildSnapshot — gen-1 status derivation", () => {
     expect(byId["mb-1"]).toBe("blocked");
     expect(byId["ma-1"]).toBe("merged");
   });
+
+  it("marks backlog units merged from the v1-handoff rollup shape", () => {
+    // The v1 handoff overwrote the `gens_1_7` sentence with a richer shape:
+    // a `generation`/`phase` marker plus a per-generation count map. Gen-1 must
+    // still read merged once `gen1-spine` reports fully shipped (e.g. 35/35).
+    const tasks: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "v1 COMPLETE",
+      phase: "DONE — feature-complete, hardened, deployed, handed off",
+      generations: {
+        "gen1-spine": "35/35",
+        "gen2-depth": "8/10",
+        "hardening-v1": "5/5",
+      },
+    };
+    const counts = countByStatus(buildSnapshot(backlog, tasks));
+    expect(counts.merged).toBe(3);
+    expect(counts.backlog).toBe(0);
+  });
+
+  it("does not mark units merged when the v1-handoff spine is still partial", () => {
+    // Phase reads done but the spine count is partial — must NOT report merged.
+    const partialSpine: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "v1 COMPLETE",
+      phase: "DONE — handed off",
+      generations: { "gen1-spine": "34/35" },
+    };
+    expect(countByStatus(buildSnapshot(backlog, partialSpine)).backlog).toBe(3);
+
+    // Spine fully shipped but the overall phase/generation is not done — the
+    // numbered backlog completion must be gated on the rollup phase too.
+    const notDonePhase: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "building",
+      phase: "in progress",
+      generations: { "gen1-spine": "35/35" },
+    };
+    expect(countByStatus(buildSnapshot(backlog, notDonePhase)).backlog).toBe(3);
+
+    // A zero-denominator count is malformed, never complete.
+    const malformed: TasksState = {
+      updatedAt: "2026-06-21",
+      generation: "v1 COMPLETE",
+      phase: "DONE",
+      generations: { "gen1-spine": "0/0" },
+    };
+    expect(countByStatus(buildSnapshot(backlog, malformed)).backlog).toBe(3);
+  });
 });
 
 describe("buildSnapshot — launching (gen-2) units", () => {

@@ -67,6 +67,36 @@ test.describe("m14 mobile nav — no horizontal overflow", () => {
     }
   });
 
+  // Adversarial sweep (hardening): the shared AppShell header — the surface this
+  // unit fixes — is mounted by a dozen routes, each carrying its own `actions`
+  // cluster (export menu + filter/currency/palette/theme + back link). A future
+  // page could add a wide, non-shrinking action and re-introduce sideways page
+  // scroll on mobile. Walk every AppShell-based route at 390px and assert the
+  // document never overflows horizontally, so such a regression fails loudly
+  // here rather than shipping. (Standalone pages with their own chrome are out
+  // of this unit's scope.)
+  const APPSHELL_ROUTES = [
+    "/home", "/insights", "/pipeline", "/estate", "/lookthrough", "/ips",
+    "/fees", "/giving", "/goals", "/org", "/holdings", "/reports",
+  ] as const;
+
+  test("every AppShell route is free of horizontal page overflow at 390px", async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE);
+
+    for (const route of APPSHELL_ROUTES) {
+      await page.goto(`/#${route}`);
+      // Wait for the page's primary heading so layout has settled before
+      // measuring the document scroll width.
+      await expect(page.locator("h1").first()).toBeVisible();
+      expect(
+        await hasHorizontalOverflow(page),
+        `no horizontal overflow on /#${route}`,
+      ).toBe(false);
+    }
+  });
+
   test("the nav row is an internal horizontal scroller, not a page scroller", async ({
     page,
   }) => {

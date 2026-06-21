@@ -76,22 +76,51 @@ export interface TasksState {
    * merged even though the per-generation `gen1` field is no longer carried.
    */
   gens_1_7?: string;
+  /**
+   * The v1-handoff rollup overwrote `gens_1_7` with a richer shape: a
+   * sentence-style `phase`/`generation` marker plus a per-generation count map.
+   * The `gen1-spine` entry reads e.g. `"35/35"` once generation 1 fully shipped.
+   * Carried so the cockpit keeps reporting gen-1 units as merged after handoff.
+   */
+  generations?: Record<string, string>;
   blocked?: string[];
+}
+
+/**
+ * True when a generation count string (e.g. `"35/35"`) reports every unit
+ * merged — the numerator equals a non-zero denominator. A partial count
+ * (`"8/10"`) or a malformed value reads as not-complete.
+ */
+function genCountComplete(count: string | undefined): boolean {
+  const m = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(count ?? "");
+  if (!m) return false;
+  const done = Number(m[1]);
+  const total = Number(m[2]);
+  return total > 0 && done === total;
 }
 
 /**
  * True when the consolidated gens-1..7 rollup reads complete/done/shipped.
  *
- * The rollup is a sentence-style status that always *leads* with its state word
- * (e.g. `"complete — 73 feature units…"`), so we anchor to the start. Anchoring
- * also avoids a negated false-positive: a future `"not complete — awaiting…"`
- * rollup must NOT mark backlog units as merged.
+ * Two rollup shapes are recognised:
+ *  - the legacy `gens_1_7` sentence string (e.g. `"complete — 73 feature units…"`),
+ *    anchored to the leading state word so a `"not complete — …"` rollup does
+ *    NOT mark backlog units merged; and
+ *  - the v1-handoff `generation`/`phase` markers (`"v1 COMPLETE"` / `"DONE — …"`)
+ *    together with a `generations["gen1-spine"]` count that reads fully merged
+ *    (e.g. `"35/35"`).
  */
 function gensConsolidatedComplete(tasks: TasksState): boolean {
   const rollup = tasks.gens_1_7;
-  return (
-    typeof rollup === "string" && /^\s*(complete|done|shipped)\b/i.test(rollup)
-  );
+  if (typeof rollup === "string" && /^\s*(complete|done|shipped)\b/i.test(rollup)) {
+    return true;
+  }
+  // v1-handoff shape: the numbered backlog (generation 1 / the spine) is merged
+  // when its count map entry reads fully shipped and the overall phase is done.
+  const phaseDone =
+    /\b(complete|done|shipped)\b/i.test(String(tasks.generation ?? "")) ||
+    /^\s*(complete|done|shipped)\b/i.test(String(tasks.phase ?? ""));
+  return phaseDone && genCountComplete(tasks.generations?.["gen1-spine"]);
 }
 
 // Cast the bundled JSON to our typed views. The casts are validated by the

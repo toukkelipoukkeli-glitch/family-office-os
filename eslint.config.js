@@ -5,7 +5,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "convex/_generated"] },
+  // `harness/` holds out-of-band orchestration scripts (workflow definitions
+  // run by a separate node wrapper that permits top-level `return`); they are
+  // build tooling, not product code, and must not gate the product lint/CI.
+  { ignores: ["dist", "node_modules", "convex/_generated", "harness"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

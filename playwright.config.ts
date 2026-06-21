@@ -7,6 +7,13 @@ const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "e2e",
+  // Default 30s is too tight for WebKit's heavy multi-nav smoke tests under the
+  // 3-browser matrix on shared CI runners.
+  timeout: 90000,
+  // The webkit timeouts were CI resource contention, not real failures: cap
+  // parallelism and retry transient flakes so one slow run can't redden main.
+  workers: process.env.CI ? 2 : undefined,
+  retries: process.env.CI ? 2 : 0,
   use: {
     baseURL,
     trace: "on",

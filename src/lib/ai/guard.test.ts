@@ -44,6 +44,29 @@ describe("no-live-call guard — host classification", () => {
   it("does not throw on an unparseable URL", () => {
     expect(isLiveProviderUrl("::::not a url::::")).toBe(false);
   });
+
+  it("matches regardless of host casing", () => {
+    expect(
+      isLiveProviderUrl("https://GenerativeLanguage.GoogleAPIs.com/v1"),
+    ).toBe(true);
+  });
+
+  it("a trailing-dot FQDN cannot bypass the guard", () => {
+    // `host.example.com.` resolves to the identical live host, so it must still
+    // be flagged — otherwise a single trailing dot would defeat the block.
+    expect(
+      isLiveProviderUrl("https://generativelanguage.googleapis.com./v1"),
+    ).toBe(true);
+    expect(isLiveProviderUrl("https://api.tavily.com./search")).toBe(true);
+    expect(
+      guardLiveCall("https://api.tavily.com./search", { isBrowser: true })
+        .allow,
+    ).toBe(false);
+  });
+
+  it("matches a live host on an explicit port", () => {
+    expect(isLiveProviderUrl("https://api.tavily.com:443/search")).toBe(true);
+  });
 });
 
 describe("no-live-call guard — decision", () => {

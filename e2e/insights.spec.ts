@@ -26,7 +26,8 @@ const LIVE_PROVIDER_HOSTS = [
 function isLiveProviderRequest(url: string): boolean {
   let host = "";
   try {
-    host = new URL(url).hostname.toLowerCase();
+    // Strip a trailing dot so `host.example.com.` (same live host) still counts.
+    host = new URL(url).hostname.toLowerCase().replace(/\.$/, "");
   } catch {
     return false;
   }

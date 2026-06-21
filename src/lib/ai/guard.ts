@@ -50,10 +50,20 @@ export function isBrowserRuntime(): boolean {
   );
 }
 
-/** Extract a lowercased hostname from a URL string; "" if it cannot be parsed. */
+/**
+ * Normalize a hostname for comparison: lowercase and strip a trailing dot so a
+ * fully-qualified `host.example.com.` is treated the same as `host.example.com`
+ * (both resolve to the identical live host — a trailing dot must not bypass the
+ * guard).
+ */
+function normalizeHost(host: string): string {
+  return host.toLowerCase().replace(/\.$/, "");
+}
+
+/** Extract a normalized hostname from a URL string; "" if it cannot be parsed. */
 function hostnameOf(url: string): string {
   try {
-    return new URL(url).hostname.toLowerCase();
+    return normalizeHost(new URL(url).hostname);
   } catch {
     // Relative URLs (same-origin app assets) have no live provider host.
     try {
@@ -61,7 +71,7 @@ function hostnameOf(url: string): string {
         typeof window !== "undefined" && window.location
           ? window.location.href
           : "http://localhost/";
-      return new URL(url, base).hostname.toLowerCase();
+      return normalizeHost(new URL(url, base).hostname);
     } catch {
       return "";
     }

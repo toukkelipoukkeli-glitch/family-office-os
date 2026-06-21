@@ -126,19 +126,40 @@ export function AppShell({
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground"
+      // `overflow-x-clip` is a belt-and-braces guard: even though the header's
+      // control cluster scrolls its own overflow internally, some browsers still
+      // grow the document's horizontal scroll width from a clipped flex child.
+      // Clipping the x-axis at the page root keeps the document itself from ever
+      // scrolling sideways (the oracle: `scrollWidth <= clientWidth`) while
+      // leaving the y-axis visible so sticky headers / dropdowns are unaffected.
+      className="min-h-screen overflow-x-clip bg-background text-foreground"
       data-testid={containerTestId}
     >
       <header className="border-b border-border">
         <div
           className={cn(
-            "mx-auto flex h-16 items-center justify-between px-6",
+            // On small screens the title + the actions/back cluster can be wider
+            // than the viewport (the cluster carries an export menu, the global
+            // filter/currency/palette/theme controls and a "Back to dashboard"
+            // link). Let the row wrap to a second line there — `min-h-16` keeps
+            // the familiar 64px height when it fits on one line, and the vertical
+            // padding gives the wrapped state breathing room — so the header
+            // never forces the document wider than the viewport. From `sm` up,
+            // `flex-nowrap` restores the original single-row layout unchanged.
+            "mx-auto flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-2 sm:flex-nowrap sm:py-0",
             widthClass,
           )}
         >
-          {titleBlock}
+          {/* Let the title block shrink instead of pushing the row wider. */}
+          <div className="min-w-0 shrink">{titleBlock}</div>
 
-          <div className="flex items-center gap-4">
+          {/* The control cluster (export menu + filter/currency/palette/theme +
+              back link) can on its own be wider than a phone viewport. Let its
+              items wrap onto additional lines on small screens (`flex-wrap`,
+              right-aligned) rather than overflowing — so nothing is pushed past
+              the viewport edge. On `sm` up there is ample room, so
+              `flex-nowrap` restores the original single-row cluster unchanged. */}
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-3 sm:flex-nowrap sm:gap-4">
             {actions}
             {/* The global holding-tag filter is surfaced on every shell page so
                 the active selection is visible and adjustable anywhere, not just

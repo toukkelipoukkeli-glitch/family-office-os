@@ -69,6 +69,74 @@ describe("toCsv", () => {
     };
     expect(toCsv(table)).toBe(toCsv(table));
   });
+
+  describe("formula-injection hardening", () => {
+    it("neutralizes string cells beginning with a formula trigger", () => {
+      const table: CsvTable = {
+        columns: ["payload"],
+        rows: [
+          ["=1+1"],
+          ["+1+1"],
+          ["-1+cmd|'x'!A1"],
+          ["@SUM(A1:A9)"],
+          ["\t=evil"],
+          ["\r=evil"],
+        ],
+      };
+      expect(toCsv(table)).toBe(
+        "payload\r\n" +
+          "'=1+1\r\n" +
+          "'+1+1\r\n" +
+          "'-1+cmd|'x'!A1\r\n" +
+          "'@SUM(A1:A9)\r\n" +
+          // Tab and CR triggers are prefixed; the CR also forces RFC quoting.
+          "'\t=evil\r\n" +
+          '"\'\r=evil"\r\n',
+      );
+    });
+
+    it("neutralizes a dangerous HEADER cell, not just data cells", () => {
+      const table: CsvTable = {
+        columns: ["=cmd|'/c calc'!A1", "ok"],
+        rows: [["v", "w"]],
+      };
+      expect(toCsv(table)).toBe("'=cmd|'/c calc'!A1,ok\r\nv,w\r\n");
+    });
+
+    it("leaves numeric strings and machine numbers exact (no quote prefix)", () => {
+      const table: CsvTable = {
+        columns: ["a", "b", "c", "d", "e"],
+        rows: [["-12.5", "+10", "1e3", -2.5, 1000000]],
+      };
+      const out = toCsv(table);
+      expect(out).toBe("a,b,c,d,e\r\n-12.5,+10,1e3,-2.5,1000000\r\n");
+      expect(out).not.toContain("'");
+    });
+
+    it("does not treat a leading-space value as a formula", () => {
+      // Spreadsheets do not evaluate a cell that starts with whitespace, so it
+      // must pass through unchanged (and not gain a stray quote prefix).
+      const table: CsvTable = { columns: ["x"], rows: [[" =1+1"]] };
+      expect(toCsv(table)).toBe("x\r\n =1+1\r\n");
+    });
+
+    it("applies the quote prefix BEFORE RFC quoting when both apply", () => {
+      // A dangerous cell that also contains the delimiter must be neutralized
+      // (leading ') and then RFC-quoted, so the ' lives inside the quotes.
+      const table: CsvTable = {
+        columns: ["x"],
+        rows: [['=HYPERLINK("http://e","a, b")']],
+      };
+      expect(toCsv(table)).toBe(
+        'x\r\n"\'=HYPERLINK(""http://e"",""a, b"")"\r\n',
+      );
+    });
+
+    it("escapeFormulas:false is an opt-out that emits raw triggers", () => {
+      const table: CsvTable = { columns: ["x"], rows: [["=1+1"]] };
+      expect(toCsv(table, { escapeFormulas: false })).toBe("x\r\n=1+1\r\n");
+    });
+  });
 });
 
 describe("toCsv — formula-injection hardening", () => {

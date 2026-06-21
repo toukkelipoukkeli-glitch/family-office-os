@@ -136,7 +136,11 @@ test.describe("/ops cockpit", () => {
   // immediately on a dimension mismatch). The header is the stable structural
   // element, so this stays a meaningful CSS-regression check without coupling to
   // transient build state.
-  test("visual snapshot of the ops cockpit header", async ({ page }) => {
+  test("visual snapshot of the ops cockpit header", async ({ page }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== "chromium",
+      "visual baseline is chromium-only; firefox/webkit gated by DOM assertions",
+    );
     test.skip(
       !!process.env.CI,
       "visual baseline is OS-specific; DOM assertions gate CI",

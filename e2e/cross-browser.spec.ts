@@ -74,6 +74,31 @@ test.describe("cross-browser core workflow", () => {
     });
   });
 
+  test("typing into the holdings search filters on every engine", async ({
+    page,
+  }) => {
+    // Text entry is the one input modality the other smoke tests don't cover, and
+    // it's where engines historically diverge (IME/composition, `type=search`
+    // clear button, controlled-input re-render). Type realistic data and assert
+    // the resulting UI state changes identically on chromium/firefox/webkit.
+    await page.setViewportSize(DESKTOP);
+    await page.goto("/#/holdings");
+    await expect(page.getByTestId("holdings-table")).toBeVisible();
+    await expect(page.getByTestId("holdings-row")).toHaveCount(14);
+
+    await page.getByTestId("holdings-search").fill("apple");
+
+    await expect(page.getByTestId("holdings-row")).toHaveCount(1);
+    await expect(page.getByTestId("holdings-row").first()).toHaveAttribute(
+      "data-holding",
+      "hold-equity-aapl",
+    );
+    // The controlled input must reflect what was typed on every engine.
+    await expect(page.getByTestId("holdings-search")).toHaveValue("apple");
+    // …and the search persists to the URL for deep-linking.
+    await expect(page).toHaveURL(/q=apple/);
+  });
+
   test("mobile layout is usable on every engine", async ({
     page,
   }, testInfo) => {

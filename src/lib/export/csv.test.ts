@@ -70,3 +70,108 @@ describe("toCsv", () => {
     expect(toCsv(table)).toBe(toCsv(table));
   });
 });
+
+describe("toCsv — formula-injection hardening", () => {
+  it("prefixes a single quote on string cells beginning with = + @", () => {
+    const table: CsvTable = {
+      columns: ["payload"],
+      rows: [
+        ["=1+1"],
+        ["+1+1"],
+        ["@SUM(A1:A9)"],
+        ["=HYPERLINK(\"http://evil\",\"x\")"],
+      ],
+    };
+    const out = toCsv(table);
+    expect(out).toContain("\r\n'=1+1\r\n");
+    expect(out).toContain("\r\n'+1+1\r\n");
+    expect(out).toContain("\r\n'@SUM(A1:A9)\r\n");
+    // The HYPERLINK payload contains a quote, so it is RFC-quoted AND the
+    // leading single quote sits inside the quoted field, ahead of the `=`.
+    expect(out).toContain("\"'=HYPERLINK(\"\"http://evil\"\",\"\"x\"\")\"");
+  });
+
+  it("escapes the classic DDE command-execution payload", () => {
+    // The canonical Excel/LibreOffice formula-injection exploit.
+    const table: CsvTable = {
+      columns: ["c"],
+      rows: [["=cmd|'/c calc'!A1"], ["@cmd|'/c calc'!A0"]],
+    };
+    const out = toCsv(table);
+    // Begins with a quote inside the RFC-quoted field (the `|` etc. don't force
+    // quoting, but the single quote we prepend does not either — so check raw).
+    expect(out).toContain("'=cmd|'/c calc'!A1");
+    expect(out).toContain("'@cmd|'/c calc'!A0");
+  });
+
+  it("escapes leading TAB and CR string cells (importers can re-expose them)", () => {
+    const table: CsvTable = {
+      columns: ["c"],
+      rows: [["\t=1+1"], ["\r=1+1"]],
+    };
+    const out = toCsv(table);
+    // A leading TAB does not force RFC quoting, so the cell is bare with the
+    // neutralizing single quote in front.
+    expect(out).toContain("\r\n'\t=1+1\r\n");
+    // A leading CR forces RFC quoting; the single quote leads inside the quotes.
+    expect(out).toContain('"\'\r=1+1"');
+  });
+
+  it("escapes a leading-hyphen string that is NOT a plain number", () => {
+    const table: CsvTable = {
+      columns: ["c"],
+      rows: [["-2+3+cmd|'/c calc'!A1"], ["-foo"]],
+    };
+    const out = toCsv(table);
+    expect(out).toContain("'-2+3+cmd|'/c calc'!A1");
+    expect(out).toContain("\r\n'-foo\r\n");
+  });
+
+  it("leaves negative and signed NUMERIC strings untouched (they are numbers)", () => {
+    const table: CsvTable = {
+      columns: ["a", "b", "c", "d"],
+      rows: [["-2.5", "+10", "-0.0013369008909980273", "1e-5"]],
+    };
+    // No leading single quote anywhere — these are spreadsheet numbers.
+    expect(toCsv(table)).toBe(
+      "a,b,c,d\r\n-2.5,+10,-0.0013369008909980273,1e-5\r\n",
+    );
+  });
+
+  it("never escapes numeric or boolean cells, even when negative", () => {
+    const table: CsvTable = {
+      columns: ["neg", "pos", "bool"],
+      rows: [[-2.5, 10, true]],
+    };
+    expect(toCsv(table)).toBe("neg,pos,bool\r\n-2.5,10,true\r\n");
+  });
+
+  it("leaves benign string cells exactly as-is", () => {
+    const table: CsvTable = {
+      columns: ["name", "note"],
+      rows: [
+        ["Acme, Inc.", "all good"],
+        ["a=b is fine mid-string", "plain"],
+        ["", "empty stays empty"],
+      ],
+    };
+    expect(toCsv(table)).toBe(
+      'name,note\r\n' +
+        '"Acme, Inc.",all good\r\n' +
+        "a=b is fine mid-string,plain\r\n" +
+        ',empty stays empty\r\n',
+    );
+  });
+
+  it("can be disabled with escapeFormulas:false (opt-out)", () => {
+    const table: CsvTable = { columns: ["c"], rows: [["=1+1"]] };
+    expect(toCsv(table, { escapeFormulas: false })).toBe("c\r\n=1+1\r\n");
+    // Default path still escapes.
+    expect(toCsv(table)).toBe("c\r\n'=1+1\r\n");
+  });
+
+  it("hardens dangerous header strings too", () => {
+    const table: CsvTable = { columns: ["=evil"], rows: [] };
+    expect(toCsv(table)).toBe("'=evil\r\n");
+  });
+});

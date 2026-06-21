@@ -1,21 +1,28 @@
 {
   "updatedAt": "2026-06-21",
-  "generation": "hardening-v1",
-  "phase": "DEPLOYED + hardening building → then handoff → v1 done",
+  "generation": "v1 COMPLETE",
+  "phase": "DONE — feature-complete, hardened, deployed, handed off",
   "liveUrl": "https://toukkelipoukkeli-glitch.github.io/family-office-os/",
-  "gens_1_7": "complete — 73 feature units across 7 generations + polish layer",
-  "gen7": { "status": "complete", "merged": "6/7", "note": "m13-export-rollout (#85) closed: reviewer caught real float-money + currency bugs across ~10 export pages; superseded by m14-export-precision in the hardening pass." },
-  "deploy": {
-    "status": "LIVE",
-    "url": "https://toukkelipoukkeli-glitch.github.io/family-office-os/",
-    "how": "GitHub Pages, source=GitHub Actions (.github/workflows/deploy-pages.yml). Vite base is conditional (VITE_BASE=/family-office-os/ only in the Pages build; dev/e2e/CI use '/'). Hash routing ⇒ no SPA 404 fallback. Auto-redeploys on every push to main.",
-    "verified": "HTTP 200; app renders the executive dashboard ($7.22M net worth, full allocation, drill-down) live in-browser."
+  "summary": "7 feature generations + a hardening pass: ~90 merged PRs, 3388 tests, 76 src/lib engine modules, ~40 routes. Deployed to GitHub Pages (auto-redeploy on push to main). Final QA verdict: release-ready.",
+  "generations": {
+    "scaffold": "merged",
+    "gen1-spine": "35/35",
+    "gen2-depth": "8/10",
+    "gen3-advanced": "9/9",
+    "gen4-decision-surfaces": "7/7",
+    "gen5-institutional": "8/8",
+    "gen6-polish": "7/7",
+    "gen7-rollout": "6/7",
+    "hardening-v1": "5/5"
   },
-  "hardening": {
-    "status": "building (sequential)",
-    "units": ["m14-export-precision", "m14-mobile-nav", "m14-csv-injection", "m14-cross-browser", "m14-no-key-guard"]
-  },
-  "remaining": "After hardening: write harness/HANDOFF.md + copy gen workflow scripts into harness/workflows/ + README demo link (so Touko can continue from another machine), then declare v1 DONE.",
-  "needsTouko": ["real bank/brokerage data", "auth", "Convex prod with real data", "custom domain"],
+  "handoff": "harness/HANDOFF.md + harness/workflows/ (9 re-runnable scripts) + README demo link. Clone-and-continue ready from any machine.",
+  "needsTouko": [
+    "real bank/brokerage data feeds (adapters exist, fixture-tested)",
+    "auth (currently single-user, none)",
+    "Convex production deployment with real data",
+    "custom domain (optional)",
+    "wire the unused ElevenLabs (voice) + Tavily (research) keys",
+    "fix 5 pages with pre-existing mobile horizontal overflow (/charts, /risk, /concentration, /data-quality, /ops)"
+  ],
   "blocked": []
 }

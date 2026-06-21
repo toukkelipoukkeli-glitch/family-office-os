@@ -11,6 +11,14 @@ system, wired to real public data feeds (markets, FX, macro, weather, world data
 > **Safety stance:** read-only. It never moves money, never places a trade,
 > never emails a real counterparty. It is analytics + visualization only.
 
+**▶ Live demo: https://toukkelipoukkeli-glitch.github.io/family-office-os/**
+
+Built almost entirely by an autonomous multi-agent loop — 7 feature generations
+plus a hardening pass: ~90 merged PRs, **3,388 tests**, 76 engine modules,
+~40 routed pages, deployed to GitHub Pages. **Continuing from another machine?**
+Start with **[harness/HANDOFF.md](harness/HANDOFF.md)** — it has the full state,
+how to run, how the build loop works, and every hard-won lesson.
+
 ## Stack
 
 - **Runtime / package manager:** Bun

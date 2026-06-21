@@ -13,6 +13,53 @@ const MOBILE = { width: 390, height: 844 };
 // UI-evidence requirement holds even if the global default changes.
 test.use({ trace: "on", acceptDownloads: true });
 
+/**
+ * Minimal RFC 4180 CSV parser (CRLF rows, `"`-quoted fields, `""` escapes).
+ * Used only by the assertions below so we can inspect *every* cell, not just
+ * the first character of each line.
+ */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\r" && text[i + 1] === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+      i++;
+    } else {
+      field += ch;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
+
 /** Read the full text body of a Playwright download. */
 async function downloadText(download: Download): Promise<string> {
   const stream = await download.createReadStream();
@@ -85,11 +132,16 @@ test.describe("CSV formula-injection hardening", () => {
     // Header shape unchanged by the hardening pass.
     expect(body).toContain("date,category,severity,title,detail");
     expect(body).toContain("\r\n");
-    // No data row begins with a raw formula trigger (every line is either the
-    // header, a date like 2026-..., or a neutralized cell).
-    for (const line of body.split("\r\n")) {
-      if (line.length === 0) continue;
-      expect(["=", "+", "@"]).not.toContain(line[0]);
+    // Parse the CSV RFC-4180-aware and assert that NO cell — in any column,
+    // not just the first one on a line — begins with a raw formula trigger.
+    // A bare leading `-` is allowed only when it is a negative number (e.g.
+    // `-2.5`); a `-` followed by anything else must have been neutralized.
+    const rows = parseCsv(body);
+    expect(rows.length).toBeGreaterThan(1);
+    for (const row of rows.slice(1)) {
+      for (const cell of row) {
+        expect(cell).not.toMatch(/^(?:=|\+|@|\t|\r|-(?![\d.]))/);
+      }
     }
   });
 

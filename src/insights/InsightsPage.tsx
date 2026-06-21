@@ -23,6 +23,9 @@ const REASON_COPY: Record<string, string> = {
     "No GEMINI_API_KEY is configured, so the AI narrative is turned off. " +
     "Add a key server-side to enable it. The deterministic summary below is " +
     "always available.",
+  "browser-blocked":
+    "AI insights are generated server-side; the browser never calls the live " +
+    "AI provider directly. The deterministic summary below is always available.",
   "http-error":
     "The AI service rejected the request (likely an invalid key or quota). " +
     "Showing the deterministic summary instead.",

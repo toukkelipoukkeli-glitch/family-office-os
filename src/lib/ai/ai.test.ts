@@ -77,7 +77,7 @@ describe("prompt builder", () => {
 describe("AiInsightsAdapter — fixture path", () => {
   it("returns an ok narrative from a successful fixture", async () => {
     const { fetchImpl, calls } = fetchReturning(successResponse);
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     expect(adapter.isConfigured).toBe(true);
 
     const result = await adapter.narrate(seededBoardReport);
@@ -101,7 +101,7 @@ describe("AiInsightsAdapter — fixture path", () => {
 
   it("concatenates multi-part candidate text", async () => {
     const { fetchImpl } = fetchReturning(multiPartResponse);
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("ok");
     if (result.status === "ok") {
@@ -114,7 +114,7 @@ describe("AiInsightsAdapter — fixture path", () => {
 
   it("does not leak the API key into request headers", async () => {
     const { fetchImpl, calls } = fetchReturning(successResponse);
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     await adapter.narrate(seededBoardReport);
     const headers = (calls[0].init as { headers?: Record<string, string> })
       .headers;
@@ -148,7 +148,11 @@ describe("AiInsightsAdapter — graceful degradation", () => {
       status: 400,
       statusText: "Bad Request",
     });
-    const adapter = new AiInsightsAdapter({ apiKey: "bad-key", fetchImpl });
+    const adapter = new AiInsightsAdapter({
+      apiKey: "bad-key",
+      fetchImpl,
+      isBrowser: false,
+    });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("unavailable");
     if (result.status === "unavailable") {
@@ -161,7 +165,7 @@ describe("AiInsightsAdapter — graceful degradation", () => {
 
   it("degrades when the prompt is safety-blocked", async () => {
     const { fetchImpl } = fetchReturning(blockedResponse);
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("unavailable");
     if (result.status === "unavailable") {
@@ -172,7 +176,7 @@ describe("AiInsightsAdapter — graceful degradation", () => {
 
   it("degrades when the response has no usable candidate text", async () => {
     const { fetchImpl } = fetchReturning(emptyResponse);
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("unavailable");
     if (result.status === "unavailable") {
@@ -182,7 +186,7 @@ describe("AiInsightsAdapter — graceful degradation", () => {
 
   it("degrades on a malformed body", async () => {
     const { fetchImpl } = fetchReturning(malformedResponse);
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("unavailable");
     if (result.status === "unavailable") {
@@ -194,7 +198,7 @@ describe("AiInsightsAdapter — graceful degradation", () => {
     const fetchImpl: FetchLike = vi.fn(async () => {
       throw new Error("connection refused");
     });
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("unavailable");
     if (result.status === "unavailable") {
@@ -207,7 +211,7 @@ describe("AiInsightsAdapter — graceful degradation", () => {
     const fetchImpl: FetchLike = vi.fn(async () => {
       throw new Error("boom");
     });
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     await expect(adapter.narrate(seededBoardReport)).resolves.toMatchObject({
       status: "unavailable",
     });
@@ -217,7 +221,7 @@ describe("AiInsightsAdapter — graceful degradation", () => {
     const fetchImpl: FetchLike = vi.fn(async () => {
       throw "raw string failure";
     });
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("unavailable");
     if (result.status === "unavailable") {
@@ -235,7 +239,7 @@ describe("AiInsightsAdapter — graceful degradation", () => {
         throw new Error("not json");
       },
     }));
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     const result = await adapter.narrate(seededBoardReport);
     expect(result.status).toBe("unavailable");
     if (result.status === "unavailable") {
@@ -281,7 +285,7 @@ describe("AiInsightsAdapter — key resolution & request shape", () => {
 
   it("does not place the API key in the request body", async () => {
     const { fetchImpl, calls } = fetchReturning(successResponse);
-    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl });
+    const adapter = new AiInsightsAdapter({ apiKey: KEY, fetchImpl, isBrowser: false });
     await adapter.narrate(seededBoardReport);
     const body = (calls[0].init as { body?: string }).body ?? "";
     expect(body).not.toContain(KEY);
@@ -295,6 +299,7 @@ describe("AiInsightsAdapter — key resolution & request shape", () => {
       apiKey: KEY,
       fetchImpl,
       requestTimeoutMs: 5_000,
+      isBrowser: false,
     });
     await adapter.narrate(seededBoardReport);
     const signal = (calls[0].init as { signal?: AbortSignal }).signal;
@@ -307,6 +312,7 @@ describe("AiInsightsAdapter — key resolution & request shape", () => {
       apiKey: KEY,
       fetchImpl,
       requestTimeoutMs: 0,
+      isBrowser: false,
     });
     await adapter.narrate(seededBoardReport);
     const signal = (calls[0].init as { signal?: AbortSignal }).signal;

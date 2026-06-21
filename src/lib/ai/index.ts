@@ -15,6 +15,7 @@
  */
 export * from "./schema";
 export * from "./prompt";
+export * from "./guard";
 export * from "./client";
 // NOTE: `./fixtures` is intentionally NOT re-exported — those are static test
 // snapshots with no runtime use. Tests import them directly from "./fixtures".

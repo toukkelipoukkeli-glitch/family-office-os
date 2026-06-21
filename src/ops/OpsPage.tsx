@@ -170,7 +170,7 @@ export function OpsPage() {
               <Card
                 key={status}
                 data-testid={`column-${status}`}
-                className="flex flex-col"
+                className="flex min-w-0 flex-col"
               >
                 <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
                   <CardTitle className="text-base">
@@ -212,14 +212,14 @@ export function OpsPage() {
                 data-testid={`milestone-${milestone.id}`}
                 className="space-y-1.5"
               >
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="min-w-0 truncate font-medium">
                     <span className="font-mono text-muted-foreground">
                       {milestone.id}
                     </span>{" "}
                     {milestone.title}
                   </span>
-                  <span className="tabular-nums text-muted-foreground">
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
                     {mc.merged}/{mc.total} · {mp}%
                   </span>
                 </div>

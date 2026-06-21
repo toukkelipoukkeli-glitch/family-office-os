@@ -65,7 +65,7 @@ export const BarChart = React.forwardRef<SVGSVGElement, BarChartProps>(
         viewBox={`0 0 ${width} ${height}`}
         width={width}
         height={height}
-        className={cn(className)}
+        className={cn("h-auto max-w-full", className)}
         data-testid="bar-chart"
         data-bars={bars.length}
         {...props}

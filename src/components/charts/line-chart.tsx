@@ -67,7 +67,7 @@ export const LineChart = React.forwardRef<SVGSVGElement, LineChartProps>(
         viewBox={`0 0 ${width} ${height}`}
         width={width}
         height={height}
-        className={cn("text-muted-foreground", className)}
+        className={cn("h-auto max-w-full text-muted-foreground", className)}
         data-testid="line-chart"
         data-series={series.length}
         {...props}

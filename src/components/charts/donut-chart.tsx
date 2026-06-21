@@ -45,7 +45,7 @@ export const DonutChart = React.forwardRef<SVGSVGElement, DonutChartProps>(
         viewBox={`0 0 ${size} ${size}`}
         width={size}
         height={size}
-        className={cn(className)}
+        className={cn("h-auto max-w-full", className)}
         data-testid="donut-chart"
         data-segments={segments.length}
         {...props}

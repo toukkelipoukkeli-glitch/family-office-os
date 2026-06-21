@@ -280,8 +280,8 @@ export function DataQualityView({
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0 space-y-6">
           {/* Staleness distribution */}
           <Card data-testid="dq-status-card">
             <CardHeader>
@@ -453,7 +453,7 @@ export function DataQualityView({
         </div>
 
         {/* Detail drill-down */}
-        <Card data-testid="dq-detail-card">
+        <Card data-testid="dq-detail-card" className="min-w-0">
           <CardHeader>
             <CardTitle className="text-base">Trust detail</CardTitle>
             <CardDescription>Why this number is (un)trusted</CardDescription>

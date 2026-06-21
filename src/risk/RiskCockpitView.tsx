@@ -343,8 +343,8 @@ export function RiskCockpitView({
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0 space-y-6">
           {/* Concentration vs limits */}
           <Card data-testid="risk-conc-card">
             <CardHeader>
@@ -390,7 +390,7 @@ export function RiskCockpitView({
         </div>
 
         {/* Liquidity tiers + breaches */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card data-testid="risk-liquidity-card">
             <CardHeader>
               <CardTitle className="text-base">Liquidity tiers</CardTitle>

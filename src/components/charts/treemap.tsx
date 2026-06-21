@@ -47,7 +47,7 @@ export const Treemap = React.forwardRef<SVGSVGElement, TreemapProps>(
         viewBox={`0 0 ${width} ${height}`}
         width={width}
         height={height}
-        className={cn(className)}
+        className={cn("h-auto max-w-full", className)}
         data-testid="treemap"
         data-tiles={tiles.length}
         {...props}

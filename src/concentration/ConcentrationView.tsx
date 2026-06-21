@@ -307,8 +307,8 @@ export function ConcentrationView({
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0 space-y-6">
           {/* Single names with look-through */}
           <Card data-testid="conc-names-card">
             <CardHeader>
@@ -356,7 +356,7 @@ export function ConcentrationView({
         </div>
 
         {/* Sector + liquidity sidebar */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card data-testid="conc-sector-card">
             <CardHeader>
               <CardTitle className="text-base">Sector concentration</CardTitle>
